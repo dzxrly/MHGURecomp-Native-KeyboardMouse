@@ -24,6 +24,13 @@ static char *read_file(const char *path) {
 }
 int main(int argc, char **argv) {
     assert(argc == 2);
+    Config preset = config_defaults();
+    assert(preset.keyboard_preset == KEYBOARD_ORIGINAL);
+    const ConfigSetting *preset_setting = config_setting("KeyboardPreset");
+    assert(preset_setting && preset_setting->restart);
+    assert(config_parse(preset_setting, "ValorHBG", &preset));
+    assert(preset.keyboard_preset == KEYBOARD_VALOR_HBG && config_valid(preset_setting, &preset));
+    assert(!config_parse(preset_setting, "Unknown", &preset));
     const char *path = argv[1];
     FILE *f = fopen(path, "wb"); assert(f);
     fputs("; Keep this comment\r\n[Display]\r\nMode = Borderless Window\r\nResolution = Desktop\r\nRenderResolution = Auto\r\n"

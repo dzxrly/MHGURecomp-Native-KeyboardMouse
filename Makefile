@@ -163,6 +163,14 @@ test-settings:
 	$(CC) $(RTFLAGS) tests/test_settings.c runtime/config.c runtime/config_store.c -lSDL3 -lm -o $(O)/settings-test/test-settings$(if $(filter windows,$(PLATFORM)),.exe)
 	$(O)/settings-test/test-settings$(if $(filter windows,$(PLATFORM)),.exe) $(O)/settings-test/settings.ini
 
+# Fixed keyboard/mouse bindings, wheel timing and multilingual text substitutions. No game dump required.
+.PHONY: test-valor-hbg
+test-valor-hbg:
+	@mkdir -p $(O)/settings-test
+	$(CC) $(RTFLAGS) tests/test_valor_hbg_input.c -o $(O)/settings-test/test-valor-hbg$(if $(filter windows,$(PLATFORM)),.exe)
+	$(O)/settings-test/test-valor-hbg$(if $(filter windows,$(PLATFORM)),.exe)
+	$(PY) tests/test_valor_hbg_text.py
+
 $(O)/gen/%.o: $(GEN)/%.c runtime/cpu.h runtime/vfp.h runtime/neon_rt.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(GENFLAGS) -c $< -o $@

@@ -6,6 +6,9 @@
 //   stick click. While the game shows a text entry (names, chat) the keyboard types instead
 //   (runtime/textinput.c). F11 switches windowed <-> full screen, F12 saves a screenshot, Shift+F12 the next 8
 //   frames (exact rendered pixels, run\shots\), F10 dumps every render pass of the next 2 frames (debug, slow), F9 toggles how colour clears are done (debug).
+// KeyboardPreset=ValorHBG: LMB=A, RMB/Shift=R, R=X, F/Mouse4=Y, C=X+A, Esc=Plus, Tab/MMB=ZL;
+//   wheel=L+X/B (ammo), 1/2/3=Up/Right/Down. Shift is ordinary run, never Valor Power Run.
+//   F2 releases the captured mouse in this preset (Esc opens the game's menu).
 // Gamepad (SDL): face buttons by position as on a Switch controller (the bottom one is B), or by their labels
 //   (settings FaceButtons, runtime/config.c; MHGU_PAD_POSITIONAL=0|1 overrides).
 //   Every controller is open and the one a button was last pressed on is read (a Steam Deck with a controller plugged
@@ -28,6 +31,7 @@
 #include "overlay.h"
 #include "rt.h"
 #include "textinput.h"
+#include "valor_hbg_input.h"
 
 #define B(x) (1ull << (x))
 
@@ -59,6 +63,7 @@ static bool mouse_captured;   // relative mode on now (grabbed, and no Forge men
 static bool mouse_no_capture; // relative mode refused (WSLg, some Wayland compositors): clicks are buttons, no mouse look
 static float mouse_dx, mouse_dy;  // counts moved since the last update
 static uint64_t mouse_buttons;
+static HbgAmmoWheel ammo_wheel;
 // (tests: the control file's "mousemove <x> <y> <ms>", a mouse moving at that many counts a second, captured or not)
 static float test_vx, test_vy;
 static uint64_t test_until;
@@ -448,9 +453,11 @@ void host_input_event(const SDL_Event *e) {
                 keys[e->key.scancode] = false;  // (Alt+Enter: windowed <-> full screen, not a button press)
                 keys[SDL_SCANCODE_LALT] = keys[SDL_SCANCODE_RALT] = false;
                 ui_toggle_fullscreen();
-            } else if (e->key.scancode == SDL_SCANCODE_ESCAPE) {
+            } else if ((e->key.scancode == SDL_SCANCODE_ESCAPE && g_config.keyboard_preset == KEYBOARD_ORIGINAL) ||
+                       (e->key.scancode == SDL_SCANCODE_F2 && g_config.keyboard_preset == KEYBOARD_VALOR_HBG)) {
                 if (mouse_grab) LOG("[input] mouse released\n");
                 mouse_grab = false;
+                hbg_wheel_reset(&ammo_wheel);
             } else if (e->key.scancode == SDL_SCANCODE_F12 && !(e->key.mod & SDL_KMOD_SHIFT))
                 snprintf(g_shot_request, sizeof g_shot_request, "shots/shot_%llu_%d.png", (unsigned long long)t, nshot++);
             else if (e->key.scancode == SDL_SCANCODE_F11) {
@@ -479,7 +486,8 @@ void host_input_event(const SDL_Event *e) {
         if (mouse_captured) mouse_dx += e->motion.xrel, mouse_dy += e->motion.yrel;
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN: case SDL_EVENT_MOUSE_BUTTON_UP: {
-        int btn = e->button.button == SDL_BUTTON_LEFT ? BTN_X : e->button.button == SDL_BUTTON_RIGHT ? BTN_A : -1;
+        int btn = g_config.keyboard_preset == KEYBOARD_VALOR_HBG ? valor_hbg_mouse(e->button.button) :
+                  e->button.button == SDL_BUTTON_LEFT ? BTN_X : e->button.button == SDL_BUTTON_RIGHT ? BTN_A : -1;
         if (btn < 0) break;
         if (!e->button.down) {
             mouse_buttons &= ~B(btn);
@@ -491,9 +499,14 @@ void host_input_event(const SDL_Event *e) {
         }
         break;
     }
+    case SDL_EVENT_MOUSE_WHEEL:
+        if (g_config.keyboard_preset == KEYBOARD_VALOR_HBG && !textinput_active() && (mouse_captured || mouse_no_capture))
+            hbg_wheel_add(&ammo_wheel, e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -e->wheel.y : e->wheel.y);
+        break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         memset(keys, 0, sizeof keys);
         mouse_buttons = 0, mouse_grab = false;
+        hbg_wheel_reset(&ammo_wheel);
         config_window_focus(false);  // ([Audio] MuteInBackground)
         if (config_editable().mute_in_background) LOG("[input] window in the background: sound muted\n");
         break;
@@ -569,7 +582,11 @@ static void rumble_update(void) {
 }
 
 void host_input_update(void) {
-    if (nscript < 0) script_parse();
+    if (nscript < 0) {
+        script_parse();
+        if (g_config.keyboard_preset == KEYBOARD_VALOR_HBG)
+            LOG("[input] ValorHBG: LMB fire, RMB aim, R reload, F/Mouse4 sheathe, Shift ordinary run, C X+A, wheel ammo\n");
+    }
     rumble_update();
     control_poll();
     quickhunt_poll();  // (debug, MHGU_QUICKHUNT: runtime/hle/quickhunt.c)
@@ -580,12 +597,20 @@ void host_input_update(void) {
     if (textinput_active() != typing) {
         typing = !typing;
         memset(keys, 0, sizeof keys);  // (keys held when the entry opened are typing now, or released)
+        mouse_buttons = 0;
+        hbg_wheel_reset(&ammo_wheel);
     }
 
-    for (unsigned i = 0; i < sizeof key_buttons / sizeof *key_buttons; i++)
-        if (keys[key_buttons[i].sc]) b |= B(key_buttons[i].btn);
+    if (g_config.keyboard_preset == KEYBOARD_VALOR_HBG) {
+        for (int i = 0; i < SDL_SCANCODE_COUNT; i++)
+            if (keys[i]) b |= valor_hbg_key((SDL_Scancode)i);
+        b |= hbg_wheel_buttons(&ammo_wheel, plat_now_ns());
+    } else {
+        for (unsigned i = 0; i < sizeof key_buttons / sizeof *key_buttons; i++)
+            if (keys[key_buttons[i].sc]) b |= B(key_buttons[i].btn);
+    }
     int kx = keys[SDL_SCANCODE_D] - keys[SDL_SCANCODE_A], ky = keys[SDL_SCANCODE_W] - keys[SDL_SCANCODE_S];
-    int k = keys[SDL_SCANCODE_LSHIFT] ? 16000 : 32767;
+    int k = g_config.keyboard_preset == KEYBOARD_ORIGINAL && keys[SDL_SCANCODE_LSHIFT] ? 16000 : 32767;
     if (kx && ky) k = k * 7071 / 10000;  // diagonals: same length as straight
     lx += kx * k, ly += ky * k;
     b |= mouse_buttons;
@@ -690,6 +715,7 @@ void host_input_update(void) {
         menu = !menu;
         memset(keys, 0, sizeof keys);  // (keys held as it opened went to the menu: nothing stays pressed)
         mouse_buttons = 0;
+        hbg_wheel_reset(&ammo_wheel);
     }
     if (menu) {  // Forge's menu has the controller (as in Forge: A activates, B cancels, stick and d-pad move)
         OverlayPad p = {b & B(BTN_A), b & B(BTN_B), b & B(BTN_X), b & B(BTN_Y), b & B(BTN_UP), b & B(BTN_DOWN),

@@ -1,0 +1,648 @@
+{
+  "recomp_version": "0.10.8",
+  "source_ref": "https://github.com/morerokk/MHGURecomp/blob/0.10.8/runtime/host_input.c",
+  "source_archive": "nativeNX/loc/arc/resident.arc",
+  "texture_entry": "GUI\\02_common\\font\\button_festa_00_ID",
+  "texture_type": "0x241f5deb",
+  "texture": {
+    "width": 256,
+    "height": 256,
+    "format": "DXT5 / BC3",
+    "mipmaps": 1,
+    "tex_version": 160,
+    "header_size": 24,
+    "block_height_log2": 3
+  },
+  "gfd_entry": "GUI\\02_common\\font\\button_festa",
+  "gii_entry": "GUI\\02_common\\font\\fontIcon",
+  "verification": {
+    "icon_name_count": 69,
+    "gfd_glyph_count": 70,
+    "swizzle_roundtrip_exact": true,
+    "in_game_replacement_tested": false
+  },
+  "icons": [
+    {
+      "name": "PAD_Y",
+      "codepoint": 48,
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "F"
+    },
+    {
+      "name": "PAD_X",
+      "codepoint": 49,
+      "x": 24,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "R"
+    },
+    {
+      "name": "PAD_B",
+      "codepoint": 50,
+      "x": 48,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Space"
+    },
+    {
+      "name": "PAD_A",
+      "codepoint": 51,
+      "x": 72,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseLeft"
+    },
+    {
+      "name": "PAD_L",
+      "codepoint": 52,
+      "x": 96,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Q"
+    },
+    {
+      "name": "PAD_R",
+      "codepoint": 53,
+      "x": 0,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseRight"
+    },
+    {
+      "name": "KEY",
+      "codepoint": 54,
+      "x": 24,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "ArrowKeys"
+    },
+    {
+      "name": "ANALOG",
+      "codepoint": 55,
+      "x": 48,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "WASD"
+    },
+    {
+      "name": "KEY_U",
+      "codepoint": 56,
+      "x": 72,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Up"
+    },
+    {
+      "name": "KEY_R",
+      "codepoint": 57,
+      "x": 96,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Right"
+    },
+    {
+      "name": "KEY_D",
+      "codepoint": 65,
+      "x": 0,
+      "y": 48,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Down"
+    },
+    {
+      "name": "KEY_L",
+      "codepoint": 66,
+      "x": 24,
+      "y": 48,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Left"
+    },
+    {
+      "name": "KEY_UD",
+      "codepoint": 67,
+      "x": 48,
+      "y": 48,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Up/Down"
+    },
+    {
+      "name": "KEY_RL",
+      "codepoint": 68,
+      "x": 72,
+      "y": 48,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Left/Right"
+    },
+    {
+      "name": "PAD_START",
+      "codepoint": 69,
+      "x": 0,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Esc"
+    },
+    {
+      "name": "PAD_SELECT",
+      "codepoint": 70,
+      "x": 24,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Backspace"
+    },
+    {
+      "name": "ARROW_U",
+      "codepoint": 71,
+      "x": 96,
+      "y": 48,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "ARROW_D",
+      "codepoint": 72,
+      "x": 96,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "ARROW_R",
+      "codepoint": 73,
+      "x": 0,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "ARROW_L",
+      "codepoint": 74,
+      "x": 24,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "TONE",
+      "codepoint": 75,
+      "x": 48,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "TONE_S",
+      "codepoint": 76,
+      "x": 72,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "NYAN_SKILL",
+      "codepoint": 77,
+      "x": 96,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "GreatSword",
+      "codepoint": 78,
+      "x": 0,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "TACHI",
+      "codepoint": 79,
+      "x": 24,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "SwordShield",
+      "codepoint": 80,
+      "x": 48,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "DualBlades",
+      "codepoint": 81,
+      "x": 72,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Hammer",
+      "codepoint": 82,
+      "x": 96,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "HuntingHorn",
+      "codepoint": 83,
+      "x": 0,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Lance",
+      "codepoint": 84,
+      "x": 24,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Gunlance",
+      "codepoint": 85,
+      "x": 48,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "SwitchAxe",
+      "codepoint": 86,
+      "x": 72,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "ChargeBlade",
+      "codepoint": 87,
+      "x": 96,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "InsectGlaive",
+      "codepoint": 88,
+      "x": 0,
+      "y": 168,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "LightBowgun",
+      "codepoint": 89,
+      "x": 24,
+      "y": 168,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "HeavyBowgun",
+      "codepoint": 90,
+      "x": 48,
+      "y": 168,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Bow",
+      "codepoint": 97,
+      "x": 72,
+      "y": 168,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_MARK",
+      "codepoint": 98,
+      "x": 96,
+      "y": 168,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_LEASER",
+      "codepoint": 99,
+      "x": 0,
+      "y": 192,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_ASSIST",
+      "codepoint": 100,
+      "x": 24,
+      "y": 192,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_FIGHT",
+      "codepoint": 101,
+      "x": 48,
+      "y": 192,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_BOMAR",
+      "codepoint": 102,
+      "x": 72,
+      "y": 192,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_GUARD",
+      "codepoint": 103,
+      "x": 96,
+      "y": 192,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_TREASURE",
+      "codepoint": 104,
+      "x": 0,
+      "y": 216,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_LOOT",
+      "codepoint": 105,
+      "x": 48,
+      "y": 216,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "OT_RECOVERY",
+      "codepoint": 106,
+      "x": 24,
+      "y": 216,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "ANALOG_U",
+      "codepoint": 107,
+      "x": 120,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "W"
+    },
+    {
+      "name": "ANALOG_D",
+      "codepoint": 108,
+      "x": 144,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "S"
+    },
+    {
+      "name": "ANALOG_L",
+      "codepoint": 109,
+      "x": 168,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "A"
+    },
+    {
+      "name": "ANALOG_R",
+      "codepoint": 110,
+      "x": 192,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "pc_input": "D"
+    },
+    {
+      "name": "PAD_ZL",
+      "codepoint": 112,
+      "x": 120,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseMiddle"
+    },
+    {
+      "name": "PAD_ZR",
+      "codepoint": 113,
+      "x": 144,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "T"
+    },
+    {
+      "name": "ANALOG_LB",
+      "codepoint": 114,
+      "x": 168,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Ctrl"
+    },
+    {
+      "name": "ANALOG_RB",
+      "codepoint": 115,
+      "x": 192,
+      "y": 24,
+      "width": 24,
+      "height": 24,
+      "pc_input": "Alt"
+    },
+    {
+      "name": "ANALOG_RS",
+      "codepoint": 116,
+      "x": 120,
+      "y": 48,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseMove"
+    },
+    {
+      "name": "ANALOG_RS_U",
+      "codepoint": 117,
+      "x": 120,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseMoveUp"
+    },
+    {
+      "name": "ANALOG_RS_D",
+      "codepoint": 118,
+      "x": 144,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseMoveDown"
+    },
+    {
+      "name": "ANALOG_RS_L",
+      "codepoint": 119,
+      "x": 168,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseMoveLeft"
+    },
+    {
+      "name": "ANALOG_RS_R",
+      "codepoint": 120,
+      "x": 192,
+      "y": 72,
+      "width": 24,
+      "height": 24,
+      "pc_input": "MouseMoveRight"
+    },
+    {
+      "name": "Fire",
+      "codepoint": 121,
+      "x": 120,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Water",
+      "codepoint": 122,
+      "x": 144,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Thunder",
+      "codepoint": 40,
+      "x": 168,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Ice",
+      "codepoint": 41,
+      "x": 192,
+      "y": 96,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Dragon",
+      "codepoint": 91,
+      "x": 120,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Poison",
+      "codepoint": 93,
+      "x": 144,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Paralysis",
+      "codepoint": 123,
+      "x": 168,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Sleep",
+      "codepoint": 125,
+      "x": 192,
+      "y": 120,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Blast",
+      "codepoint": 33,
+      "x": 120,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    },
+    {
+      "name": "Check",
+      "codepoint": 63,
+      "x": 144,
+      "y": 144,
+      "width": 24,
+      "height": 24,
+      "pc_input": null
+    }
+  ],
+  "preset": "ValorHBG"
+}
