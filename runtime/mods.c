@@ -46,15 +46,24 @@ int mods_romfs_layers(const char **out, int max) {
         snprintf(mod, sizeof mod, "%s/%s", mods_dir(), g_names[i]);
         if (!is_dir(mod)) { LOG("[mods] %s: no such folder in %s\n", g_names[i], mods_dir()); continue; }
         if (!mods_romfs_of(g_names[i], path, sizeof path)) continue;
-        // Generated PC prompts are a dedicated resource layer. Gate the entire layer, including localized text,
-        // so switching icons off cannot leave keyboard instructions beside controller icons. The marker lives in
-        // romfs/ so renamed/nested mod folders and bare nativeNX layouts keep the same behavior.
+        // Select one matching prompt layer, including its localized text. Markers remain valid after renaming
+        // or nesting the mod; unrelated mods and their load order are independent of the input mode.
         char marker[1200];
-        struct stat st;
-        snprintf(marker, sizeof marker, "%s/keyboard_mouse_icons.flag", path);
-        if (!g_config.keyboard_mouse_icons && !stat(marker, &st) && S_ISREG(st.st_mode)) {
-            LOG("[mods] %s: PC input prompts skipped (KeyboardMouseIcons = Off; restart to change)\n", g_names[i]);
-            continue;
+        snprintf(marker, sizeof marker, "%s/keyboard_mouse_input.flag", path);
+        FILE *flag = fopen(marker, "r");
+        if (flag) {
+            char layout[32] = "";
+            int read = fscanf(flag, "%31s", layout);
+            fclose(flag);
+            if (read != 1 || (strcmp(layout, "Melee") && strcmp(layout, "Ranged"))) {
+                LOG("[mods] %s: invalid PC input layout marker; prompt layer skipped\n", g_names[i]);
+                continue;
+            }
+            int wanted = !strcmp(layout, "Melee") ? KEYBOARD_MELEE : KEYBOARD_RANGED;
+            if (g_config.input_mode != INPUT_KEYBOARD_MOUSE || g_config.keyboard_layout != wanted) {
+                LOG("[mods] %s: %s PC prompts skipped (InputMode/KeyboardLayout; restart to change)\n", g_names[i], layout);
+                continue;
+            }
         }
         out[k++] = strdup(path);
         LOG("[mods] %s: romfs %s\n", g_names[i], path);

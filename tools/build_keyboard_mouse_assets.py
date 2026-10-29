@@ -1,4 +1,4 @@
-"""Build the local ValorHBG icon/text mod from the player's unmodified MHGU files.
+"""Build a Melee or Ranged Keyboard_Mouse_Input prompt mod from unmodified MHGU files.
 
 Only changed ARC entries are recompressed; all other compressed payloads remain exact.
 The texture encoder replaces only the BC3 blocks belonging to input glyphs.
@@ -15,9 +15,9 @@ from pathlib import Path
 from PIL import Image
 
 from mtarc import Arc
-from valor_hbg_text import LANGUAGES, pc_text, tip_override
+from keyboard_mouse_text import LANGUAGES, pc_text, tip_override
 
-ASSETS = Path(__file__).resolve().parents[1] / "extras" / "valor-hbg"
+ASSETS = Path(__file__).resolve().parents[1] / "extras" / "keyboard-mouse"
 TAGS = re.compile(r"<[^>]*>")
 SPRITES = {
     "PAD_Y": 1,
@@ -92,7 +92,7 @@ def gmd_sections(data):
     return start, [part.decode("utf-8") for part in parts[:-1]]
 
 
-def patch_gmd(data, filename):
+def patch_gmd(data, filename, layout="Ranged"):
     language = filename.rsplit("_", 1)[-1].removesuffix(".gmd")
     if language not in LANGUAGES:
         raise ValueError(f"Unknown text language: {filename}")
@@ -104,12 +104,12 @@ def patch_gmd(data, filename):
         else 13 if filename.startswith("tutoMsg130301_") else -1
     )
     changed = [
-        pc_text(s, language, ordinary_run=i == run_entry)
+        pc_text(s, language, ordinary_run=i == run_entry, layout=layout)
         for i, s in enumerate(sections)
     ]
     if filename == f"HN_HunterTipsMsg_{language}.gmd":
-        for index in (187, 235):
-            changed[index] = tip_override(language, index, sections[index])
+        for index in ((187, 234, 235) if layout == "Melee" else (187, 235)):
+            changed[index] = tip_override(language, index, sections[index], layout)
     count = sum(a != b for a, b in zip(sections, changed))
     if not count:
         return data, 0
@@ -171,7 +171,12 @@ def sheet_sprite(sheet, index):
     )
 
 
-def patch_ui_texture(data, regions, preview):
+def profile_sprite(index, layout):
+    # Reuse the same PC source sheet: ranged X/A/R = R/LMB/RMB; melee X/A/R = LMB/RMB/R.
+    return {0: 16, 16: 17, 17: 0}.get(index, index) if layout == "Melee" else index
+
+
+def patch_ui_texture(data, regions, preview, layout):
     dimensions = struct.unpack_from("<I", data, 8)[0]
     width, height = (dimensions >> 6) & 8191, (dimensions >> 19) & 8191
     if (width, height, data[13], dimensions & 63, len(data)) != (
@@ -189,6 +194,7 @@ def patch_ui_texture(data, regions, preview):
     sheet = Image.open(ASSETS / "pc-input-sheet.png").convert("RGBA")
     blocks = set()
     for x, y, w, h, index in regions:
+        index = profile_sprite(index, layout)
         if any(v % 4 for v in (x, y, w, h)) or not (
             0 <= x < x + w <= width and 0 <= y < y + h <= height
         ):
@@ -207,7 +213,7 @@ def patch_ui_texture(data, regions, preview):
     return encode_bc3(data, linear, atlas, blocks, preview)
 
 
-def patch_texture(data, preview):
+def patch_texture(data, preview, layout):
     if data[:24].hex() != "54455800a080002001400008011701000000010000000000":
         raise ValueError(
             "Unexpected button atlas header; inspect this game version first"
@@ -219,14 +225,14 @@ def patch_texture(data, preview):
     atlas = Image.frombytes("RGBA", (256, 256), original, "bcn", 3)
     sheet = Image.open(ASSETS / "pc-input-sheet.png").convert("RGBA")
     escape = Image.open(ASSETS / "esc-key.png").convert("RGBA")
-    layout = json.loads((ASSETS / "icon-map.json").read_text(encoding="utf-8"))
+    glyph_map = json.loads((ASSETS / "icon-map.json").read_text(encoding="utf-8"))
     blocks = set()
-    for glyph in layout["icons"]:
+    for glyph in glyph_map["icons"]:
         name = glyph["name"]
         if name == "PAD_START":
             sprite = escape
         elif name in SPRITES:
-            sprite = sheet_sprite(sheet, SPRITES[name])
+            sprite = sheet_sprite(sheet, profile_sprite(SPRITES[name], layout))
         else:
             continue
         x, y, w, h = (glyph[k] for k in ("x", "y", "width", "height"))
@@ -264,7 +270,7 @@ def encode_bc3(data, linear, atlas, blocks, preview):
     return bytes(result)
 
 
-def patch_title_texture(data, preview, language):
+def patch_title_texture(data, preview, language, layout):
     dimensions = struct.unpack_from("<I", data, 8)[0]
     if ((dimensions >> 6) & 8191, (dimensions >> 19) & 8191, data[13], len(data)) != (
         1024,
@@ -278,14 +284,7 @@ def patch_title_texture(data, preview, language):
         linear[dest : dest + 16] = data[24 + source : 40 + source]
     atlas = Image.frombytes("RGBA", (1024, 1024), bytes(linear), "bcn", 3)
     sheet = Image.open(ASSETS / "pc-input-sheet.png").convert("RGBA")
-    mouse = sheet.crop(
-        (
-            0,
-            round(sheet.height / 2),
-            round(sheet.width / 8),
-            round(sheet.height * 3 / 4),
-        )
-    )
+    mouse = sheet_sprite(sheet, profile_sprite(16, layout))
     # The localized title prompt has a different button position in each language.
     # Chinese title archives reference the English texture. Bounds include the full antialiased circle.
     x, w = {
@@ -306,8 +305,9 @@ def patch_title_texture(data, preview, language):
 
 
 class TexturePatcher:
-    def __init__(self, output):
+    def __init__(self, output, layout):
         self.output = output
+        self.layout = layout
         self.cache = {}
 
     def patch(self, name, before):
@@ -316,11 +316,13 @@ class TexturePatcher:
         if key not in self.cache:
             preview = self.output / f"{stem}-{len(self.cache)}.png"
             if stem == "button_festa_00_ID":
-                after = patch_texture(before, preview)
+                after = patch_texture(before, preview, self.layout)
             elif stem == "HD_title00_BM_NOMIP":
-                after = patch_title_texture(before, preview, name.split("\\", 1)[0])
+                after = patch_title_texture(
+                    before, preview, name.split("\\", 1)[0], self.layout
+                )
             else:
-                after = patch_ui_texture(before, UI_INPUTS[stem], preview)
+                after = patch_ui_texture(before, UI_INPUTS[stem], preview, self.layout)
             self.cache[key] = after
         return self.cache[key]
 
@@ -351,7 +353,7 @@ def patch_arc(path, replacements, destination, variants, textures, relative):
                 before, after = replacements[e["name"]]
                 if own != before:
                     after, count = patch_gmd(
-                        own, e["name"].rsplit("\\", 1)[-1] + ".gmd"
+                        own, e["name"].rsplit("\\", 1)[-1] + ".gmd", textures.layout
                     )
                     variants.append(
                         {
@@ -396,6 +398,7 @@ def patch_arc(path, replacements, destination, variants, textures, relative):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("romfs", type=Path, help="Unmodified extracted game romfs")
+    parser.add_argument("--layout", choices=("Melee", "Ranged"), default="Ranged")
     parser.add_argument(
         "output", type=Path, help="New mod directory (not an original game directory)"
     )
@@ -418,7 +421,7 @@ def main():
         local_counts = {}
         for path in sorted((native / lang / "table").rglob("*.gmd")):
             before = path.read_bytes()
-            after, count = patch_gmd(before, path.name)
+            after, count = patch_gmd(before, path.name, args.layout)
             relative = path.relative_to(native)
             # Archive variants can contain input instructions absent from the loose copy.
             replacements[relative.with_suffix("").as_posix().replace("/", "\\")] = (
@@ -435,7 +438,7 @@ def main():
             "text_files": len(local_counts),
             "text_entries": sum(local_counts.values()),
         }
-    textures = TexturePatcher(mod)
+    textures = TexturePatcher(mod, args.layout)
     for lang in LANGUAGES:
         for path in sorted((native / lang / "GUI").rglob("*.tex")):
             if path.stem not in TEXTURES:
@@ -476,7 +479,8 @@ def main():
         if changed:
             archives[relative.as_posix()] = changed
     manifest = {
-        "preset": "ValorHBG",
+        "input_mode": "Keyboard_Mouse_Input",
+        "layout": args.layout,
         "recomp_version": "0.10.8",
         "languages": languages,
         "text_files": len(counts),
@@ -493,8 +497,8 @@ def main():
     (mod / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    (output.parent / "keyboard_mouse_icons.flag").write_text(
-        "MHGURecomp PC input prompts: controlled by [Controls] KeyboardMouseIcons (restart).\n",
+    (output.parent / "keyboard_mouse_input.flag").write_text(
+        args.layout + "\n",
         encoding="utf-8",
     )
     print(

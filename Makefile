@@ -164,12 +164,19 @@ test-settings:
 	$(O)/settings-test/test-settings$(if $(filter windows,$(PLATFORM)),.exe) $(O)/settings-test/settings.ini
 
 # Fixed keyboard/mouse bindings, wheel timing and multilingual text substitutions. No game dump required.
-.PHONY: test-valor-hbg
-test-valor-hbg:
+.PHONY: test-keyboard-mouse
+test-keyboard-mouse:
 	@mkdir -p $(O)/settings-test
-	$(CC) $(RTFLAGS) tests/test_valor_hbg_input.c -o $(O)/settings-test/test-valor-hbg$(if $(filter windows,$(PLATFORM)),.exe)
-	$(O)/settings-test/test-valor-hbg$(if $(filter windows,$(PLATFORM)),.exe)
-	$(PY) tests/test_valor_hbg_text.py
+	$(CC) $(RTFLAGS) tests/test_keyboard_mouse_input.c -o $(O)/settings-test/test-keyboard-mouse$(if $(filter windows,$(PLATFORM)),.exe)
+	$(O)/settings-test/test-keyboard-mouse$(if $(filter windows,$(PLATFORM)),.exe)
+	$(PY) tests/test_keyboard_mouse_text.py
+	$(CC) $(RTFLAGS) tests/test_mouse_look.c -lm -o $(O)/settings-test/test-mouse-look$(if $(filter windows,$(PLATFORM)),.exe)
+	$(O)/settings-test/test-mouse-look$(if $(filter windows,$(PLATFORM)),.exe)
+
+# Optional PC prompt renderer regression; needs Pillow, uses no game files.
+.PHONY: test-keyboard-mouse-assets
+test-keyboard-mouse-assets:
+	$(PY) tests/test_keyboard_mouse_assets.py
 
 $(O)/gen/%.o: $(GEN)/%.c runtime/cpu.h runtime/vfp.h runtime/neon_rt.h
 	@mkdir -p $(dir $@)

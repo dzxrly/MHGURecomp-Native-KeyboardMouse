@@ -18,8 +18,7 @@
   "verification": {
     "icon_name_count": 69,
     "gfd_glyph_count": 70,
-    "swizzle_roundtrip_exact": true,
-    "in_game_replacement_tested": false
+    "swizzle_roundtrip_exact": true
   },
   "icons": [
     {
@@ -29,7 +28,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "F"
+      "pc_input": {
+        "Ranged": "F",
+        "Melee": "F"
+      }
     },
     {
       "name": "PAD_X",
@@ -38,7 +40,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "R"
+      "pc_input": {
+        "Ranged": "R",
+        "Melee": "MouseLeft"
+      }
     },
     {
       "name": "PAD_B",
@@ -47,7 +52,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "Space"
+      "pc_input": {
+        "Ranged": "Space",
+        "Melee": "Space"
+      }
     },
     {
       "name": "PAD_A",
@@ -56,7 +64,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseLeft"
+      "pc_input": {
+        "Ranged": "MouseLeft",
+        "Melee": "MouseRight"
+      }
     },
     {
       "name": "PAD_L",
@@ -65,7 +76,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "Q"
+      "pc_input": {
+        "Ranged": "Q",
+        "Melee": "Q"
+      }
     },
     {
       "name": "PAD_R",
@@ -74,7 +88,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseRight"
+      "pc_input": {
+        "Ranged": "MouseRight",
+        "Melee": "R"
+      }
     },
     {
       "name": "KEY",
@@ -83,7 +100,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "ArrowKeys"
+      "pc_input": {
+        "Ranged": "ArrowKeys",
+        "Melee": "ArrowKeys"
+      }
     },
     {
       "name": "ANALOG",
@@ -92,7 +112,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "WASD"
+      "pc_input": {
+        "Ranged": "WASD",
+        "Melee": "WASD"
+      }
     },
     {
       "name": "KEY_U",
@@ -101,7 +124,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "Up"
+      "pc_input": {
+        "Ranged": "Up",
+        "Melee": "Up"
+      }
     },
     {
       "name": "KEY_R",
@@ -110,7 +136,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "Right"
+      "pc_input": {
+        "Ranged": "Right",
+        "Melee": "Right"
+      }
     },
     {
       "name": "KEY_D",
@@ -119,7 +148,10 @@
       "y": 48,
       "width": 24,
       "height": 24,
-      "pc_input": "Down"
+      "pc_input": {
+        "Ranged": "Down",
+        "Melee": "Down"
+      }
     },
     {
       "name": "KEY_L",
@@ -128,7 +160,10 @@
       "y": 48,
       "width": 24,
       "height": 24,
-      "pc_input": "Left"
+      "pc_input": {
+        "Ranged": "Left",
+        "Melee": "Left"
+      }
     },
     {
       "name": "KEY_UD",
@@ -137,7 +172,10 @@
       "y": 48,
       "width": 24,
       "height": 24,
-      "pc_input": "Up/Down"
+      "pc_input": {
+        "Ranged": "Up/Down",
+        "Melee": "Up/Down"
+      }
     },
     {
       "name": "KEY_RL",
@@ -146,7 +184,10 @@
       "y": 48,
       "width": 24,
       "height": 24,
-      "pc_input": "Left/Right"
+      "pc_input": {
+        "Ranged": "Left/Right",
+        "Melee": "Left/Right"
+      }
     },
     {
       "name": "PAD_START",
@@ -155,7 +196,10 @@
       "y": 72,
       "width": 24,
       "height": 24,
-      "pc_input": "Esc"
+      "pc_input": {
+        "Ranged": "Esc",
+        "Melee": "Esc"
+      }
     },
     {
       "name": "PAD_SELECT",
@@ -164,7 +208,10 @@
       "y": 72,
       "width": 24,
       "height": 24,
-      "pc_input": "Backspace"
+      "pc_input": {
+        "Ranged": "Backspace",
+        "Melee": "Backspace"
+      }
     },
     {
       "name": "ARROW_U",
@@ -443,7 +490,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "W"
+      "pc_input": {
+        "Ranged": "W",
+        "Melee": "W"
+      }
     },
     {
       "name": "ANALOG_D",
@@ -452,7 +502,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "S"
+      "pc_input": {
+        "Ranged": "S",
+        "Melee": "S"
+      }
     },
     {
       "name": "ANALOG_L",
@@ -461,7 +514,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "A"
+      "pc_input": {
+        "Ranged": "A",
+        "Melee": "A"
+      }
     },
     {
       "name": "ANALOG_R",
@@ -470,7 +526,10 @@
       "y": 0,
       "width": 24,
       "height": 24,
-      "pc_input": "D"
+      "pc_input": {
+        "Ranged": "D",
+        "Melee": "D"
+      }
     },
     {
       "name": "PAD_ZL",
@@ -479,7 +538,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseMiddle"
+      "pc_input": {
+        "Ranged": "MouseMiddle",
+        "Melee": "MouseMiddle"
+      }
     },
     {
       "name": "PAD_ZR",
@@ -488,7 +550,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "T"
+      "pc_input": {
+        "Ranged": "T",
+        "Melee": "T"
+      }
     },
     {
       "name": "ANALOG_LB",
@@ -497,7 +562,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "Ctrl"
+      "pc_input": {
+        "Ranged": "Ctrl",
+        "Melee": "Ctrl"
+      }
     },
     {
       "name": "ANALOG_RB",
@@ -506,7 +574,10 @@
       "y": 24,
       "width": 24,
       "height": 24,
-      "pc_input": "Alt"
+      "pc_input": {
+        "Ranged": "Alt",
+        "Melee": "Alt"
+      }
     },
     {
       "name": "ANALOG_RS",
@@ -515,7 +586,10 @@
       "y": 48,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseMove"
+      "pc_input": {
+        "Ranged": "MouseMove",
+        "Melee": "MouseMove"
+      }
     },
     {
       "name": "ANALOG_RS_U",
@@ -524,7 +598,10 @@
       "y": 72,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseMoveUp"
+      "pc_input": {
+        "Ranged": "MouseMoveUp",
+        "Melee": "MouseMoveUp"
+      }
     },
     {
       "name": "ANALOG_RS_D",
@@ -533,7 +610,10 @@
       "y": 72,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseMoveDown"
+      "pc_input": {
+        "Ranged": "MouseMoveDown",
+        "Melee": "MouseMoveDown"
+      }
     },
     {
       "name": "ANALOG_RS_L",
@@ -542,7 +622,10 @@
       "y": 72,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseMoveLeft"
+      "pc_input": {
+        "Ranged": "MouseMoveLeft",
+        "Melee": "MouseMoveLeft"
+      }
     },
     {
       "name": "ANALOG_RS_R",
@@ -551,7 +634,10 @@
       "y": 72,
       "width": 24,
       "height": 24,
-      "pc_input": "MouseMoveRight"
+      "pc_input": {
+        "Ranged": "MouseMoveRight",
+        "Melee": "MouseMoveRight"
+      }
     },
     {
       "name": "Fire",
@@ -644,5 +730,9 @@
       "pc_input": null
     }
   ],
-  "preset": "ValorHBG"
+  "input_mode": "Keyboard_Mouse_Input",
+  "layouts": [
+    "Melee",
+    "Ranged"
+  ]
 }

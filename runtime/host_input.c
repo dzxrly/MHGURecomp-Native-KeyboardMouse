@@ -6,9 +6,9 @@
 //   stick click. While the game shows a text entry (names, chat) the keyboard types instead
 //   (runtime/textinput.c). F11 switches windowed <-> full screen, F12 saves a screenshot, Shift+F12 the next 8
 //   frames (exact rendered pixels, run\shots\), F10 dumps every render pass of the next 2 frames (debug, slow), F9 toggles how colour clears are done (debug).
-// KeyboardPreset=ValorHBG: LMB=A, RMB/Shift=R, R=X, F/Mouse4=Y, C=X+A, Esc=Plus, Tab/MMB=ZL;
-//   wheel=L+X/B (ammo), 1/2/3=Up/Right/Down. Shift is ordinary run, never Valor Power Run.
-//   F2 releases the captured mouse in this preset (Esc opens the game's menu).
+// InputMode=Keyboard_Mouse_Input: KeyboardLayout=Melee has LMB=X, RMB=A, R/Mouse5=R and wheel=L+Y/A (items).
+//   Ranged has LMB=A, RMB=R, R=X and wheel=L+X/B (ammo). Both: F/Mouse4=Y, C=X+A, Shift=R, Esc=Plus,
+//   Tab/MMB=ZL, 1/2/3=Up/Right/Down. Shift is ordinary run; F2 releases the captured mouse.
 // Gamepad (SDL): face buttons by position as on a Switch controller (the bottom one is B), or by their labels
 //   (settings FaceButtons, runtime/config.c; MHGU_PAD_POSITIONAL=0|1 overrides).
 //   Every controller is open and the one a button was last pressed on is read (a Steam Deck with a controller plugged
@@ -31,7 +31,8 @@
 #include "overlay.h"
 #include "rt.h"
 #include "textinput.h"
-#include "valor_hbg_input.h"
+#include "keyboard_mouse_input.h"
+#include "mouse_look.h"
 
 #define B(x) (1ull << (x))
 
@@ -63,7 +64,8 @@ static bool mouse_captured;   // relative mode on now (grabbed, and no Forge men
 static bool mouse_no_capture; // relative mode refused (WSLg, some Wayland compositors): clicks are buttons, no mouse look
 static float mouse_dx, mouse_dy;  // counts moved since the last update
 static uint64_t mouse_buttons;
-static HbgAmmoWheel ammo_wheel;
+static KbmWheel ammo_wheel;
+static MouseLook mouse_look;
 // (tests: the control file's "mousemove <x> <y> <ms>", a mouse moving at that many counts a second, captured or not)
 static float test_vx, test_vy;
 static uint64_t test_until;
@@ -453,11 +455,12 @@ void host_input_event(const SDL_Event *e) {
                 keys[e->key.scancode] = false;  // (Alt+Enter: windowed <-> full screen, not a button press)
                 keys[SDL_SCANCODE_LALT] = keys[SDL_SCANCODE_RALT] = false;
                 ui_toggle_fullscreen();
-            } else if ((e->key.scancode == SDL_SCANCODE_ESCAPE && g_config.keyboard_preset == KEYBOARD_ORIGINAL) ||
-                       (e->key.scancode == SDL_SCANCODE_F2 && g_config.keyboard_preset == KEYBOARD_VALOR_HBG)) {
+            } else if ((e->key.scancode == SDL_SCANCODE_ESCAPE && g_config.input_mode == INPUT_ORIGINAL) ||
+                       (e->key.scancode == SDL_SCANCODE_F2 && g_config.input_mode == INPUT_KEYBOARD_MOUSE)) {
                 if (mouse_grab) LOG("[input] mouse released\n");
                 mouse_grab = false;
-                hbg_wheel_reset(&ammo_wheel);
+                kbm_wheel_reset(&ammo_wheel);
+                mouse_look_reset(&mouse_look);
             } else if (e->key.scancode == SDL_SCANCODE_F12 && !(e->key.mod & SDL_KMOD_SHIFT))
                 snprintf(g_shot_request, sizeof g_shot_request, "shots/shot_%llu_%d.png", (unsigned long long)t, nshot++);
             else if (e->key.scancode == SDL_SCANCODE_F11) {
@@ -483,10 +486,17 @@ void host_input_event(const SDL_Event *e) {
         }
         break;
     case SDL_EVENT_MOUSE_MOTION:
-        if (mouse_captured) mouse_dx += e->motion.xrel, mouse_dy += e->motion.yrel;
+        if (mouse_captured) {
+            mouse_dx += e->motion.xrel, mouse_dy += e->motion.yrel;
+            if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
+                uint64_t now = SDL_GetTicksNS();
+                uint64_t time = e->motion.timestamp && e->motion.timestamp <= now ? e->motion.timestamp : now;
+                mouse_look_add(&mouse_look, e->motion.xrel, e->motion.yrel, time);
+            }
+        }
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN: case SDL_EVENT_MOUSE_BUTTON_UP: {
-        int btn = g_config.keyboard_preset == KEYBOARD_VALOR_HBG ? valor_hbg_mouse(e->button.button) :
+        int btn = g_config.input_mode == INPUT_KEYBOARD_MOUSE ? kbm_mouse(e->button.button, g_config.keyboard_layout) :
                   e->button.button == SDL_BUTTON_LEFT ? BTN_X : e->button.button == SDL_BUTTON_RIGHT ? BTN_A : -1;
         if (btn < 0) break;
         if (!e->button.down) {
@@ -500,13 +510,14 @@ void host_input_event(const SDL_Event *e) {
         break;
     }
     case SDL_EVENT_MOUSE_WHEEL:
-        if (g_config.keyboard_preset == KEYBOARD_VALOR_HBG && !textinput_active() && (mouse_captured || mouse_no_capture))
-            hbg_wheel_add(&ammo_wheel, e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -e->wheel.y : e->wheel.y);
+        if (g_config.input_mode == INPUT_KEYBOARD_MOUSE && !textinput_active() && (mouse_captured || mouse_no_capture))
+            kbm_wheel_add(&ammo_wheel, e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -e->wheel.y : e->wheel.y);
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         memset(keys, 0, sizeof keys);
         mouse_buttons = 0, mouse_grab = false;
-        hbg_wheel_reset(&ammo_wheel);
+        kbm_wheel_reset(&ammo_wheel);
+        mouse_look_reset(&mouse_look);
         config_window_focus(false);  // ([Audio] MuteInBackground)
         if (config_editable().mute_in_background) LOG("[input] window in the background: sound muted\n");
         break;
@@ -537,6 +548,7 @@ static void mouse_update(int *rx, int *ry) {
             mouse_grab = false, mouse_no_capture = true;
         }
         mouse_dx = mouse_dy = 0;
+        mouse_look_reset(&mouse_look);
     }
     static uint64_t last;
     static float vx, vy;  // the speed, smoothed: counts a second
@@ -544,6 +556,27 @@ static void mouse_update(int *rx, int *ry) {
     float dt = last ? (float)(now - last) * 1e-9f : 0.0f;
     last = now;
     if (dt > 0.1f) dt = 0.1f;
+    if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
+        static uint64_t present, presented_at;
+        static float frame_seconds;
+        float cap_seconds = 1.0f / config_live_fps();
+        if (!frame_seconds) frame_seconds = cap_seconds;
+        if (g_present_count != present) {
+            if (presented_at && g_present_count > present) {
+                float observed = (float)(now - presented_at) * 1e-9f / (g_present_count - present);
+                frame_seconds += (fminf(observed, 0.1f) - frame_seconds) * 0.25f;
+            }
+            present = g_present_count; presented_at = now;
+        }
+        uint64_t mouse_now = SDL_GetTicksNS();
+        if (now < test_until && dt > 0) mouse_look_add(&mouse_look, test_vx * dt, test_vy * dt, mouse_now);
+        int x, y;
+        mouse_look_stick(&mouse_look, mouse_now, mouse_look_window(fmaxf(cap_seconds, frame_seconds)),
+                         config_live_mouse_sensitivity(), &x, &y);
+        *rx += x; *ry += y;
+        mouse_dx = mouse_dy = 0;
+        return;
+    }
     if (now < test_until) mouse_dx += test_vx * dt, mouse_dy += test_vy * dt;
     if (dt > 0.0f) {
         float a = 1.0f - expf(-dt / MOUSE_SMOOTH_S);
@@ -584,8 +617,8 @@ static void rumble_update(void) {
 void host_input_update(void) {
     if (nscript < 0) {
         script_parse();
-        if (g_config.keyboard_preset == KEYBOARD_VALOR_HBG)
-            LOG("[input] ValorHBG: LMB fire, RMB aim, R reload, F/Mouse4 sheathe, Shift ordinary run, C X+A, wheel ammo\n");
+        if (g_config.input_mode == INPUT_KEYBOARD_MOUSE)
+            LOG("[input] Keyboard_Mouse_Input: %s layout, F/Mouse4 sheathe, Shift ordinary run, C X+A\n", g_config.keyboard_layout == KEYBOARD_MELEE ? "Melee" : "Ranged");
     }
     rumble_update();
     control_poll();
@@ -598,19 +631,20 @@ void host_input_update(void) {
         typing = !typing;
         memset(keys, 0, sizeof keys);  // (keys held when the entry opened are typing now, or released)
         mouse_buttons = 0;
-        hbg_wheel_reset(&ammo_wheel);
+        kbm_wheel_reset(&ammo_wheel);
+        mouse_look_reset(&mouse_look);
     }
 
-    if (g_config.keyboard_preset == KEYBOARD_VALOR_HBG) {
+    if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
         for (int i = 0; i < SDL_SCANCODE_COUNT; i++)
-            if (keys[i]) b |= valor_hbg_key((SDL_Scancode)i);
-        b |= hbg_wheel_buttons(&ammo_wheel, plat_now_ns());
+            if (keys[i]) b |= kbm_key((SDL_Scancode)i, g_config.keyboard_layout);
+        b |= kbm_wheel_buttons(&ammo_wheel, plat_now_ns(), g_config.keyboard_layout);
     } else {
         for (unsigned i = 0; i < sizeof key_buttons / sizeof *key_buttons; i++)
             if (keys[key_buttons[i].sc]) b |= B(key_buttons[i].btn);
     }
     int kx = keys[SDL_SCANCODE_D] - keys[SDL_SCANCODE_A], ky = keys[SDL_SCANCODE_W] - keys[SDL_SCANCODE_S];
-    int k = g_config.keyboard_preset == KEYBOARD_ORIGINAL && keys[SDL_SCANCODE_LSHIFT] ? 16000 : 32767;
+    int k = g_config.input_mode == INPUT_ORIGINAL && keys[SDL_SCANCODE_LSHIFT] ? 16000 : 32767;
     if (kx && ky) k = k * 7071 / 10000;  // diagonals: same length as straight
     lx += kx * k, ly += ky * k;
     b |= mouse_buttons;
@@ -715,7 +749,8 @@ void host_input_update(void) {
         menu = !menu;
         memset(keys, 0, sizeof keys);  // (keys held as it opened went to the menu: nothing stays pressed)
         mouse_buttons = 0;
-        hbg_wheel_reset(&ammo_wheel);
+        kbm_wheel_reset(&ammo_wheel);
+        mouse_look_reset(&mouse_look);
     }
     if (menu) {  // Forge's menu has the controller (as in Forge: A activates, B cancels, stick and d-pad move)
         OverlayPad p = {b & B(BTN_A), b & B(BTN_B), b & B(BTN_X), b & B(BTN_Y), b & B(BTN_UP), b & B(BTN_DOWN),

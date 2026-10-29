@@ -25,17 +25,17 @@ static char *read_file(const char *path) {
 int main(int argc, char **argv) {
     assert(argc == 2);
     Config preset = config_defaults();
-    assert(preset.keyboard_preset == KEYBOARD_ORIGINAL);
-    const ConfigSetting *preset_setting = config_setting("KeyboardPreset");
-    assert(preset_setting && preset_setting->restart);
-    assert(config_parse(preset_setting, "ValorHBG", &preset));
-    assert(preset.keyboard_preset == KEYBOARD_VALOR_HBG && config_valid(preset_setting, &preset));
-    assert(!config_parse(preset_setting, "Unknown", &preset));
-    const ConfigSetting *icons_setting = config_setting("KeyboardMouseIcons");
-    assert(!preset.keyboard_mouse_icons && icons_setting && icons_setting->restart);
-    assert(config_parse(icons_setting, "On", &preset) && preset.keyboard_mouse_icons == 1);
-    assert(config_parse(icons_setting, "Off", &preset) && preset.keyboard_mouse_icons == 0);
-    assert(!config_parse(icons_setting, "Unknown", &preset));
+    assert(preset.input_mode == INPUT_ORIGINAL);
+    const ConfigSetting *mode_setting = config_setting("InputMode");
+    assert(mode_setting && mode_setting->restart);
+    assert(config_parse(mode_setting, "Keyboard_Mouse_Input", &preset));
+    assert(preset.input_mode == INPUT_KEYBOARD_MOUSE && config_valid(mode_setting, &preset));
+    assert(!config_parse(mode_setting, "Unknown", &preset));
+    const ConfigSetting *layout_setting = config_setting("KeyboardLayout");
+    assert(preset.keyboard_layout == KEYBOARD_RANGED && layout_setting && layout_setting->restart);
+    assert(config_parse(layout_setting, "Melee", &preset) && preset.keyboard_layout == KEYBOARD_MELEE);
+    assert(config_parse(layout_setting, "Ranged", &preset) && preset.keyboard_layout == KEYBOARD_RANGED);
+    assert(!config_parse(layout_setting, "Unknown", &preset));
     const char *path = argv[1];
     FILE *f = fopen(path, "wb"); assert(f);
     fputs("; Keep this comment\r\n[Display]\r\nMode = Borderless Window\r\nResolution = Desktop\r\nRenderResolution = Auto\r\n"
@@ -55,11 +55,11 @@ int main(int argc, char **argv) {
     assert(g_config.width == 900 && fabsf(g_config.fov - 1.6f) < 0.001f);
     assert(c.hp.quests == 2 && c.language == 0 && c.button_icons == 0);
     assert(!config_restart_required(&c)); // Raw Auto/Desktop survives environment resolution.
-    Config prompts=c; prompts.keyboard_mouse_icons=1;
+    Config prompts=c; prompts.input_mode=INPUT_KEYBOARD_MOUSE; prompts.keyboard_layout=KEYBOARD_MELEE;
     char prompt_error[256];
     assert(config_restart_required(&prompts) && config_save(&prompts,prompt_error,sizeof prompt_error));
-    char *prompt_text=read_file(path); assert(strstr(prompt_text,"KeyboardMouseIcons = On")); free(prompt_text);
-    assert(!g_config.keyboard_mouse_icons); // Saving must not pretend the mounted RomFS changed live.
+    char *prompt_text=read_file(path); assert(strstr(prompt_text,"InputMode = Keyboard_Mouse_Input") && strstr(prompt_text,"KeyboardLayout = Melee")); free(prompt_text);
+    assert(g_config.input_mode == INPUT_ORIGINAL && g_config.keyboard_layout == KEYBOARD_RANGED); // Saving must not pretend the mounted RomFS changed live.
     assert(config_save(&c,prompt_error,sizeof prompt_error) && !config_restart_required(&c));
     assert(fabsf(config_live_fov()-1.6f)<0.001f && fabsf(config_live_fps()-144.5f)<0.001f);
     Config volume_only=c; volume_only.volume=35;

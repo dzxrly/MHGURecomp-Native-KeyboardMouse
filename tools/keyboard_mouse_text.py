@@ -67,7 +67,7 @@ STICKS = {
 }
 
 
-def pc_text(text, language="chS", ordinary_run=False):
+def pc_text(text, language="chS", ordinary_run=False, layout="Ranged"):
     left, right, mouse = STICKS[language]
     # Clicks are separate inputs from stick motion. Handle them before replacing motion names.
     clicks = {
@@ -107,14 +107,18 @@ def pc_text(text, language="chS", ordinary_run=False):
         def button(match):
             value = next(g for g in match.groups() if g is not None)
             mapping = dict(BUTTONS)
+            if layout == "Melee":
+                mapping.update(X="LMB", A="RMB", R="R")
             if language in ("chS", "chT"):
-                mapping.update(
-                    A="鼠标左键" if language == "chS" else "滑鼠左鍵",
-                    R="鼠标右键" if language == "chS" else "滑鼠右鍵",
-                    ZL="鼠标中键" if language == "chS" else "滑鼠中鍵",
+                mouse_names = (
+                    {"LMB": "鼠标左键", "RMB": "鼠标右键", "MMB": "鼠标中键"}
+                    if language == "chS"
+                    else {"LMB": "滑鼠左鍵", "RMB": "滑鼠右鍵", "MMB": "滑鼠中鍵"}
                 )
-                for k in ("B", "X", "Y", "L", "ZR", "+", "＋", "-", "－"):
-                    mapping[k] += "键" if language == "chS" else "鍵"
+                suffix = "键" if language == "chS" else "鍵"
+                mapping = {
+                    k: mouse_names.get(v, v + suffix) for k, v in mapping.items()
+                }
             # Use the local sentence (including wrapped lines), never a whole tutorial page.
             before = re.split(r"[.!?。！？]|\r?\n\r?\n", part[: match.start()])[-1]
             after = re.split(r"[.!?。！？]|\r?\n\r?\n", part[match.end() :])[0]
@@ -182,9 +186,26 @@ TIPS = {
 }
 
 
-def tip_override(language, index, original):
+ITEM_TIPS = {
+    "chS": "滚动鼠标滚轮可选择道具。\r\n也可按住Q键，用鼠标右键或F键选择。\r\n松开Q键后，按F键使用道具。",
+    "chT": "滾動滑鼠滾輪可選擇道具。\r\n也可按住Q鍵，用滑鼠右鍵或F鍵選擇。\r\n放開Q鍵後，按F鍵使用道具。",
+    "eng": "Use the mouse wheel to select items.\r\nOr hold Q and press RMB or F.\r\nRelease Q, then press F to use an item.",
+    "fre": "La molette sélectionne les objets.\r\nOu maintenez Q et appuyez sur RMB ou F.\r\nRelâchez Q, puis utilisez l'objet avec F.",
+    "ger": "Wähle Objekte mit dem Mausrad.\r\nOder halte Q und drücke RMB oder F.\r\nLasse Q los und nutze das Objekt mit F.",
+    "ita": "Usa la rotella per scegliere un oggetto.\r\nOppure tieni Q e premi RMB o F.\r\nRilascia Q e usa l'oggetto con F.",
+    "spa": "Usa la rueda para elegir un objeto.\r\nO mantén Q y pulsa RMB o F.\r\nSuelta Q y usa el objeto con F.",
+}
+
+
+def tip_override(language, index, original, layout="Ranged"):
     # Same labeled sections in the seven version-0x10302 HunterTips tables.
-    needed = ("R",) if index == 187 else ("L", "X", "B")
+    needed = (
+        ("R",) if index == 187 else ("L", "A", "Y") if index == 234 else ("L", "X", "B")
+    )
     if any(b not in original for b in needed) or "<" in original:
         raise ValueError(f"Unexpected HunterTips entry {language}:{index}")
+    if index == 234:
+        return ITEM_TIPS[language]
+    if index == 235 and layout == "Melee":
+        return pc_text(original, language, layout=layout)
     return TIPS[language][0 if index == 187 else 1]

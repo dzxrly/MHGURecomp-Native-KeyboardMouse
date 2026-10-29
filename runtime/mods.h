@@ -11,8 +11,8 @@
 // Mods load in name order; a file in a later mod wins. mods/load_order.txt (one folder name per line, '#'
 // comments) picks and orders them instead; a folder whose name starts with '_' is skipped. A list the Mods tab of the
 // settings menu wrote also loads a folder it doesn't mention (a mod added since), after the listed ones.
-// A dedicated PC prompt mod places keyboard_mouse_icons.flag inside its romfs/ root: its RomFS layer is only
-// loaded when [Controls] KeyboardMouseIcons = On. This is a startup setting and does not change load_order.txt.
+// A dedicated PC prompt mod places keyboard_mouse_input.flag (Melee or Ranged) inside its romfs/ root. Its layer
+// only loads for InputMode=Keyboard_Mouse_Input and the matching KeyboardLayout. Both settings need a restart.
 #pragma once
 #include <stdint.h>
 

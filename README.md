@@ -9,8 +9,8 @@ not explain how to dump it and does not provide game files, keys or links to the
 
 Status: fully playable, but there may be some bugs. I've played a dozen hunts with no remaining issues. Multiplayer also works.
 
-This fork adds an optional **Valor HBG keyboard/mouse preset and PC input prompts for all seven game languages**.
-See the [installation and mapping guide](extras/valor-hbg/README.en.md) ([中文](extras/valor-hbg/README.md)).
+This fork adds an optional **Keyboard_Mouse_Input with Melee/Ranged layouts and PC prompts for all seven game languages**.
+See the [installation and mapping guide](extras/keyboard-mouse/README.en.md) ([中文](extras/keyboard-mouse/README.md)).
 The default remains the original layout; prompt resources are generated locally from your own game files.
 
 ## What it adds over the Switch version
@@ -129,11 +129,11 @@ Click in the game window to capture the mouse for the camera; Escape lets it go 
 window). `MouseSensitivity` in the ini's `[Mouse]` section sets its speed; the game's own camera options (speed,
 inverted axes) apply to it too.
 
-The table above describes `KeyboardPreset = Original`. With `[Controls] KeyboardPreset = ValorHBG`, LMB fires,
-RMB aims, R reloads, F sheathes, Shift is ordinary sprinting, Space is B/back, Esc opens the game menu,
-F2 releases the mouse, and the wheel cycles ammo. See the linked guide for the full mapping and PC prompt mod.
-`[Controls] KeyboardMouseIcons = On` loads the generated PC prompt mod; `Off` (default) keeps controller prompts.
-Changing this switch requires a restart and leaves the input preset unchanged.
+The table above describes `InputMode = Original`. With `[Controls] InputMode = Keyboard_Mouse_Input`, select
+`KeyboardLayout = Melee` (LMB primary, RMB secondary, R guard, wheel items) or `Ranged` (LMB fire, RMB aim,
+R reload, wheel ammo). Both keep Shift for ordinary sprinting, Space for B/back, Esc for the game menu and F2
+for releasing the mouse. The mode also selects matching locally generated prompts and revised mouse input.
+Both settings require a restart. See the linked guide for the full mapping and installation.
 
 When the game asks for text (names, chat), the keyboard types: Enter confirms, Escape cancels, Ctrl+V pastes.
 

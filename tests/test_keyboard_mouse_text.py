@@ -6,10 +6,10 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from valor_hbg_text import LANGUAGES, pc_text, tip_override
+from keyboard_mouse_text import LANGUAGES, pc_text, tip_override
 
 
-class ValorTextTest(unittest.TestCase):
+class KeyboardMouseTextTest(unittest.TestCase):
     def test_languages_and_one_pass_chords(self):
         samples = {
             "chS": ("X键和A键", "R键和鼠标左键"),
@@ -47,6 +47,33 @@ class ValorTextTest(unittest.TestCase):
             self.assertEqual(
                 re.findall(r"<[^>]*>", before), re.findall(r"<[^>]*>", after)
             )
+
+    def test_melee_mapping_and_wheel_instructions(self):
+        for lang, text in {
+            "chS": "X键+A键+R键",
+            "chT": "X鍵+A鍵+R鍵",
+            "eng": "X Button + A Button + R Button",
+            "fre": "bouton X + bouton A + bouton R",
+            "ger": "X-Knopf + A-Knopf + R-Taste",
+            "ita": "pulsante X + pulsante A + pulsante R",
+            "spa": "botón X + botón A + botón R",
+        }.items():
+            result = pc_text(text, lang, layout="Melee")
+            self.assertNotIn("RMB+RMB", result)
+            self.assertIn(
+                "鼠标左键" if lang == "chS" else "滑鼠左鍵" if lang == "chT" else "LMB",
+                result,
+            )
+            self.assertIn("R", result)
+            self.assertIn("F", tip_override(lang, 234, "L A Y", "Melee"))
+        self.assertEqual(
+            pc_text("X Button or A Button; R Button", "eng", layout="Melee"),
+            "LMB or RMB; R",
+        )
+        self.assertEqual(
+            tip_override("eng", 235, "Hold L Button, X Button or B Button", "Melee"),
+            "Hold Q, LMB or Space",
+        )
 
     def test_run_is_separate_from_aim_and_power_run(self):
         self.assertEqual(pc_text("按住R键奔跑"), "按住Shift键奔跑")
