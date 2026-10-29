@@ -9,9 +9,9 @@ not explain how to dump it and does not provide game files, keys or links to the
 
 Status: fully playable, but there may be some bugs. I've played a dozen hunts with no remaining issues. Multiplayer also works.
 
-This fork adds an optional **Keyboard_Mouse_Input with Melee/Ranged layouts and PC prompts for all seven game languages**.
-See the [installation and mapping guide](extras/keyboard-mouse/README.en.md) ([中文](extras/keyboard-mouse/README.md)).
-The default remains the original layout; prompt resources are generated locally from your own game files.
+This fork adds **Keyboard_Mouse_Input**: Melee and Ranged keyboard layouts, PC button prompts in all seven game
+languages, and configurable mouse-to-stick conversion. See the [setup and key bindings](extras/keyboard-mouse/README.en.md)
+([中文](extras/keyboard-mouse/README.md)).
 
 ## What it adds over the Switch version
 
@@ -129,14 +129,12 @@ Click in the game window to capture the mouse for the camera; Escape lets it go 
 window). `MouseSensitivity` in the ini's `[Mouse]` section sets its speed; the game's own camera options (speed,
 inverted axes) apply to it too.
 
-The table above describes `InputMode = Original`. With `[Controls] InputMode = Keyboard_Mouse_Input`, select
-`KeyboardLayout = Melee` (LMB primary, RMB secondary, R guard, wheel items) or `Ranged` (LMB fire, RMB aim,
-R reload, wheel ammo). Both keep Shift for ordinary sprinting, Space for B/back, Esc for the game menu and F2
-for releasing the mouse. The mode also selects matching locally generated prompts and revised mouse input.
-Both settings require a restart. See the linked guide for the full mapping and installation.
-`[MouseConversion]` exposes the averaging-window minimum, full-stick speed, dead-zone compensation, low-speed
-cutoff and frame-time smoothing for Keyboard_Mouse_Input. Defaults preserve its current behavior; edits require
-a restart. The INI and the mapping guide explain each parameter's units and range.
+The table above applies to `InputMode = Original`, the default. To use this fork's keyboard layouts, set
+`InputMode = Keyboard_Mouse_Input` under `[Controls]` and choose `KeyboardLayout = Melee` or `Ranged`, then restart.
+Melee uses left/right click for attacks and R for guard; Ranged uses left click to fire, right click to aim and R
+to reload. Both use Shift to sprint, Space to evade or go back, Esc for the game menu and F2 to release the mouse.
+The [keyboard and mouse guide](extras/keyboard-mouse/README.en.md) covers the full bindings, prompt installation
+and `[MouseConversion]` settings.
 
 When the game asks for text (names, chat), the keyboard types: Enter confirms, Escape cancels, Ctrl+V pastes.
 

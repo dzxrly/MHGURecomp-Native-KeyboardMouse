@@ -1,10 +1,14 @@
-# Keyboard_Mouse_Input: Melee and Ranged
+# Keyboard and mouse controls
 
-> `InputMode` selects original input or `Keyboard_Mouse_Input`. `KeyboardLayout` selects `Melee` or `Ranged` bindings and their matching prompt resources. “Game button” means a virtual Switch input sent to MHGU. LMB/RMB/MMB mean left/right/middle mouse button. Based on MHGURecomp 0.10.8.
+> `InputMode` selects the original controls (`Original`) or this fork's controls (`Keyboard_Mouse_Input`). `KeyboardLayout` selects `Melee` or `Ranged`. “Game button” refers to a Switch button sent to MHGU. LMB/RMB/MMB mean left/right/middle mouse button. `romfs` is the game's resource directory.
 
-[完整中文说明](README.md)
+[中文](README.md)
 
-Set these in `mhgurecomp.ini`, then exit the game completely and restart:
+Choose between Melee and Ranged bindings, with PC button prompts and control text in all seven game languages: Simplified Chinese, Traditional Chinese, English, French, German, Italian and Spanish.
+
+## Enable
+
+Edit `mhgurecomp.ini` in the game directory:
 
 ```ini
 [Controls]
@@ -12,11 +16,41 @@ InputMode = Keyboard_Mouse_Input
 KeyboardLayout = Ranged
 ```
 
-`InputMode = Original` (default) keeps upstream keyboard bindings, controller prompts and mouse conversion. `Keyboard_Mouse_Input` enables the selected modern layout, its PC prompts and the revised mouse conversion. `KeyboardLayout` accepts `Melee` or `Ranged` (default). It is a manual selection, not automatic weapon detection. Controller input remains available in both modes.
+Choose `Melee` for melee weapons or `Ranged` for ranged weapons, then restart the game. Change the layout manually when needed; it does not follow your equipped weapon.
 
-These replace the previous configuration fields. Move old prompt mods out of `mods` before installing the new packs.
+The source default is `InputMode = Original`, which uses the upstream keyboard bindings, controller prompts and mouse conversion. Controllers work in both modes.
 
-## Mapping
+Generate and install the PC prompts as described below.
+
+## Install prompts and control text
+
+Use Python 3.10 or newer and Pillow 12.2 or newer. Run these commands from the repository root, replacing the paths with your game resources and the `mods` directory next to the game executable:
+
+```sh
+python -m pip install "Pillow>=12.2"
+python tools/build_keyboard_mouse_assets.py /path/to/game/romfs /path/to/mods/Keyboard_Mouse_Input_Melee --layout Melee
+python tools/build_keyboard_mouse_assets.py /path/to/game/romfs /path/to/mods/Keyboard_Mouse_Input_Ranged --layout Ranged
+```
+
+Use unmodified game resources as the input. Both output directories must be empty and outside the input directory. The result should look like this:
+
+```text
+mods/
+  Keyboard_Mouse_Input_Melee/
+    romfs/
+      keyboard_mouse_input.flag
+      nativeNX/
+  Keyboard_Mouse_Input_Ranged/
+    romfs/
+      keyboard_mouse_input.flag
+      nativeNX/
+```
+
+Enable both packs in the Mods tab of the F1 settings menu. The game loads the pack selected by `KeyboardLayout`; `Original` skips both. Keep each `keyboard_mouse_input.flag`, which identifies the pack's layout. Changing the input settings does not enable a pack disabled in the Mods tab.
+
+Prompts cover the button font, title screens, menu paging, combat HUD, target selection, Hunter Art directions and lobby. Control text follows the game's language. Icons show the primary bindings rather than every alternate key. Full-page controller illustrations in the manual have not been replaced. The F1 settings menu still uses the upstream English or Spanish text.
+
+## Key bindings
 
 | Input | Melee | Ranged |
 | --- | --- | --- |
@@ -25,52 +59,34 @@ These replace the previous configuration fields. Move old prompt mods out of `mo
 | LMB | X: primary attack/draw | A: fire, confirm/interact |
 | RMB | A: secondary attack, confirm/interact | R: aim |
 | R | R: guard/weapon special action | X: reload/draw |
-| Mouse5 | R: guard/weapon special action | Unbound, as before |
+| Mouse5 | R: guard/weapon special action | Unbound |
 | F / Mouse4 | Y: sheathe/use item | Same |
-| E | Y: sheathe/use item alias | R: previous binding retained |
+| E | Y: sheathe/use item | R: same as RMB |
 | Left Shift | R: ordinary sprint | Same |
-| Space | B: evade, cancel/menu back | Same |
+| Space | B: evade, cancel/back | Same |
 | C | X+A: combined attack | X+A: siege mode/combined action |
 | Wheel up/down | L+Y / L+A: select items | L+X / L+B: select ammo/coatings |
 | Q | L: item selector/camera functions | Same |
 | Esc / Enter / keypad Enter | Plus: game menu | Same |
-| Backspace | Minus: original menu | Same |
+| Backspace | Minus: minus-button menu | Same |
 | Tab / MMB | ZL: target selection with control type 1 | Same |
 | T | ZR | Same |
 | 1 / 2 / 3 | D-pad up/right/down: Arts with control type 1 | Same |
 | Arrow keys | D-pad | Same |
 | Ctrl / Alt | Left/right stick click | Same |
-| F1 / F2 | Host settings / release mouse capture | Same |
+| F1 / F2 | PC settings / release mouse | Same |
 
-The Ranged fire/reload descriptions use Light/Heavy Bowgun actions. MHGU Bow has separate in-game control types: type 1 draws with X and aims with R (keyboard R and RMB here); type 2 swaps X/R. This fixed layout does not automatically detect Bow, so the bowgun LMB-fire description does not apply to it.
+Confirm/interact is RMB in Melee and LMB in Ranged. Both use Space to go back. During text entry, Enter confirms and Esc cancels. After releasing the mouse with F2, click the game window to capture it again.
 
-The layouts borrow primary/secondary mouse attacks, RMB aiming, Shift sprinting, Space evasion and R reload/guard conventions from World/Iceborne and Wilds. Ranged preserves the previously used F sheathe and C combined input. Existing PC icon art is reused.
+Shift sends the game's ordinary sprint input, separate from Power Run. With a weapon drawn, the same game button R may guard or aim, depending on the weapon and control type.
 
-MHGU shares controller buttons between combat and menus: Melee confirms/interacts with RMB, Ranged with LMB, and both cancel with Space. There is no contextual remapping of every menu. These are not exact replicas of the later games: no slinger, focus mode, automatic sprint-sheathe or other new actions are added. Start with game control type 1 when checking these bindings.
+The Ranged fire/reload descriptions are for Light and Heavy Bowguns. With Bow control type 1, keyboard R draws the bow and RMB aims; control type 2 swaps these actions.
 
-Shift sends only R, never B or an automatic Power Run sequence. With a weapon drawn, the game may interpret R as guard or aim. Combat timing and style restrictions stay in the original game. During text entry, Enter confirms and Escape cancels. Click the window to recapture the mouse after F2.
+Keys use physical QWERTY positions, including on other keyboard layouts.
 
-The wheel queues L down → L+selection button → selection released → L released, at least 40 ms per phase. Focus loss and text-entry/host-menu transitions clear the queue. It is a fixed controller sequence, not comprehensive menu detection. Bindings use physical QWERTY scancodes, including on AZERTY/QWERTZ keyboards.
+## Mouse settings
 
-## Generate and install prompts
-
-Use Python 3.10+ and Pillow 12.2+, running from the repository root. Substitute your own unmodified game's `romfs` and two empty output directories outside it:
-
-```sh
-python -m pip install "Pillow>=12.2"
-python tools/build_keyboard_mouse_assets.py /path/to/game/romfs /path/to/mods/Keyboard_Mouse_Input_Melee --layout Melee
-python tools/build_keyboard_mouse_assets.py /path/to/game/romfs /path/to/mods/Keyboard_Mouse_Input_Ranged --layout Ranged
-```
-
-Put both generated directories under the game's `mods`. Keep each `romfs/keyboard_mouse_input.flag`, containing `Melee` or `Ranged`. The loader selects only the pack matching `InputMode` and `KeyboardLayout`, even if its directory is renamed or nested. Enable both packs in the Mods list to allow selection through the INI; configuration does not override `load_order.txt`. Original mode skips both packs. Other mods are independent. Keep unrelated features out of these dedicated layers.
-
-Both packs support all seven shipped game languages: Simplified Chinese, Traditional Chinese, English, French, German, Italian and Spanish. They adapt explicit button/stick text, movement/item/ammo tips and the shared font, title, paging, HUD, target selector, Art directions and lobby icons. Melee X/A/R prompts show LMB/RMB/R; Ranged shows R/LMB/RMB. Static icons show primary bindings: sprint text says Shift, while the shared R icon shows R or RMB. D-pad icons show arrows; 1/2/3 remain aliases. Full-page illustrated manual diagrams have not been redrawn. The upstream F1 host panel keeps English/Spanish.
-
-GMD entry identifiers, order and formatting tags are preserved; archive-local variants use their own original text. Only known input BC3 blocks are re-encoded, and untouched archive payloads remain exact. Each pack includes a local `manifest.json` and decoded previews. The repository contains code, tools, layout facts and PC icon art; game assets, generated mods, previews and saves remain local. Icon generation prompts are in `imagegen-prompts.txt`; added code and icon materials use the upstream MIT license.
-
-## Mouse conversion and verification
-
-`[Mouse] MouseSensitivity` still controls overall sensitivity. The dedicated `[MouseConversion]` section tunes stick conversion for `InputMode = Keyboard_Mouse_Input`, shared by Melee and Ranged. All five settings require a full game restart; these defaults preserve the existing behavior:
+`MouseSensitivity` under `[Mouse]` sets the overall sensitivity. `[MouseConversion]` adjusts how mouse motion becomes right-stick input in `Keyboard_Mouse_Input` mode. Melee and Ranged share these settings. Restart the game after changing any of the five values.
 
 ```ini
 [MouseConversion]
@@ -81,24 +97,34 @@ LowSpeedCutoff = 0.002
 FrameTimeSmoothing = 0.25
 ```
 
+> Relative counts are the movement reported by the mouse, not screen pixels. Mouse DPI (dots per inch) affects counts per physical movement. Normalized speed is `counts/second * MouseSensitivity / FullStickSpeed`.
+
 | Setting | Range / unit | Effect |
 | --- | --- | --- |
-| `MinWindowMs` | 1–50 milliseconds | Minimum displacement window. Larger is smoother and retains motion longer. The actual window spans whole frame intervals, bounded by 100 ms. |
-| `FullStickSpeed` | 100–100000 relative counts/second | Speed reaching full stick at sensitivity 1. Higher produces less stick deflection for the same mouse speed. |
-| `DeadzoneCompensation` | 0–0.95 of full stick | Compensates for the game's own dead zone. Higher strengthens the initial response; too low can leave fine movements inside the game's dead zone. |
-| `LowSpeedCutoff` | 0–0.1 normalized speed | Motion below this is ignored. Lower admits finer movements; zero disables this extra cutoff while stationary input still outputs zero. |
-| `FrameTimeSmoothing` | 0.01–1, weight of each measured frame interval | Higher follows FPS changes faster; lower stabilizes the window estimate. This filters frame timing, not mouse velocity. |
+| `MinWindowMs` | 1–50 milliseconds | Minimum averaging window for mouse displacement. Higher is smoother and takes longer to return to zero after stopping. The actual window spans whole frame intervals, up to 100 ms. |
+| `FullStickSpeed` | 100–100000 counts/second | Mouse speed that reaches full stick at sensitivity 1. Higher produces less stick deflection for the same mouse speed. |
+| `DeadzoneCompensation` | 0–0.95 of full stick | Compensates for the game's stick dead zone. Higher strengthens small movements; too low may leave them unable to move the camera. |
+| `LowSpeedCutoff` | 0–0.1 normalized speed | Ignores motion below this value. Lower allows finer input; zero disables this filter. |
+| `FrameTimeSmoothing` | 0.01–1, weight of the latest frame interval | Adjusts the frame-time estimate. Higher follows FPS changes faster; lower is more stable. It does not directly smooth mouse velocity. |
 
-Normalized speed is `counts/second * MouseSensitivity / FullStickSpeed`. The default cutoff corresponds to 3 counts/s, changing with sensitivity and full-stick speed. Saturation occurs at `FullStickSpeed / MouseSensitivity`. These counts are not screen pixels; mouse DPI affects counts per physical movement.
+Start with `MouseSensitivity` for overall speed, then use the settings above for further adjustment. Full stick is reached at `FullStickSpeed / MouseSensitivity`; the default low-speed cutoff corresponds to 3 counts per second.
 
-The generated INI includes units, bounds and defaults. Startup logs print all five loaded values after `[input] mouse conversion:`. A missing section is appended with defaults. Out-of-range values, NaN and infinity are rejected by the existing configuration rules. Original mode does not use these parameters.
+The mouse drives the right stick and remains subject to the game's maximum turn speed. Moving it the same distance does not always produce the same camera angle. Losing focus, releasing the mouse, entering text or opening a PC menu clears the motion history.
 
-Keyboard_Mouse_Input replaces the old 25 ms exponential speed filter with a finite mouse-displacement window. With default parameters, the window is at least 8 ms and spans whole frame intervals: approximately 33.3/16.7/8.3/8.3 ms at stable 30/60/120/240 FPS, growing if actual presentation slows. The low-speed cutoff drops from 30 to 3 counts/s at sensitivity 1. Focus loss, capture release and text/host-menu transitions clear the history.
+Defaults and ranges are also listed in the INI comments. Check the `[input] mouse conversion:` line in the startup log for the values in use.
 
-Radial direction, dead-zone compensation and maximum stick deflection remain. `MouseSensitivity` still applies. This is still stick emulation with the game's maximum turn speed, not direct mouse-angle control. Input falls to zero when its finite window expires; visible latency also includes game/display timing. Original mode keeps the upstream conversion.
+## Development and checks
 
-The atlas regression needs Pillow and uses a synthetic empty texture plus our PC art, with no game files.
+Run in the normal build environment:
 
-Run `make test-settings test-keyboard-mouse test-settings-locale test-keyboard-mouse-assets` in the normal build environment. Checks cover both layouts, item/ammo wheel transitions at 30–240 FPS, seven text languages, persistence/restart behavior and mouse resampling at 125–8000 Hz with 30–240 FPS sampling, including count conservation, stopping, direction and reset. Input-count tests do not measure actual camera-angle error or player-perceived aiming quality.
+```sh
+make test-settings test-keyboard-mouse test-settings-locale test-keyboard-mouse-assets
+```
 
-References: [Capcom Generations Great Sword](https://game.capcom.com/manual/MH_Gen/en/page-101.html), [Capcom Generations Heavy Bowgun](https://game.capcom.com/manual/MH_Gen/en/page-122.html), plus the local MHGU 1.4.0 Hunter's Notes for game/style-specific behavior. [World/Iceborne PC controls and game screenshots](https://www.shacknews.com/article/106612/pc-keyboard-controls-and-key-bindings-monster-hunter-world) and [Wilds controls and gameplay screenshots](https://dotesports.com/monster-hunter/news/all-controls-and-keybinds-in-monster-hunter-wilds-pc-and-console) inform the ergonomic comparison; these layouts do not claim to reproduce every default binding of those games.
+These check both layouts, item/ammo wheel input, control text in seven languages, configuration read/write and mouse sampling. Icon tests use synthetic textures and the repository's PC art, with no game files. Mouse tests check input sampling rather than actual camera angles.
+
+Each wheel step sends L down → selection button down → selection button up → L up, with at least 40 ms per phase. Further steps are queued. Focus loss, text entry and PC menu transitions clear the queue.
+
+The resource tool changes control text and icons while preserving other resources. Each output includes a `manifest.json` listing the changes and icon previews; generated game resources stay local. PC icon generation prompts are in [imagegen-prompts.txt](imagegen-prompts.txt).
+
+Check the in-game Hunter's Notes for weapon and style actions. Capcom's Generations manual also describes the game buttons: [Great Sword](https://game.capcom.com/manual/MH_Gen/en/page-101.html), [Heavy Bowgun](https://game.capcom.com/manual/MH_Gen/en/page-122.html).
