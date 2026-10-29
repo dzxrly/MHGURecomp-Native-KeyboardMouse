@@ -26,6 +26,11 @@ int main(int argc, char **argv) {
     assert(argc == 2);
     Config preset = config_defaults();
     assert(preset.input_mode == INPUT_ORIGINAL);
+    assert(preset.ldn_server[0] == '\0' && preset.ldn_key[0] == '\0');
+    assert(config_parse(config_setting("Server"), "example.org:39501", &preset));
+    assert(!strcmp(preset.ldn_server, "example.org:39501"));
+    assert(config_parse(config_setting("Key"), "friends", &preset));
+    assert(!strcmp(preset.ldn_key, "friends"));
     const ConfigSetting *mode_setting = config_setting("InputMode");
     assert(mode_setting && mode_setting->restart);
     assert(config_parse(mode_setting, "Keyboard_Mouse_Input", &preset));

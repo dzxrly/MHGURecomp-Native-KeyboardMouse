@@ -18,6 +18,8 @@ static int requested;
 extern "C" const char *g_game_dir = "obj/settings-test/game";  // (modorder.c compares archives with the game's)
 extern "C" void ui_request_action(bool restart) { requested = restart ? 2 : 1; }
 extern "C" bool ui_action_failed(void) { return false; }
+extern "C" int ldn_hub_status(const char *, const char *, int *, int *) { return 0; }
+extern "C" void ldn_hub_check(const char *, const char *) {}
 extern "C" int overlay_face_position(int semantic) {
     const int p[] = {1, 0, 3, 2};
     return p[semantic];
@@ -245,15 +247,26 @@ int main() {
         std::string list((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
         assert(list.find("\nBbb\nAaa\n") != std::string::npos);
     }
-    // A mod folder added after the Mods tab saved loads (on), after the listed ones; the ones turned off stay off
+    // A mod that is off keeps its place in the list: turned on again, it loads where it was
+    {
+        ModEntry order[] = {{"Bbb", true}, {"Ccc", false}, {"Aaa", true}, {"_Ddd", false}};
+        char error[256];
+        assert(mods_save_order(order, 4, error, sizeof error));
+        ModEntry list[MODS_MAX];
+        assert(mods_installed(list, MODS_MAX) == 4);
+        for (int i = 0; i < 4; i++)
+            assert(!strcmp(list[i].name, order[i].name) && list[i].on == order[i].on);
+    }
+    // A mod folder added after the Mods tab saved loads (on), after the ones it lists
     put("obj/settings-test/mods/Eee/romfs/e.bin", "5");
     {
         ModEntry list[MODS_MAX];
         int n = mods_installed(list, MODS_MAX);
         assert(n == 5);
-        const char *want[] = {"Bbb", "Aaa", "Eee", "_Ddd", "Ccc"};
+        const char *want[] = {"Bbb", "Ccc", "Aaa", "_Ddd", "Eee"};
+        const bool on[] = {true, false, true, false, true};
         for (int i = 0; i < n; i++)
-            assert(!strcmp(list[i].name, want[i]) && list[i].on == (i < 3));
+            assert(!strcmp(list[i].name, want[i]) && list[i].on == on[i]);
     }
     fs::remove_all("obj/settings-test/mods/Eee");
     tab();

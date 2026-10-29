@@ -77,7 +77,12 @@ typedef struct {
     int input_mode;           // INPUT_*: original controls/prompts or Keyboard_Mouse_Input
     int keyboard_layout;      // KEYBOARD_*: melee or ranged bindings and matching prompt layer
     MouseConversion mouse_conversion;
+    char ldn_server[256];     // [Multiplayer] Server: hub server for internet hubs (host[:port]); "" the default, "Off" none
+    char ldn_key[64];         // [Multiplayer] Key: matchmaking key, hubs seen only by players with the same; "" public
 } Config;
+// The hub server used when ini Server is empty (runtime/net/ldn.c, server/): the project's public one (an Oracle
+// Cloud VM; a DuckDNS name, so it can move without a release). "" = no default.
+#define LDN_DEFAULT_SERVER "morerokk-mhgurecomp-ldnserver.duckdns.org"
 enum { UPDATES_ASK, UPDATES_AUTO, UPDATES_OFF };
 enum { UI_CENTER = 1, UI_21_9, UI_32_9, UI_EDGES };  // the middle 16:9, 21:9, 32:9, the picture's sides
 enum { FSR_UP_3, FSR_UP_4 };  // [Upscaler] Upscaler
@@ -140,6 +145,7 @@ int config_live_face_buttons(void);
 int config_live_menu_confirm(void);
 int config_live_background_input(void);
 int config_live_combo_window(void);
+void config_live_ldn(char *server, size_t server_size, char *key, size_t key_size);  // [Multiplayer] Server, Key
 bool config_restart_required(const Config *draft); // Raw cold fields vs this process's startup INI values.
 float config_audio_gain(void);  // atomic, safe on audio threads; 0 while muted in the background
 void config_window_focus(bool focused);  // the window got / lost the focus (runtime/host_input.c)

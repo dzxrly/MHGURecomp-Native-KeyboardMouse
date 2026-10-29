@@ -65,10 +65,11 @@ You need the `exefs` and `romfs` folders from Monster Hunter Generations Ultimat
    ```
 
    `exefs` must come from the 1.4.0 update, and `romfs` must be the base game's romfs with the update's files
-   merged over it.
+   merged over it: about 35,500 files, 12.3 GB.
 3. Start `mhgurecomp.exe`.
 
-If the files are missing or the wrong version, a message box says so.
+If the files are missing, the wrong version or incomplete (for example the base game's romfs without the update's
+files, or the update's alone), a message box says so.
 
 ### Staying up to date
 
@@ -161,14 +162,19 @@ anti-aliasing, VSync, controls and volume apply when you save; the settings mark
 - `[Performance]`: `FPS` (30 to 240), `VSync` (On / Off; above your monitor's refresh rate, turn VSync off), `ShaderPrewarm`
   (On / Off: translate all of the game's shaders in the background at startup, so fewer things are drawn black the
   first time they appear; the first start takes about 20 s for it, during the logos, and the cache folder needs about
-  340 MB)
+  340 MB). `pipelines.list` next to the exe lists the shader combinations the common areas use; with the prewarm on,
+  they are prepared in the background as well, so entering those areas for the first time no longer shows surfaces
+  briefly black. Only made with MSAA Off; the rest is still prepared the first time it is needed. Recording more of
+  it: [docs/PIPELINE_LIST.md](docs/PIPELINE_LIST.md).
 - `[Controls]`: `FaceButtons` (Position / Label), `MenuConfirm` (the settings menu's confirm button),
   `BackgroundInput` (On / Off: the controller keeps working while the game's window is in the background, such as
   with a wiki in front of it; default On), `ComboInputWindow` (Lenient / Strict: how long the game waits for a
   second button for inputs like the Hunting Horn's X+A; Lenient, the default, as long as at 30 fps at any frame
   rate, Strict a fixed number of frames, shorter the higher the frame rate)
 - `[Mouse]`: `MouseSensitivity` (1 = default, 0.1 to 10)
-- `[Multiplayer]`: `Port`, `Join` (addresses of hosts outside your LAN), `SyncSmallMonsters`
+- `[Multiplayer]`: `Port`, `Join` (addresses of hosts outside your LAN), `Server` (hub server for internet hubs:
+  empty = the default, `Off` = none, or `host[:port]`), `Key` (matchmaking key: only players with the same key see
+  each other's hubs; empty = public), `SyncSmallMonsters`
 - `[Monster HP]`: HP factors for 1 to 4 hunters in Hub quests, and per-quest exceptions (default: all 1, the
   original game)
 - `[Village Quests]`: `VillageQuestsInHub` (default On), `HubHP` (default 2.0: Village quests posted in the Hub
@@ -184,7 +190,9 @@ anti-aliasing, VSync, controls and volume apply when you save; the settings mark
 
 Over LAN or a VLAN, this should work out of the box.
 
-Over the internet, the host needs to forward the right port (39500 TCP/UDP by default), the client needs to configure the host's IP address in their .ini file. (`Join = xxx.xxx.xxx.xxx`)
+Over the internet, through a hub server: hubs you create are listed on it and Search Hubs shows the hubs listed there, no port forwarding needed. To play only with your friends, all of you enter the same matchmaking key ("Matchmaking key" in the settings menu, or `Key =` in the .ini); without a key your hubs are public. The hub server is set with `Server =` ("Hub server" in the settings menu); anyone can run their own, see [server/README.md](server/README.md). If the hub server can't be reached, a notice at the top of the screen says so (your hub is then only visible on your local network); "Check hub server" in the settings menu tests the server and key you entered. Changes to both apply without a restart.
+
+Without a hub server, the host needs to forward the right port (39500 TCP/UDP by default), the client needs to configure the host's IP address in their .ini file. (`Join = xxx.xxx.xxx.xxx`)
 
 Choose the "Local Wireless" multiplayer options, as this port pretends to be a local nearby Switch with a wireless connection. The online options are unavailable and are unnecessary.
 
@@ -206,7 +214,7 @@ To install a mod, put the mod folder in `mods\`. Remove the folder to uninstall 
   the mods listed load, in that order. The merged archives are kept in `cache\arcmerge\`.
 - The **Mods** tab of the settings menu does this without editing files: it lists the mod folders, turns each on or
   off, moves them up or down, and writes `mods\load_order.txt` when Save is pressed (restart to apply; mods you add
-  later load too, after the listed ones, until you turn them off). It also compares the mods and lists the ones that change the same game files (and which of
+  later load too, after the listed ones, until you turn them off; a mod turned off keeps its place in the order). It also compares the mods and lists the ones that change the same game files (and which of
   the two is used), and can apply a suggested order, with the mods that change the most files first.
 - exefs patches (`.pchtxt`, `.ips`) are applied when they change data. Patches to game code can't be applied, because
   the code is precompiled; the log lists them.
