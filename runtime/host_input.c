@@ -557,6 +557,7 @@ static void mouse_update(int *rx, int *ry) {
     last = now;
     if (dt > 0.1f) dt = 0.1f;
     if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
+        const MouseConversion *conversion = &g_config.mouse_conversion;
         static uint64_t present, presented_at;
         static float frame_seconds;
         float cap_seconds = 1.0f / config_live_fps();
@@ -564,15 +565,15 @@ static void mouse_update(int *rx, int *ry) {
         if (g_present_count != present) {
             if (presented_at && g_present_count > present) {
                 float observed = (float)(now - presented_at) * 1e-9f / (g_present_count - present);
-                frame_seconds += (fminf(observed, 0.1f) - frame_seconds) * 0.25f;
+                frame_seconds += (fminf(observed, 0.1f) - frame_seconds) * conversion->frame_time_smoothing;
             }
             present = g_present_count; presented_at = now;
         }
         uint64_t mouse_now = SDL_GetTicksNS();
         if (now < test_until && dt > 0) mouse_look_add(&mouse_look, test_vx * dt, test_vy * dt, mouse_now);
         int x, y;
-        mouse_look_stick(&mouse_look, mouse_now, mouse_look_window(fmaxf(cap_seconds, frame_seconds)),
-                         config_live_mouse_sensitivity(), &x, &y);
+        mouse_look_stick(&mouse_look, mouse_now, mouse_look_window(fmaxf(cap_seconds, frame_seconds), conversion),
+                         config_live_mouse_sensitivity(), conversion, &x, &y);
         *rx += x; *ry += y;
         mouse_dx = mouse_dy = 0;
         return;
@@ -617,8 +618,12 @@ static void rumble_update(void) {
 void host_input_update(void) {
     if (nscript < 0) {
         script_parse();
-        if (g_config.input_mode == INPUT_KEYBOARD_MOUSE)
+        if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
             LOG("[input] Keyboard_Mouse_Input: %s layout, F/Mouse4 sheathe, Shift ordinary run, C X+A\n", g_config.keyboard_layout == KEYBOARD_MELEE ? "Melee" : "Ranged");
+            const MouseConversion *c = &g_config.mouse_conversion;
+            LOG("[input] mouse conversion: MinWindowMs=%g FullStickSpeed=%g DeadzoneCompensation=%g LowSpeedCutoff=%g FrameTimeSmoothing=%g (restart settings)\n",
+                c->min_window_ms, c->full_stick_speed, c->deadzone_compensation, c->low_speed_cutoff, c->frame_time_smoothing);
+        }
     }
     rumble_update();
     control_poll();

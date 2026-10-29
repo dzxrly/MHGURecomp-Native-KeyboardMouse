@@ -70,7 +70,30 @@ GMD entry identifiers, order and formatting tags are preserved; archive-local va
 
 ## Mouse conversion and verification
 
-Keyboard_Mouse_Input replaces the old 25 ms exponential speed filter with a finite mouse-displacement window. The window is at least 8 ms and spans whole frame intervals: approximately 33.3/16.7/8.3/8.3 ms at stable 30/60/120/240 FPS, growing if actual presentation slows. The low-speed cutoff drops from 30 to 3 counts/s at sensitivity 1. Focus loss, capture release and text/host-menu transitions clear the history.
+`[Mouse] MouseSensitivity` still controls overall sensitivity. The dedicated `[MouseConversion]` section tunes stick conversion for `InputMode = Keyboard_Mouse_Input`, shared by Melee and Ranged. All five settings require a full game restart; these defaults preserve the existing behavior:
+
+```ini
+[MouseConversion]
+MinWindowMs = 8.0
+FullStickSpeed = 1500.0
+DeadzoneCompensation = 0.40
+LowSpeedCutoff = 0.002
+FrameTimeSmoothing = 0.25
+```
+
+| Setting | Range / unit | Effect |
+| --- | --- | --- |
+| `MinWindowMs` | 1–50 milliseconds | Minimum displacement window. Larger is smoother and retains motion longer. The actual window spans whole frame intervals, bounded by 100 ms. |
+| `FullStickSpeed` | 100–100000 relative counts/second | Speed reaching full stick at sensitivity 1. Higher produces less stick deflection for the same mouse speed. |
+| `DeadzoneCompensation` | 0–0.95 of full stick | Compensates for the game's own dead zone. Higher strengthens the initial response; too low can leave fine movements inside the game's dead zone. |
+| `LowSpeedCutoff` | 0–0.1 normalized speed | Motion below this is ignored. Lower admits finer movements; zero disables this extra cutoff while stationary input still outputs zero. |
+| `FrameTimeSmoothing` | 0.01–1, weight of each measured frame interval | Higher follows FPS changes faster; lower stabilizes the window estimate. This filters frame timing, not mouse velocity. |
+
+Normalized speed is `counts/second * MouseSensitivity / FullStickSpeed`. The default cutoff corresponds to 3 counts/s, changing with sensitivity and full-stick speed. Saturation occurs at `FullStickSpeed / MouseSensitivity`. These counts are not screen pixels; mouse DPI affects counts per physical movement.
+
+The generated INI includes units, bounds and defaults. Startup logs print all five loaded values after `[input] mouse conversion:`. A missing section is appended with defaults. Out-of-range values, NaN and infinity are rejected by the existing configuration rules. Original mode does not use these parameters.
+
+Keyboard_Mouse_Input replaces the old 25 ms exponential speed filter with a finite mouse-displacement window. With default parameters, the window is at least 8 ms and spans whole frame intervals: approximately 33.3/16.7/8.3/8.3 ms at stable 30/60/120/240 FPS, growing if actual presentation slows. The low-speed cutoff drops from 30 to 3 counts/s at sensitivity 1. Focus loss, capture release and text/host-menu transitions clear the history.
 
 Radial direction, dead-zone compensation and maximum stick deflection remain. `MouseSensitivity` still applies. This is still stick emulation with the game's maximum turn speed, not direct mouse-angle control. Input falls to zero when its finite window expires; visible latency also includes game/display timing. Original mode keeps the upstream conversion.
 

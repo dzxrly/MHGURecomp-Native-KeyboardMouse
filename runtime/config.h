@@ -26,6 +26,16 @@ typedef struct {
     struct { uint32_t quest; float scale[4]; } quest[HP_QUESTS_MAX];  // per quest, in place of scale
 } HpScale;
 
+// [MouseConversion]: Keyboard_Mouse_Input only; immutable for this process (restart after editing).
+typedef struct {
+    float min_window_ms;       // minimum displacement averaging window, 1..50 ms
+    float full_stick_speed;    // counts/s reaching full stick at MouseSensitivity=1
+    float deadzone_compensation; // output stick magnitude added to cross the game's dead zone, 0..0.95
+    float low_speed_cutoff;    // normalized speed below which output is zero, 0..0.1
+    float frame_time_smoothing; // weight of each new measured frame interval, 0.01..1
+} MouseConversion;
+#define MOUSE_CONVERSION_DEFAULTS {8.0f, 1500.0f, 0.40f, 0.002f, 0.25f}
+
 typedef struct {
     int display_mode;         // DISPLAY_*
     int width, height;        // screen / window size (Fullscreen: the monitor mode)
@@ -66,6 +76,7 @@ typedef struct {
     int combo_window;         // [Controls] ComboInputWindow: COMBO_*, how long a press waits for a second button
     int input_mode;           // INPUT_*: original controls/prompts or Keyboard_Mouse_Input
     int keyboard_layout;      // KEYBOARD_*: melee or ranged bindings and matching prompt layer
+    MouseConversion mouse_conversion;
 } Config;
 enum { UPDATES_ASK, UPDATES_AUTO, UPDATES_OFF };
 enum { UI_CENTER = 1, UI_21_9, UI_32_9, UI_EDGES };  // the middle 16:9, 21:9, 32:9, the picture's sides

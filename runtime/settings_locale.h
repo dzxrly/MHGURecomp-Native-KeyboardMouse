@@ -81,6 +81,7 @@ static inline const char *settings_text(int language, const char *english) {
         {"FOV must be 0.5-2.0 and mouse sensitivity 0.1-10.", "El FOV debe ser de 0.5 a 2.0 y la sensibilidad de 0.1 a 10."},
         {"Invalid frame cap, anti-aliasing, controller, HUD or volume setting.", "Valor no válido de FPS, suavizado, mando, HUD o volumen."},
         {"Invalid On/Off value.", "Valor de activación no válido."},
+        {"Mouse conversion: window 1-50 ms, full-stick speed 100-100000, deadzone 0-0.95, cutoff 0-0.1, frame-time smoothing 0.01-1.", "Conversión del ratón: ventana 1-50 ms, velocidad máxima 100-100000, zona muerta 0-0.95, umbral 0-0.1, suavizado del tiempo de fotograma 0.01-1."},
         {"Invalid port or Join address list (no newlines, ';' or '#').", "Puerto o direcciones no válidos (sin saltos de línea, ';' ni '#')."},
         {"Invalid village HP or quest override count.", "Vida de aldea o número de ajustes por misión no válido."},
         {"HP factors must be 0.05-20.", "Los factores de vida deben ser de 0.05 a 20."},

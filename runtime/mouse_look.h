@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
+#include "config.h"
 
 #define MOUSE_LOOK_SAMPLES 1024  // >100 ms at 8000 Hz; equal-timestamp events are coalesced
 typedef struct { uint64_t time; float x, y; } MouseLookSample;
@@ -22,10 +23,11 @@ static inline void mouse_look_add(MouseLook *m, float x, float y, uint64_t time)
     m->samples[(m->first + m->count++) % MOUSE_LOOK_SAMPLES] = (MouseLookSample){time, x, y};
 }
 
-static inline uint64_t mouse_look_window(float frame_seconds) {
-    // One whole frame at 30/60/120 Hz, two at 240 Hz. Never shorten the window below 8 ms.
+static inline uint64_t mouse_look_window(float frame_seconds, const MouseConversion *config) {
+    // Config validation limits the minimum to 50 ms, keeping a whole-frame window <=100 ms.
     uint64_t frame = (uint64_t)(fminf(fmaxf(frame_seconds, 0.001f), 0.1f) * 1e9f);
-    return frame * ((8000000ull + frame - 1) / frame);
+    uint64_t minimum = (uint64_t)(config->min_window_ms * 1e6f);
+    return frame * ((minimum + frame - 1) / frame);
 }
 
 static inline void mouse_look_velocity(MouseLook *m, uint64_t now, uint64_t window, float *x, float *y) {
@@ -40,14 +42,16 @@ static inline void mouse_look_velocity(MouseLook *m, uint64_t now, uint64_t wind
     *x = dx * (1e9f / window); *y = dy * (1e9f / window);
 }
 
-static inline void mouse_look_stick(MouseLook *m, uint64_t now, uint64_t window, float sensitivity, int *rx, int *ry) {
+static inline void mouse_look_stick(MouseLook *m, uint64_t now, uint64_t window, float sensitivity,
+                                  const MouseConversion *config, int *rx, int *ry) {
     float x, y;
     mouse_look_velocity(m, now, window, &x, &y);
-    x *= sensitivity / 1500.0f; y *= -sensitivity / 1500.0f;
+    x *= sensitivity / config->full_stick_speed; y *= -sensitivity / config->full_stick_speed;
     float magnitude = sqrtf(x*x + y*y);
     *rx = *ry = 0;
-    if (magnitude < 0.002f) return;  // 3 counts/s at sensitivity 1, down from the old 30 counts/s cutoff
+    if (magnitude == 0 || magnitude < config->low_speed_cutoff) return;
     // Preserve radial direction, the game's measured dead zone compensation and maximum stick speed.
-    float scale = (0.40f + 0.60f * fminf(magnitude, 1.0f)) / magnitude * 32767.0f;
+    float deadzone = config->deadzone_compensation;
+    float scale = (deadzone + (1.0f - deadzone) * fminf(magnitude, 1.0f)) / magnitude * 32767.0f;
     *rx = (int)(x * scale); *ry = (int)(y * scale);
 }

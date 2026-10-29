@@ -134,6 +134,9 @@ The table above describes `InputMode = Original`. With `[Controls] InputMode = K
 R reload, wheel ammo). Both keep Shift for ordinary sprinting, Space for B/back, Esc for the game menu and F2
 for releasing the mouse. The mode also selects matching locally generated prompts and revised mouse input.
 Both settings require a restart. See the linked guide for the full mapping and installation.
+`[MouseConversion]` exposes the averaging-window minimum, full-stick speed, dead-zone compensation, low-speed
+cutoff and frame-time smoothing for Keyboard_Mouse_Input. Defaults preserve its current behavior; edits require
+a restart. The INI and the mapping guide explain each parameter's units and range.
 
 When the game asks for text (names, chat), the keyboard types: Enter confirms, Escape cancels, Ctrl+V pastes.
 

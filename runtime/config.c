@@ -17,7 +17,7 @@
 #include "config.h"
 #include "rt.h"
 
-#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, KEYBOARD_RANGED
+#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, KEYBOARD_RANGED, MOUSE_CONVERSION_DEFAULTS
 Config g_config = {CONFIG_DEFAULT_VALUES};
 Config config_defaults(void) { Config c = {CONFIG_DEFAULT_VALUES}; return c; }
 uint32_t g_render_size[2] = {1920, 1080};
@@ -156,6 +156,29 @@ static const char DEFAULT_INI[] =
     "; Mouse sensitivity\n"
     "; Default: 1.0\n"
     "MouseSensitivity = 1.0\n"
+    "\n"
+    "[MouseConversion]\n"
+    "; Keyboard_Mouse_Input only (both layouts). All five settings below require a restart.\n"
+    "; Defaults preserve the current conversion. [Mouse] MouseSensitivity still multiplies input speed.\n"
+    "; Minimum averaging window in milliseconds (1-50, default 8). Larger is smoother but stops later.\n"
+    "; The actual window spans whole frame intervals; slower frames can make it longer, up to 100 ms.\n"
+    "MinWindowMs = 8.0\n"
+    "\n"
+    "; Relative motion counts/second reaching full stick at sensitivity 1 (100-100000, default 1500).\n"
+    "; Higher is slower. The full-stick threshold is FullStickSpeed / MouseSensitivity.\n"
+    "FullStickSpeed = 1500.0\n"
+    "\n"
+    "; Output stick magnitude added to cross the game's dead zone (0-0.95, default 0.40).\n"
+    "; Raising it makes the initial response stronger; too low may leave small movements inside the game dead zone.\n"
+    "DeadzoneCompensation = 0.40\n"
+    "\n"
+    "; Cutoff in normalized speed = counts/s * MouseSensitivity / FullStickSpeed (0-0.1, default 0.002).\n"
+    "; Default is 3 counts/s at sensitivity 1. Zero disables this extra cutoff, not the game's dead zone.\n"
+    "LowSpeedCutoff = 0.002\n"
+    "\n"
+    "; Weight of a newly measured frame interval (0.01-1, default 0.25).\n"
+    "; Higher follows FPS changes faster. This smooths the frame-time estimate, not mouse velocity.\n"
+    "FrameTimeSmoothing = 0.25\n"
     "\n"
     "[Multiplayer]\n"
     "; Which port to host/join hubs on (TCP and UDP)\n"
@@ -326,6 +349,7 @@ static bool parse_aspect(const char *v, float *out) {
 #define ERR_LANGUAGE "Invalid menu language."
 #define ERR_UPDATES "Invalid update setting."
 #define ERR_DRAW "Draw distance must be 0-10 (0: no limit)."
+#define ERR_MOUSE_CONVERSION "Mouse conversion: window 1-50 ms, full-stick speed 100-100000, deadzone 0-0.95, cutoff 0-0.1, frame-time smoothing 0.01-1."
 #define F(x) offsetof(Config, x)
 #define ON_OFF(section, key, field, restart) {section, key, SET_BOOL, F(field), 0, 0, 0, NULL, NULL, restart, ERR_TOGGLE}
 static const int anchor_values[] = {UI_CENTER, UI_21_9, UI_32_9, UI_EDGES}, msaa_values[] = {1, 2, 4, 8};
@@ -360,6 +384,11 @@ const ConfigSetting g_settings[] = {
     {"Controls", "InputMode", SET_CHOICE, F(input_mode), 0, 0, 0, "Original,Keyboard_Mouse_Input", NULL, true, ERR_MISC},
     {"Controls", "KeyboardLayout", SET_CHOICE, F(keyboard_layout), 0, 0, 0, "Melee,Ranged", NULL, true, ERR_MISC},
     {"Mouse", "MouseSensitivity", SET_FLOAT, F(mouse_sensitivity), 0, 0.1f, 10.0f, NULL, NULL, false, ERR_VIEW},
+    {"MouseConversion", "MinWindowMs", SET_FLOAT, F(mouse_conversion.min_window_ms), 0, 1.0f, 50.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
+    {"MouseConversion", "FullStickSpeed", SET_FLOAT, F(mouse_conversion.full_stick_speed), 0, 100.0f, 100000.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
+    {"MouseConversion", "DeadzoneCompensation", SET_FLOAT, F(mouse_conversion.deadzone_compensation), 0, 0.0f, 0.95f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
+    {"MouseConversion", "LowSpeedCutoff", SET_FLOAT, F(mouse_conversion.low_speed_cutoff), 0, 0.0f, 0.1f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
+    {"MouseConversion", "FrameTimeSmoothing", SET_FLOAT, F(mouse_conversion.frame_time_smoothing), 0, 0.01f, 1.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"Multiplayer", "Port", SET_INT, F(ldn_port), 0, 1, 65535, NULL, NULL, true, ERR_NET},
     {"Multiplayer", "Join", SET_TEXT, F(ldn_join), sizeof g_config.ldn_join, 0, 0, NULL, NULL, true, ERR_NET},
     ON_OFF("Multiplayer", "SyncSmallMonsters", sync_small_monsters, true),
@@ -437,10 +466,16 @@ static bool parse_bool(const char *v, int *out) {
     return true;
 }
 
+static char *trim(char *s);
 bool config_parse(const ConfigSetting *s, const char *value, Config *c) {
     char v[256], *end;
     snprintf(v, sizeof v, "%s", value);
-    squash(v);
+    if (s->kind == SET_INT || s->kind == SET_FLOAT || s->kind == SET_FACTOR) {
+        // Alias normalization removes '-', which would turn -1 into 1 and 2e-3 into 2e3.
+        // Numeric values must keep their sign/exponent and only trim surrounding whitespace.
+        char *start = trim(v);
+        if (start != v) memmove(v, start, strlen(start) + 1);
+    } else squash(v);
     int index;
     float f[4];
     switch (s->kind) {

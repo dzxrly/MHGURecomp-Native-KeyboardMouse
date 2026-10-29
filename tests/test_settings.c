@@ -36,6 +36,19 @@ int main(int argc, char **argv) {
     assert(config_parse(layout_setting, "Melee", &preset) && preset.keyboard_layout == KEYBOARD_MELEE);
     assert(config_parse(layout_setting, "Ranged", &preset) && preset.keyboard_layout == KEYBOARD_RANGED);
     assert(!config_parse(layout_setting, "Unknown", &preset));
+    const char *mouse_keys[] = {"MinWindowMs", "FullStickSpeed", "DeadzoneCompensation", "LowSpeedCutoff", "FrameTimeSmoothing"};
+    const char *mouse_valid[] = {"12", "2000", "0.45", "0", "0.5"};
+    const char *mouse_invalid[] = {"51", "100001", "0.96", "0.11", "1.01"};
+    for(unsigned i=0;i<5;i++) {
+        const ConfigSetting *s=config_setting(mouse_keys[i]);
+        assert(s && s->restart && !strcmp(s->section,"MouseConversion"));
+        assert(config_parse(s,mouse_valid[i],&preset) && config_valid(s,&preset));
+        assert(!config_parse(s,mouse_invalid[i],&preset));
+        assert(!config_parse(s,"-1",&preset) && !config_parse(s,"nan",&preset) && !config_parse(s,"inf",&preset));
+    }
+    assert(config_parse(config_setting("LowSpeedCutoff")," 2e-3 ",&preset));
+    assert(fabsf(preset.mouse_conversion.low_speed_cutoff - 0.002f)<1e-7f);
+    assert(!config_parse(config_setting("FullStickSpeed"),"-1500",&preset));
     const char *path = argv[1];
     FILE *f = fopen(path, "wb"); assert(f);
     fputs("; Keep this comment\r\n[Display]\r\nMode = Borderless Window\r\nResolution = Desktop\r\nRenderResolution = Auto\r\n"
@@ -56,9 +69,14 @@ int main(int argc, char **argv) {
     assert(c.hp.quests == 2 && c.language == 0 && c.button_icons == 0);
     assert(!config_restart_required(&c)); // Raw Auto/Desktop survives environment resolution.
     Config prompts=c; prompts.input_mode=INPUT_KEYBOARD_MOUSE; prompts.keyboard_layout=KEYBOARD_MELEE;
+    prompts.mouse_conversion=(MouseConversion){12,2000,0.45f,0.001f,0.5f};
     char prompt_error[256];
     assert(config_restart_required(&prompts) && config_save(&prompts,prompt_error,sizeof prompt_error));
-    char *prompt_text=read_file(path); assert(strstr(prompt_text,"InputMode = Keyboard_Mouse_Input") && strstr(prompt_text,"KeyboardLayout = Melee")); free(prompt_text);
+    char *prompt_text=read_file(path); assert(strstr(prompt_text,"InputMode = Keyboard_Mouse_Input") && strstr(prompt_text,"KeyboardLayout = Melee"));
+    assert(strstr(prompt_text,"[MouseConversion]") && strstr(prompt_text,"MinWindowMs = 12") && strstr(prompt_text,"FullStickSpeed = 2000"));
+    assert(strstr(prompt_text,"DeadzoneCompensation = 0.45") && strstr(prompt_text,"LowSpeedCutoff = 0.001") && strstr(prompt_text,"FrameTimeSmoothing = 0.5"));
+    free(prompt_text);
+    assert(g_config.mouse_conversion.min_window_ms == 8 && g_config.mouse_conversion.full_stick_speed == 1500);
     assert(g_config.input_mode == INPUT_ORIGINAL && g_config.keyboard_layout == KEYBOARD_RANGED); // Saving must not pretend the mounted RomFS changed live.
     assert(config_save(&c,prompt_error,sizeof prompt_error) && !config_restart_required(&c));
     assert(fabsf(config_live_fov()-1.6f)<0.001f && fabsf(config_live_fps()-144.5f)<0.001f);
@@ -103,6 +121,7 @@ int main(int argc, char **argv) {
     assert(strstr(text, "Language = Spanish") && strstr(text, "ButtonIcons = PlayStation"));
     // Invalid edits must leave both the file and the live audio setting intact.
     Config bad=c;bad.menu_confirm=3;assert(!config_save(&bad,error,sizeof error));
+    bad=c;bad.mouse_conversion.low_speed_cutoff=NAN;assert(!config_save(&bad,error,sizeof error));
     bad=c;bad.menu_scale=99;assert(!config_save(&bad,error,sizeof error));
     bad.menu_scale=201;assert(!config_save(&bad,error,sizeof error));
     bad = c; bad.button_icons = 3;
