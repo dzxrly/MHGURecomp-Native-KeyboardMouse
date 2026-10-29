@@ -9,7 +9,10 @@
 ```ini
 [Controls]
 KeyboardPreset = ValorHBG
+KeyboardMouseIcons = On
 ```
+
+`KeyboardMouseIcons = On/Off` 独立控制 PC 图标及配套按键说明，修改后完全退出并重启游戏。默认是 `Off`，保留原手柄提示；本预设的推荐配置为 `On`。它不改变实际按键，也不自动切换 `KeyboardPreset`。当前资源按 `ValorHBG` 映射制作，使用 `Original` 时应设为 `Off`。
 
 | PC 按键 | 游戏按钮 | 主要用途 |
 | --- | --- | --- |
@@ -43,7 +46,7 @@ Shift 与鼠标右键都是 R 的绑定：收武器时 R 是通用奔跑，持�
 
 配套 `ValorHBG-PC-Controls` 资源 mod 支持游戏内提供的全部七种语言：简体中文、繁体中文、英语、法语、德语、意大利语和西班牙语。它修改各语言的显式按键说明、移动与弹药选择提示，以及共享按钮字体、标题确认按钮、菜单翻页、道具栏、目标选择、狩技方向和大厅的独立按钮贴图。各语言保留自己的文字和贴图背景，不能用一份英语贴图覆盖所有语言。
 
-图标为固定的 PC 提示，按共享游戏按钮显示其主要绑定：例如 R 按钮显示鼠标右键，奔跑说明文字则使用 Shift；十字方向图标显示方向键，1/2/3 仍是上/右/下的别名。此资源 mod 也会影响手柄提示；切回 `Original` 或使用手柄提示时应禁用此 mod。烘焙进操作手册整张插画中的手柄图示尚未重绘，不能据此认为所有操作说明图片已完成替换。
+图标为固定的 PC 提示，按共享游戏按钮显示其主要绑定：例如 R 按钮显示鼠标右键，奔跑说明文字则使用 Shift；十字方向图标显示方向键，1/2/3 仍是上/右/下的别名。此资源 mod 也会影响手柄提示；切回 `Original` 或需要手柄提示时，将 `KeyboardMouseIcons` 设为 `Off` 并重启即可。烘焙进操作手册整张插画中的手柄图示尚未重绘，不能据此认为所有操作说明图片已完成替换。
 
 西文说明使用 LMB／RMB／MMB 表示鼠标左／右／中键，避免过长的按钮名称破坏原来的换行。键帽和本文按键名称按 QWERTY 的物理位置标示；预设使用 SDL 扫描码，不会随 AZERTY、QWERTZ 等键盘布局翻译字母位置。游戏内“操作类型”仍决定虚拟按钮的含义，重弩建议先用操作类型1核对；F1 主机设置菜单只沿用上游的英／西语，不属于游戏内七种语言资源。
 
@@ -60,7 +63,9 @@ python -m pip install "Pillow>=12.2"
 python tools/build_valor_hbg_assets.py "C:/path/to/game/romfs" "C:/path/to/ValorHBG-PC-Controls"
 ```
 
-完全退出游戏后，将生成目录中的 `romfs` 放入 `mods/ValorHBG-PC-Controls/romfs`，再启用上面的 INI 预设并重启。不要与另一份旧版按键 mod 同时安装。卸载时移走该 mod 目录，并将 `KeyboardPreset` 改回 `Original`；原始游戏文件未被覆盖。
+完全退出游戏后，将生成目录中的 `romfs` 放入 `mods/ValorHBG-PC-Controls/romfs`，再设置上面的两个 INI 选项并重启。保留生成的 `romfs/keyboard_mouse_icons.flag`，程序通过此标记识别受开关控制的图标资源，重命名 mod 文件夹不影响开关。Mods 列表中仍需启用该 mod；此开关不会覆盖 load_order.txt 的禁用状态，也不影响其他 mod。
+
+升级之前生成的 mod 时，可重新生成资源，或在其 `romfs` 目录下创建一个空的 `keyboard_mouse_icons.flag` 文件。图标及文字打包在同一个专用资源层中，因此开关同时控制两者。不要将其他功能的资源混入这个带标记的资源层。不要与另一份旧版按键 mod 同时安装。卸载时移走该 mod 目录，并将 `KeyboardPreset` 改回 `Original`；原始游戏文件未被覆盖。
 
 生成目录还包含 `manifest.json` 和贴图预览。清单记录各语言修改条目及重打包的 ARC；预览用于检查游戏资源，不应提交到公开仓库。仓库只提供输入实现、生成脚本、PC 图标源素材和说明，不包含原游戏文件或生成后的 mod。
 

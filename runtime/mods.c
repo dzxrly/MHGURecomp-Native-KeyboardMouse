@@ -1,6 +1,7 @@
 // Mod folders (mods.h).
 #include "mods.h"
 #include "modorder.h"
+#include "config.h"
 
 #include <ctype.h>
 #include <dirent.h>
@@ -45,6 +46,16 @@ int mods_romfs_layers(const char **out, int max) {
         snprintf(mod, sizeof mod, "%s/%s", mods_dir(), g_names[i]);
         if (!is_dir(mod)) { LOG("[mods] %s: no such folder in %s\n", g_names[i], mods_dir()); continue; }
         if (!mods_romfs_of(g_names[i], path, sizeof path)) continue;
+        // Generated PC prompts are a dedicated resource layer. Gate the entire layer, including localized text,
+        // so switching icons off cannot leave keyboard instructions beside controller icons. The marker lives in
+        // romfs/ so renamed/nested mod folders and bare nativeNX layouts keep the same behavior.
+        char marker[1200];
+        struct stat st;
+        snprintf(marker, sizeof marker, "%s/keyboard_mouse_icons.flag", path);
+        if (!g_config.keyboard_mouse_icons && !stat(marker, &st) && S_ISREG(st.st_mode)) {
+            LOG("[mods] %s: PC input prompts skipped (KeyboardMouseIcons = Off; restart to change)\n", g_names[i]);
+            continue;
+        }
         out[k++] = strdup(path);
         LOG("[mods] %s: romfs %s\n", g_names[i], path);
     }

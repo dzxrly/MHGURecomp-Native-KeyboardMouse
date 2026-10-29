@@ -9,9 +9,12 @@ Build this fork following the repository's main README. In `mhgurecomp.ini`, set
 ```ini
 [Controls]
 KeyboardPreset = ValorHBG
+KeyboardMouseIcons = On
 ```
 
 Restart the game after changing the preset. It is currently selected through the INI. Generating the optional asset mod alone does not add the preset to an upstream executable.
+
+`KeyboardMouseIcons = On/Off` independently controls the PC icon and matching instruction resources, **at the next game start**. Its default is `Off`, keeping controller prompts. It does not change the input bindings. The current prompt pack describes `ValorHBG`; set this switch to `Off` when using `Original`.
 
 | PC input | Game button | Use with Valor heavy bowgun / menus |
 | --- | --- | --- |
@@ -50,7 +53,9 @@ python -m pip install "Pillow>=12.2"
 python tools/build_valor_hbg_assets.py /path/to/game/romfs /path/to/ValorHBG-PC-Controls
 ```
 
-Exit the game completely. Copy the generated `romfs` directory into `mods/ValorHBG-PC-Controls/romfs` beside the executable. Enable `KeyboardPreset = ValorHBG` and restart. Replace an older generated copy instead of leaving two competing prompt mods installed. To uninstall, move this mod out of `mods` and restore `KeyboardPreset = Original`.
+Exit the game completely. Copy the generated `romfs` directory into `mods/ValorHBG-PC-Controls/romfs` beside the executable. Keep its generated `romfs/keyboard_mouse_icons.flag` marker. Set both INI options above and restart. The marker identifies this dedicated prompt layer even if the mod folder is renamed or nested. The mod must also be enabled in the Mods list; the switch does not override `load_order.txt` or affect unrelated mods.
+
+For an older generated copy, regenerate it or create an empty `keyboard_mouse_icons.flag` file in its `romfs` directory. Icons and matching text share this dedicated layer and are switched together. Keep other features out of the marked layer. Replace an older generated copy instead of leaving two competing prompt mods installed. To uninstall, move this mod out of `mods` and restore `KeyboardPreset = Original`.
 
 The generator covers all seven languages shipped in MHGU's international release:
 
@@ -68,7 +73,7 @@ Western button phrases use the shorter mouse abbreviations to limit line growth.
 
 Textures include the shared button font, title confirmation prompt, menu L/R paging, item HUD, target selector, Hunter Art directions and lobby buttons. Shared and localized texture variants are patched individually. Only the BC3 blocks covering known input icons are changed; other compressed texture blocks and unchanged ARC payloads remain byte-for-byte intact. The generator validates the resulting GMD tables and repacked resources, and writes a local `manifest.json` with per-language counts and decoded texture previews.
 
-Prompts are static and show the primary binding of each game button: R shows RMB, while sprinting text says Shift. D-pad prompts show arrow keys; 1/2/3 are aliases for up/right/down. The mod also changes controller prompts, so disable it when you want original controller icons. Illustrated manual pages with baked controller drawings have not been redrawn. The game’s control-type setting still determines button actions; start with type 1 for the mapping above. The upstream host F1 settings panel retains its existing English/Spanish languages.
+Prompts are static and show the primary binding of each game button: R shows RMB, while sprinting text says Shift. D-pad prompts show arrow keys; 1/2/3 are aliases for up/right/down. The mod also changes controller prompts, so set `KeyboardMouseIcons = Off` and restart when you want original controller icons. Illustrated manual pages with baked controller drawings have not been redrawn. The game’s control-type setting still determines button actions; start with type 1 for the mapping above. The upstream host F1 settings panel retains its existing English/Spanish languages.
 
 ## Source and verification
 

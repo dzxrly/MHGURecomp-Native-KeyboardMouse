@@ -493,6 +493,10 @@ def main():
     (mod / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    (output.parent / "keyboard_mouse_icons.flag").write_text(
+        "MHGURecomp PC input prompts: controlled by [Controls] KeyboardMouseIcons (restart).\n",
+        encoding="utf-8",
+    )
     print(
         json.dumps(
             {

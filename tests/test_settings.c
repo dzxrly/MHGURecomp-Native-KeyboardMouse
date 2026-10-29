@@ -31,6 +31,11 @@ int main(int argc, char **argv) {
     assert(config_parse(preset_setting, "ValorHBG", &preset));
     assert(preset.keyboard_preset == KEYBOARD_VALOR_HBG && config_valid(preset_setting, &preset));
     assert(!config_parse(preset_setting, "Unknown", &preset));
+    const ConfigSetting *icons_setting = config_setting("KeyboardMouseIcons");
+    assert(!preset.keyboard_mouse_icons && icons_setting && icons_setting->restart);
+    assert(config_parse(icons_setting, "On", &preset) && preset.keyboard_mouse_icons == 1);
+    assert(config_parse(icons_setting, "Off", &preset) && preset.keyboard_mouse_icons == 0);
+    assert(!config_parse(icons_setting, "Unknown", &preset));
     const char *path = argv[1];
     FILE *f = fopen(path, "wb"); assert(f);
     fputs("; Keep this comment\r\n[Display]\r\nMode = Borderless Window\r\nResolution = Desktop\r\nRenderResolution = Auto\r\n"
@@ -50,6 +55,12 @@ int main(int argc, char **argv) {
     assert(g_config.width == 900 && fabsf(g_config.fov - 1.6f) < 0.001f);
     assert(c.hp.quests == 2 && c.language == 0 && c.button_icons == 0);
     assert(!config_restart_required(&c)); // Raw Auto/Desktop survives environment resolution.
+    Config prompts=c; prompts.keyboard_mouse_icons=1;
+    char prompt_error[256];
+    assert(config_restart_required(&prompts) && config_save(&prompts,prompt_error,sizeof prompt_error));
+    char *prompt_text=read_file(path); assert(strstr(prompt_text,"KeyboardMouseIcons = On")); free(prompt_text);
+    assert(!g_config.keyboard_mouse_icons); // Saving must not pretend the mounted RomFS changed live.
+    assert(config_save(&c,prompt_error,sizeof prompt_error) && !config_restart_required(&c));
     assert(fabsf(config_live_fov()-1.6f)<0.001f && fabsf(config_live_fps()-144.5f)<0.001f);
     Config volume_only=c; volume_only.volume=35;
     char error[256];

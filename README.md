@@ -132,6 +132,8 @@ inverted axes) apply to it too.
 The table above describes `KeyboardPreset = Original`. With `[Controls] KeyboardPreset = ValorHBG`, LMB fires,
 RMB aims, R reloads, F sheathes, Shift is ordinary sprinting, Space is B/back, Esc opens the game menu,
 F2 releases the mouse, and the wheel cycles ammo. See the linked guide for the full mapping and PC prompt mod.
+`[Controls] KeyboardMouseIcons = On` loads the generated PC prompt mod; `Off` (default) keeps controller prompts.
+Changing this switch requires a restart and leaves the input preset unchanged.
 
 When the game asks for text (names, chat), the keyboard types: Enter confirms, Escape cancels, Ctrl+V pastes.
 

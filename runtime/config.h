@@ -64,6 +64,7 @@ typedef struct {
     int mute_in_background;   // [Audio] MuteInBackground: no sound while the window is not focused (config_audio_gain)
     int combo_window;         // [Controls] ComboInputWindow: COMBO_*, how long a press waits for a second button
     int keyboard_preset;      // KEYBOARD_*: host keyboard/mouse bindings; controller input is independent
+    int keyboard_mouse_icons; // [Controls] KeyboardMouseIcons: load the marked PC prompt resource layer (restart)
 } Config;
 enum { UPDATES_ASK, UPDATES_AUTO, UPDATES_OFF };
 enum { UI_CENTER = 1, UI_21_9, UI_32_9, UI_EDGES };  // the middle 16:9, 21:9, 32:9, the picture's sides
