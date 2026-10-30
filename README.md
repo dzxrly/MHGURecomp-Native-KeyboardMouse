@@ -24,6 +24,14 @@ The native mouse implementation targets the supported Switch executable. Compati
 
 ## Requirements
 
+Every startup path checks the full main/sdk Build IDs and selected base-romfs fingerprints against the supported
+Switch MHGU 1.4.0 reference before loading game code. A mismatch identifies the affected file and stops startup.
+These fingerprints are not a whole-ROM integrity check. Keep the original merged romfs intact and put modifications
+in `mods/`. `mhgurecomp --check-rom <game-folder>` checks without launching the game.
+
+The `/` key opens keyboard chat in town and quests; Enter sends and Esc cancels. Change `Controls.ChatKey` in F1
+settings; occupied keyboard/mouse keys are marked. `Anti-aliasing.FXAAMode = 3_11` selects FXAA 3.11.
+
 - Windows 10/11 64-bit or Linux.
 - AVX2-capable CPU, Vulkan 1.2-capable GPU, at least 1 GB VRAM and 4 GB RAM.
 - Your own complete game files with the **1.4.0 update merged into the base game**.
@@ -77,6 +85,9 @@ Set these values in `mhgurecomp.ini` and restart once:
 The source default is still `InputMode = Original`. Controllers work in either mode. In keyboard/mouse mode, Light Bowgun, Heavy Bowgun and Bow automatically use **Ranged**; other Hunter weapons and Prowler use **Melee**. Changing equipment switches bindings and prompts without a restart. The old `KeyboardLayout` setting is no longer used.
 
 ### Install automatic prompts
+
+Release archives include `mods/Keyboard_Mouse_Input_Auto`; use the bundled pack directly. The following generation
+command is only needed for source builds or rebuilding the pack locally.
 
 Using Python 3.10 or newer, run from the source repository:
 

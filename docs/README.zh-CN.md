@@ -24,6 +24,10 @@
 
 ## 运行要求
 
+所有启动入口都会在加载游戏代码前，核对支持的 Switch MHGU 1.4.0 的 main／sdk 完整 Build ID，以及部分基础 romfs 资源指纹。不匹配时提示具体文件并停止启动。资源指纹不等于整套 ROM 的完整性校验。保留原始合并 romfs，修改放在 `mods/`；`mhgurecomp --check-rom <游戏目录>` 只检查，不启动游戏。
+
+在村庄或任务中按 `/` 打开键盘聊天，Enter 发送、Esc 取消；可在 F1 设置修改 `Controls.ChatKey`，已被键鼠操作占用的按键会标出。`Anti-aliasing.FXAAMode = 3_11` 可选择 FXAA 3.11。
+
 - Windows 10／11 64位或 Linux。
 - 支持 AVX2 的处理器、支持 Vulkan 1.2 的显卡，至少1GB显存、4GB内存。
 - 自己导出的完整游戏文件，**将1.4.0更新合并到本体资源中**。
@@ -77,6 +81,8 @@
 源码默认仍为 `InputMode = Original`。两种模式均可使用手柄。键鼠模式下，轻弩、重弩、弓自动使用**远程 Ranged**，其余猎人武器和猎猫自动使用**近战 Melee**。更换装备后按键和提示自动切换，无需重启；旧的 `KeyboardLayout` 不再生效。
 
 ### 安装自动提示包
+
+本仓库的 Release 包已包含 `mods/Keyboard_Mouse_Input_Auto`，可直接使用随包提示层。下方生成命令仅用于从源码构建，或在本地重新生成提示包。
 
 使用 Python 3.10或更新版本，在源码仓库根目录运行：
 

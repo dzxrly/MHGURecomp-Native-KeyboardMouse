@@ -159,6 +159,19 @@ endif
 all: $(EXE) $(if $(GEN_SRC),$(GAMELIB)) $(UPDATER) $(if $(filter windows,$(PLATFORM)),bundle) data licenses pipelist
 
 # Host-only INI/settings regression test: no game dump or generated code required.
+.PHONY: test-rom-version
+test-rom-version:
+	@mkdir -p $(O)/settings-test
+	$(CC) $(RTFLAGS) tests/test_rom_version.c runtime/rom_version.c updater/sha256.c -o $(O)/settings-test/test-rom-version$(if $(filter windows,$(PLATFORM)),.exe)
+	$(O)/settings-test/test-rom-version$(if $(filter windows,$(PLATFORM)),.exe) $(O)/settings-test/rom-fixture
+
+.PHONY: test-release-packaging
+test-release-packaging:
+	@mkdir -p $(O)/settings-test
+	$(CC) $(RTFLAGS) tests/test_update_paths.c -o $(O)/settings-test/test-update-paths$(if $(filter windows,$(PLATFORM)),.exe)
+	$(O)/settings-test/test-update-paths$(if $(filter windows,$(PLATFORM)),.exe)
+	$(PY) tests/test_release_packaging.py
+
 .PHONY: test-settings
 test-settings:
 	@mkdir -p $(O)/settings-test
@@ -340,8 +353,8 @@ $(B)/data/.complete:
 	fi
 
 gen:
-	cd tools && ../$(PY) gen.py sdk ../$(GAME)/exefs/sdk 0x02400000 ../$(GEN)/sdk --hle ../runtime/hle/hle_symbols.txt
-	cd tools && ../$(PY) gen.py main ../$(GAME)/exefs/main 0x00200000 ../$(GEN)/main
+	$(PY) tools/gen.py sdk "$(GAME)/exefs/sdk" 0x02400000 "$(GEN)/sdk" --hle runtime/hle/hle_symbols.txt
+	$(PY) tools/gen.py main "$(GAME)/exefs/main" 0x00200000 "$(GEN)/main"
 
 # differential test of the recompiler against Unicorn (tools/test_lift.py)
 test-lift:
@@ -362,7 +375,7 @@ BONUS ?= $(wildcard $(B)/bonus/system)
 dist: all
 	@echo '$(VERSION)' | grep -Eq '^[0-9]+(\.[0-9]+)*$$' || \
 	  { echo "dist: '$(VERSION)' is not a release version: make dist VERSION=<the release's tag, e.g. 0.10.4>"; exit 1; }
-	$(PY) tools/dist.py $(B) $(DIST) $(PLATFORM) $(VERSION) $(if $(BONUS),--bonus "$(BONUS)")
+	$(PY) tools/dist.py $(B) $(DIST) $(PLATFORM) $(VERSION) $(if $(BONUS),--bonus "$(BONUS)") $(if $(KEYBOARD_MOUSE_MOD),--keyboard-mouse-mod "$(KEYBOARD_MOUSE_MOD)")
 
 .PHONY: all gen test-lift runtime-objs clean bundle data licenses pipelist dist FORCE
 

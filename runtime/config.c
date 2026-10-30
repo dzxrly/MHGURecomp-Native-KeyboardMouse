@@ -17,7 +17,7 @@
 #include "config.h"
 #include "rt.h"
 
-#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", ""
+#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", "", "/", FXAA_ORIGINAL
 Config g_config = {CONFIG_DEFAULT_VALUES};
 Config config_defaults(void) { Config c = {CONFIG_DEFAULT_VALUES}; return c; }
 uint32_t g_render_size[2] = {1920, 1080};
@@ -66,6 +66,11 @@ static const char DEFAULT_INI[] =
     "; GU's default FXAA\n"
     "; Default: On\n"
     "FXAA = On\n"
+    "\n"
+    "; Which FXAA: Original is GU's own, 3_11 is FXAA 3.11, which keeps textures sharper\n"
+    "; Original, 3_11\n"
+    "; Default: Original\n"
+    "FXAAMode = Original\n"
     "\n"
     "[Upscaler]\n"
     "; FSR temporal upscaling\n"
@@ -149,6 +154,11 @@ static const char DEFAULT_INI[] =
     "; Lenient, Strict\n"
     "; Default: Lenient\n"
     "ComboInputWindow = Lenient\n"
+    "\n"
+    "; The key that opens a line of chat, anywhere (in a quest too): a key's name as the settings menu shows it, or\n"
+    "; nothing for none\n"
+    "; Default: /\n"
+    "ChatKey = /\n"
     "\n"
     "[Mouse]\n"
     "; Mouse sensitivity\n"
@@ -380,6 +390,7 @@ const ConfigSetting g_settings[] = {
      ERR_MISC},
     {"Anti-aliasing", "MSAA", SET_CHOICE, F(msaa), 0, 0, 0, "Off|none|0|1|1x,2x|2,4x|4,8x|8", msaa_values, false, ERR_MISC},
     ON_OFF("Anti-aliasing", "FXAA", fxaa, false),
+    {"Anti-aliasing", "FXAAMode", SET_CHOICE, F(fxaa_mode), 0, 0, 0, "Original,3_11", NULL, false, ERR_MISC},
     ON_OFF("Upscaler", "FSR", fsr, true),
     {"Upscaler", "Upscaler", SET_CHOICE, F(fsr_upscaler), 0, 0, 0, "FSR3|fsr3.1|3,FSR4|4", NULL, true, ERR_FSR},
     {"Upscaler", "FSRQuality", SET_CHOICE, F(fsr_quality), 0, 0, 0,
@@ -398,6 +409,7 @@ const ConfigSetting g_settings[] = {
     ON_OFF("Controls", "BackgroundInput", background_input, false),
     {"Controls", "ComboInputWindow", SET_CHOICE, F(combo_window), 0, 0, 0, "Lenient,Strict", NULL, false, ERR_MISC},
     {"Controls", "InputMode", SET_CHOICE, F(input_mode), 0, 0, 0, "Original,Keyboard_Mouse_Input", NULL, true, ERR_MISC},
+    {"Controls", "ChatKey", SET_TEXT, F(chat_key), sizeof g_config.chat_key, 0, 0, NULL, NULL, false, ERR_MISC},
     {"Mouse", "MouseSensitivity", SET_FLOAT, F(mouse_sensitivity), 0, 0.1f, 10.0f, NULL, NULL, false, ERR_VIEW},
     {"MouseConversion", "MinWindowMs", SET_FLOAT, F(mouse_conversion.min_window_ms), 0, 1.0f, 50.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"MouseConversion", "FullStickSpeed", SET_FLOAT, F(mouse_conversion.full_stick_speed), 0, 100.0f, 100000.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
@@ -616,6 +628,53 @@ bool config_range(const char *key, float *min, float *max) {
     if (!s || (s->kind != SET_INT && s->kind != SET_FLOAT && s->kind != SET_FACTOR && s->kind != SET_ASPECT)) return false;
     *min = s->min, *max = s->max;
     return true;
+}
+
+// What DEFAULT_INI says of a setting: the comment lines above its key (keys right below one another, 1Player..4Players,
+// share them). A line wrapped in the file is joined to the one before (that one long, not ending a sentence);
+// "Default: x" goes last, left out when x is empty.
+bool config_help(const char *key, char *buf, size_t size) {
+    const char *p = DEFAULT_INI, *block = NULL;  // block: the comment lines that go with the next key
+    bool after_key = false;
+    size_t klen = strlen(key);
+    while (*p) {
+        const char *end = strchr(p, '\n');
+        if (!end) end = p + strlen(p);
+        if (*p == ';') {
+            if (!block || after_key) block = p;
+            after_key = false;
+        } else if (p == end || *p == '[') {
+            block = NULL, after_key = false;
+        } else {
+            after_key = true;
+            if (block && (size_t)(end - p) > klen && !strncmp(p, key, klen) && (p[klen] == ' ' || p[klen] == '=')) break;
+        }
+        p = *end ? end + 1 : end;
+    }
+    if (!*p || !block || !size) return false;
+    size_t n = 0;
+    char dflt[128] = "", prev[256] = "";
+    *buf = 0;
+    for (const char *l = block; *l == ';';) {
+        const char *end = strchr(l, '\n');
+        char line[256];
+        snprintf(line, sizeof line, "%.*s", (int)(end - l - 1), l + 1);
+        const char *t = line + (*line == ' ');
+        if (!strncmp(t, "Default:", 8)) {
+            snprintf(dflt, sizeof dflt, "%s", t + 8 + (t[8] == ' '));
+        } else {
+            size_t pl = strlen(prev);
+            bool list = strchr(t, ',') != NULL;  // (the values it takes, "Off, 2x, 4x": a line of its own)
+            for (const char *c = t; *c && list; c++) list = *c != ' ' || c[-1] == ',';
+            bool join = pl >= 80 && !strchr(".!?:)", prev[pl - 1]) && strncmp(t, "Between ", 8) && !list;
+            if (n) n += (size_t)snprintf(buf + n, n < size ? size - n : 0, "%s", join ? " " : "\n");
+            n += (size_t)snprintf(buf + n, n < size ? size - n : 0, "%s", t);
+            snprintf(prev, sizeof prev, "%s", line);
+        }
+        l = end + 1;
+    }
+    if (*dflt) n += (size_t)snprintf(buf + n, n < size ? size - n : 0, "%sDefault: %s", n ? "\n" : "", dflt);
+    return n > 0;
 }
 
 static int desktop_w, desktop_h;

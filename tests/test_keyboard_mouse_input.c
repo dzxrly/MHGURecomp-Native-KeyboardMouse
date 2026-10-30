@@ -1,6 +1,9 @@
 #include "keyboard_mouse_input.h"
+#include "keymap.h"
 #include <assert.h>
 #include <stdio.h>
+
+Config g_config;
 
 static void wheel_at_fps(unsigned fps, int notches, int layout) {
     KbmWheel w = {0};
@@ -23,6 +26,11 @@ static void wheel_at_fps(unsigned fps, int notches, int layout) {
 }
 
 int main(void) {
+    g_config.input_mode = INPUT_KEYBOARD_MOUSE;
+    assert(key_in_use(SDL_SCANCODE_F) && key_in_use(SDL_SCANCODE_C));
+    assert(key_in_use(SDL_SCANCODE_1) && key_in_use(SDL_SCANCODE_F2));
+    g_config.input_mode = INPUT_ORIGINAL;
+    assert(!key_in_use(SDL_SCANCODE_F2));
     assert(kbm_key(SDL_SCANCODE_R, KEYBOARD_RANGED) == KBM_BUTTON(BTN_X));
     assert(kbm_key(SDL_SCANCODE_F, KEYBOARD_RANGED) == KBM_BUTTON(BTN_Y));
     assert(kbm_key(SDL_SCANCODE_SPACE, KEYBOARD_RANGED) == KBM_BUTTON(BTN_B));

@@ -28,3 +28,6 @@ __pycache__/
 # the hub server built in place (server/README.md)
 server/mhgurecomp-hubserver
 server/mhgurecomp-hubserver.exe
+
+# Local task/build scratch.
+/.agents/

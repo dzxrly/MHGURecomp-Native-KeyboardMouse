@@ -24,6 +24,10 @@
 
 ## 執行要求
 
+所有啟動入口都會在載入遊戲程式碼前，核對支援的 Switch MHGU 1.4.0 的 main／sdk 完整 Build ID，以及部分基礎 romfs 資源指紋。不符合時提示具體檔案並停止啟動。資源指紋不等於整套 ROM 的完整性驗證。保留原始合併 romfs，修改放在 `mods/`；`mhgurecomp --check-rom <遊戲目錄>` 只檢查，不啟動遊戲。
+
+在村莊或任務中按 `/` 開啟鍵盤聊天，Enter 傳送、Esc 取消；可在 F1 設定修改 `Controls.ChatKey`，已被鍵鼠操作占用的按鍵會標示。`Anti-aliasing.FXAAMode = 3_11` 可選擇 FXAA 3.11。
+
 - Windows 10／11 64位或 Linux。
 - 支援 AVX2 的處理器、支援 Vulkan 1.2 的顯示卡，至少1GB顯示記憶體、4GB記憶體。
 - 自己匯出的完整遊戲檔案，**將1.4.0更新合併到本體資源中**。
@@ -77,6 +81,8 @@
 源碼預設仍為 `InputMode = Original`。兩種模式均可使用手柄。鍵鼠模式下，輕弩、重弩、弓自動使用**遠程 Ranged**，其余獵人武器和獵貓自動使用**近戰 Melee**。更換裝備後按鍵和提示自動切換，無需重啟；舊的 `KeyboardLayout` 不再生效。
 
 ### 安裝自動提示包
+
+本倉庫的 Release 套件已包含 `mods/Keyboard_Mouse_Input_Auto`，可直接使用隨附提示層。下方產生命令僅用於從原始碼建置，或在本機重新產生提示套件。
 
 使用 Python 3.10或更新版本，在源碼倉庫根目錄執行：
 

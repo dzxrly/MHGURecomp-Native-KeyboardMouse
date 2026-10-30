@@ -5,7 +5,8 @@
 // - Only GitHub's "latest" release: never a draft, a pre-release or an older version than this one (MHGU_VERSION, the
 //   build's tag; a build that is not exactly a tag, e.g. 0.10.3-4-gabc or -dirty, is left alone: --update-force).
 // - The archive must match its asset's size and SHA-256 (the digest GitHub keeps for every upload).
-// - Never written: data/, mods/, cheats/, bonus/, cache/, shots/, save/, mhgurecomp.ini and log.txt (the player's), only
+// - Player data, settings and other mods are protected; only the bundled Auto mod resources may update in mods/.
+//   Never written: data/, cheats/, bonus/, cache/, shots/, save/, mhgurecomp.ini, chat_box.txt and log.txt; only
 //   the files the release carries besides those. Each file replaced is kept in update/backup/ until the next start, and
 //   put back if the install stops halfway.
 // - No connection, GitHub's rate limit (60 checks an hour per address; an unchanged release is answered "304" from its
@@ -24,6 +25,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "updater.h"
+#include "paths.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -40,10 +42,6 @@
 #define ASSET_PREFIXES "ArchLinux-,Linux-"
 #endif
 #define LATEST_URL "https://api.github.com/repos/dzxrly/MHGURecomp-Native-KeyboardMouse/releases/latest"
-
-// what the archive must never write (first path component, any case): the player's
-static const char *const KEEP[] = {"data", "mods", "cheats", "bonus", "cache", "shots", "save", "update",
-                                   "mhgurecomp.ini", "log.txt"};
 
 static char root[1024];  // the game folder (this executable's), with the separator at its end
 static SDL_IOStream *logf;
@@ -249,13 +247,6 @@ static bool safe_rel(const char *rel) {
     }
     return true;
 }
-static bool kept(const char *rel) {
-    size_t n = strcspn(rel, "/");
-    for (size_t i = 0; i < sizeof KEEP / sizeof *KEEP; i++)
-        if (strlen(KEEP[i]) == n && !strncasecmp(rel, KEEP[i], n)) return true;
-    return false;
-}
-
 static SDL_IOStream *on_entry(void *ctx, const char *name, bool dir, unsigned mode) {
     Extract *x = ctx;
     if (x->bad) return NULL;
@@ -282,7 +273,7 @@ static SDL_IOStream *on_entry(void *ctx, const char *name, bool dir, unsigned mo
         x->bad = true;
         return NULL;
     }
-    if (kept(rel)) return NULL;
+    if (update_kept(rel)) return NULL;
     char p[2048];
     snprintf(p, sizeof p, "%supdate/new/%s", root, rel);
     if (dir) {

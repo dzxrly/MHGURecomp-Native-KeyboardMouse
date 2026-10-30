@@ -163,6 +163,14 @@ int main(int argc, char **argv) {
     assert(config_restart_key("RenderResolution") && !config_restart_key("FOV"));
     assert(!config_restart_key("MSAA") && !config_restart_key("VSync") && !config_restart_key("FaceButtons"));
     assert(config_restart_key("framerate") == config_restart_key("FPS") && !config_restart_key("NoSuchKey"));
+    // The menu's help: the default ini's comments, wrapped lines joined, the default last (none when empty)
+    char help[2048];
+    assert(config_help("FPS", help, sizeof help) && !strcmp(help, "Framerate cap\nBetween 30 and 240\nDefault: 60"));
+    assert(config_help("3Players", help, sizeof help) && !strncmp(help, "Playercount-specific HP multipliers", 35));
+    assert(config_help("Server", help, sizeof help) && strstr(help, " and Search Hubs shows") && !strstr(help, "Default"));
+    assert(config_help("Key", help, sizeof help) && !strncmp(help, "Matchmaking key:", 16));
+    assert(config_help("DrawDistance", help, sizeof help) && strstr(help, "twice as far, 0.5 half") && strstr(help, "\nBetween 0"));
+    assert(!config_help("NoSuchKey", help, sizeof help));
     // A second save must not append duplicate sections or change resolved Auto settings.
     assert(config_save(&loaded, error, sizeof error));
     after = read_file(path); assert(!strcmp(text, after)); free(text); free(after);
@@ -188,6 +196,7 @@ int main(int argc, char **argv) {
     assert(config_defaults().draw_distance==1.0f);
     assert(config_defaults().mute_in_background==0);
     assert(config_defaults().combo_window==COMBO_LENIENT);
+    assert(config_defaults().fxaa_mode==FXAA_ORIGINAL);
     fsr_config.fsr=1;fsr_config.fsr_upscaler=FSR_UP_4;fsr_config.fsr_quality=FSR_BALANCED;
     fsr_config.fsr_sharpness=.65f;fsr_config.fsr_objmotion=0;fsr_config.fsr_reactive=.35f;fsr_config.fsr_animsurf=0;
     fsr_config.msaa=8;fsr_config.fxaa=1;

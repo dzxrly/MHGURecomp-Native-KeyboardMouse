@@ -7,6 +7,7 @@
 
 #include "camera_jitter.h"
 #include "native_mouse.h"
+#include "rom_version.h"
 #include "hle/keyboard_mouse_prompts.h"
 #include "gamelib.h"
 #include "hle.h"
@@ -95,6 +96,11 @@ int main(int argc, char **argv) {
     ui_capture_launch_args(argc, argv);
     plat_init();
     setvbuf(stderr, NULL, _IONBF, 0);
+    for (int i = 1; i < argc; i++) if (!strcmp(argv[i], "--check-gamelib")) {
+        char why[1200];
+        if (!gamelib_load(why, sizeof why)) { fprintf(stderr, "%s\n", why); return 1; }
+        return 0;  // Check a prepared build dependency without opening a ROM, window or save.
+    }
     bool given = false;
     for (int i = 1; i < argc; i++)
         if (argv[i][0] != '-') g_game_dir = argv[i], given = true;
@@ -118,49 +124,28 @@ int main(int argc, char **argv) {
         } else {
             fprintf(stderr, "[main] no user data folder: saves go to save\\ beside the executable\n");
         }
-        char main_path[1200];
-        snprintf(main_path, sizeof main_path, "%s/exefs/main", data);
-        FILE *f = fopen(main_path, "rb");
-        if (!f) {
-            const char *msg = "The game files were not found. Put your own dump's exefs and romfs folders in the data "
-                              "folder next to mhgurecomp.exe (data\\exefs, data\\romfs).";
-            fprintf(stderr, "%s\n", msg);
-            plat_error_box(msg);
-            return 1;
-        }
-        // the recompiled code is v1.4.0's: another version's files don't fit it (NSO header +0x40: build id)
-        static const uint8_t want[8] = {0xfb, 0x08, 0xf1, 0xd2, 0x0f, 0xd1, 0x20, 0x4f};
-        uint8_t hdr[0x48] = {0};
-        bool ok = fread(hdr, 1, sizeof hdr, f) == sizeof hdr && !memcmp(hdr, "NSO0", 4) && !memcmp(hdr + 0x40, want, 8);
-        fclose(f);
-        if (!ok) {
-            const char *msg = "The game files in the data folder are not version 1.4.0 of Monster Hunter Generations "
-                              "Ultimate (data\\exefs\\main, build id FB08F1D20FD1204F). Dump the game with its 1.4.0 "
-                              "update applied (exefs from the update, romfs merged).";
-            fprintf(stderr, "%s\n", msg);
-            plat_error_box(msg);
-            return 1;
-        }
-        // an incomplete romfs starts, then crashes or quits with the game's own error: players' dumps of the base game
-        // without the update merged (34149 files) or of the update alone (12 files, no shader package) did. 1.4.0
-        // merged has 35531; the margin is for dump tools that leave out a few. MHGU_ROMFS_ANY=1 skips the check.
-        char romfs[1200], shaders[1300];
-        snprintf(romfs, sizeof romfs, "%s/romfs", data);
-        snprintf(shaders, sizeof shaders, "%s/nativeNX/system/app_shader/AppShaderPackage.mfx", romfs);
-        struct stat st;
-        int nfiles = getenv("MHGU_ROMFS_ANY") ? -1 : plat_count_files(romfs);
-        bool have_shaders = stat(shaders, &st) == 0;
-        if (nfiles >= 0 && (nfiles < 35000 || !have_shaders)) {
-            char msg[700];
-            snprintf(msg, sizeof msg, "The game files in data\\romfs are incomplete: %d files, where Monster Hunter "
-                     "Generations Ultimate 1.4.0 has 35531%s. Extract the romfs again with the 1.4.0 update applied (the "
-                     "base game's files with the update's merged over them) and replace data\\romfs with it.", nfiles,
-                     !have_shaders ? ", and nativeNX\\system\\app_shader\\AppShaderPackage.mfx is missing" : "");
-            fprintf(stderr, "%s\n", msg);
-            plat_error_box(msg);
-            return 1;
-        }
     }
+    bool check_only = false;
+    for (int i = 1; i < argc; i++) if (!strcmp(argv[i], "--check-rom")) check_only = true;
+    char why[3000];
+    if (!rom_version_check(g_game_dir, why, sizeof why)) {
+        fprintf(stderr, "%s\n", why);
+        if (!check_only) plat_error_box(why);
+        return 1;
+    }
+    char romfs[1600];
+    snprintf(romfs, sizeof romfs, "%s/romfs", g_game_dir);
+    int nfiles = plat_count_files(romfs);
+    if (nfiles < 35000) {
+        snprintf(why, sizeof why, "ROM compatibility warning: startup stopped. The merged Switch MHGU 1.4.0 "
+                 "romfs is incomplete (%d files; expected approximately 35531). Export the base game with "
+                 "the 1.4.0 update merged over it.\nFolder: %s", nfiles, romfs);
+        fprintf(stderr, "%s\n", why);
+        if (!check_only) plat_error_box(why);
+        return 1;
+    }
+    LOG("[rom] Switch MHGU 1.4.0: main/sdk Build IDs and base resource fingerprints match; %d files\n", nfiles);
+    if (check_only) return 0;
     LOG("MHGU Recomp %s\n", MHGU_VERSION);
     { void fnprof_init(void); fnprof_init(); }
     crash_handler_install();

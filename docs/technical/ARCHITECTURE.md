@@ -16,6 +16,13 @@ This independently maintained project is based on [morerokk/MHGURecomp](https://
 
 `InputMode = Keyboard_Mouse_Input` enables the native input hooks at startup. `Original` retains the original mapping and controller prompts.
 
+Before loading any game module, every launch path validates the full main/sdk NSO Build IDs and nine selected
+base-romfs SHA-256 fingerprints against the supported Switch MHGU 1.4.0 reference, plus the merged romfs file-count
+check. These are compatibility checks, not a whole-ROM integrity proof. Unsupported, missing or modified references
+produce a warning and stop startup before fixed-address hooks. `--check-rom <folder>` runs only these checks.
+`--check-gamelib` separately validates the prepared code library's ABI/ID without a ROM. Release builds consume
+prepared code libraries and prompt packs; they do not need access to the dump.
+
 | Component | Responsibility |
 | --- | --- |
 | `runtime/host_input.c` | SDL events, mouse capture, button-release tracking, preset changes and wheel sequencing |
