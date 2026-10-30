@@ -28,7 +28,7 @@
 
 在村庄或任务中按 `/` 打开键盘聊天，Enter 发送、Esc 取消；可在 F1 设置修改 `Controls.ChatKey`，已被键鼠操作占用的按键会标出。`Anti-aliasing.FXAAMode = 3_11` 可选择 FXAA 3.11。
 
-- Windows 10／11 64位。**Linux 与本项目不兼容。**
+- Windows 10／11 64位。**本项目当前没有 Linux 构建与测试环境，因此暂不兼容 Linux，也不提供 Linux 发布包。**
 - 支持 AVX2 的处理器、支持 Vulkan 1.2 的显卡，至少1GB显存、4GB内存。
 - 自己导出的完整游戏文件，**将1.4.0更新合并到本体资源中**。
 - Title ID：`0100770008DD8000`；`main` 的 Build ID 以 `FB08F1D20FD1204F` 开头。

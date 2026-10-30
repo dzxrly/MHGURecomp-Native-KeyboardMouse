@@ -28,7 +28,7 @@
 
 在村莊或任務中按 `/` 開啟鍵盤聊天，Enter 傳送、Esc 取消；可在 F1 設定修改 `Controls.ChatKey`，已被鍵鼠操作占用的按鍵會標示。`Anti-aliasing.FXAAMode = 3_11` 可選擇 FXAA 3.11。
 
-- Windows 10／11 64位。**Linux 與本專案不相容。**
+- Windows 10／11 64位。**本專案目前沒有 Linux 建置與測試環境，因此暫不相容 Linux，也不提供 Linux 發布套件。**
 - 支援 AVX2 的處理器、支援 Vulkan 1.2 的顯示卡，至少1GB顯示記憶體、4GB記憶體。
 - 自己匯出的完整遊戲檔案，**將1.4.0更新合併到本體資源中**。
 - Title ID：`0100770008DD8000`；`main` 的 Build ID 以 `FB08F1D20FD1204F` 開頭。

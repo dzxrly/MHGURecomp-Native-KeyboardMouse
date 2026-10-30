@@ -32,7 +32,7 @@ in `mods/`. `mhgurecomp --check-rom <game-folder>` checks without launching the 
 The `/` key opens keyboard chat in town and quests; Enter sends and Esc cancels. Change `Controls.ChatKey` in F1
 settings; occupied keyboard/mouse keys are marked. `Anti-aliasing.FXAAMode = 3_11` selects FXAA 3.11.
 
-- Windows 10/11 64-bit. **Linux is incompatible with this project.**
+- Windows 10/11 64-bit. **Linux is currently unsupported because this project has no Linux build and test environment; no Linux release is provided.**
 - AVX2-capable CPU, Vulkan 1.2-capable GPU, at least 1 GB VRAM and 4 GB RAM.
 - Your own complete game files with the **1.4.0 update merged into the base game**.
 - Title ID: `0100770008DD8000`; the `main` executable’s build ID begins with `FB08F1D20FD1204F`.

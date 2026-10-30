@@ -2,7 +2,8 @@
 
 [English](../../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md)
 
-This project targets Windows only; Linux is incompatible. Builds read the owner's dump when recompiling game code,
+This project targets Windows only. Linux is currently unsupported because no Linux build and test environment is
+available for this project. Builds read the owner's dump when recompiling game code,
 and never modify it. Releases are built locally and include the checked-in Auto prompt mod.
 
 ### 1. Tools (Windows)
@@ -75,7 +76,8 @@ distribution package would; that build then only runs with that FFmpeg version.
 
 ### Making a release
 
-This project is Windows-only. Linux is incompatible and no Linux release package is provided. Build and verify
+This project is Windows-only. There is currently no Linux build and test environment, so Linux is unsupported and
+no Linux release package is provided. Build and verify
 locally, then upload the completed Windows archive to this repository's GitHub Releases. Automated Actions
 release building is disabled; no runner deployment, remote build inputs or cloud toolchain is needed.
 

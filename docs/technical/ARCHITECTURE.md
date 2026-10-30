@@ -22,7 +22,7 @@ check. These are compatibility checks, not a whole-ROM integrity proof. Unsuppor
 produce a warning and stop startup before fixed-address hooks. `--check-rom <folder>` runs only these checks.
 `--check-gamelib` separately validates the prepared code library's ABI/ID without a ROM. Release builds consume
 the checked-in prompt pack and a matching local game library. Releases are built locally for Windows and uploaded
-manually; Linux is incompatible with this project.
+manually. Linux is currently unsupported because the project has no Linux build and test environment.
 
 | Component | Responsibility |
 | --- | --- |
