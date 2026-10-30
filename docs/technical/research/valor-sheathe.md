@@ -1,4 +1,4 @@
-# Valor Sheathe damage reduction (2026-10-24)
+<h1 align="center">Valor Sheathe damage reduction (2026-10-24)</h1>
 
 Goal: undo one change of MHGU Rebalanced (GU Rebalanced) without editing the mod: the damage taken in a Valor
 Sheathe evade (Valor style, hold sheathe, the next hit is auto-evaded with reduced damage). Rebalanced lowers the

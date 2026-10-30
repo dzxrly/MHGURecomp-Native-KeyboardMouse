@@ -1,4 +1,4 @@
-# Armor skill points: where the game totals them (2026-10-24)
+<h1 align="center">Armor skill points: where the game totals them (2026-10-24)</h1>
 
 Goal: double the skill points from armor, talismans and decorations (all equipment), without touching the data
 tables (MHGU Rebalanced replaces `loc/arc/resident.arc`, which holds the skill tables). Done as cheats (extras/cheats,

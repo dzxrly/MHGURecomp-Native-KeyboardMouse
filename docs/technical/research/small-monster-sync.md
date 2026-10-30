@@ -1,4 +1,4 @@
-# Small monster sync in multiplayer (2026-10-20/21)
+<h1 align="center">Small monster sync in multiplayer (2026-10-20/21)</h1>
 
 Small monsters ("zako") are synced between the players in a zone like large monsters are: positions, movement and
 actions. The original game syncs only their HP / deaths; each player's game runs their AI itself, so everyone sees

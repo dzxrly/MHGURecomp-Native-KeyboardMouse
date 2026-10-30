@@ -39,7 +39,7 @@
 #define GAME_LIB "mhgugame.so"
 #define ASSET_PREFIXES "ArchLinux-,Linux-"
 #endif
-#define LATEST_URL "https://api.github.com/repos/morerokk/MHGURecomp/releases/latest"
+#define LATEST_URL "https://api.github.com/repos/dzxrly/MHGURecomp-Native-KeyboardMouse/releases/latest"
 
 // what the archive must never write (first path component, any case): the player's
 static const char *const KEEP[] = {"data", "mods", "cheats", "bonus", "cache", "shots", "save", "update",

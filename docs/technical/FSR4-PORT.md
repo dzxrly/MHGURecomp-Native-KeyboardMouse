@@ -1,7 +1,9 @@
-# FSR 4 upscaler (2026-10-26)
+<h1 align="center">FSR 4 upscaler (2026-10-26)</h1>
+
+These renderer implementation notes originate in the original project. Their dated observations describe that testing context; they are not validation of this repository's native input changes.
 
 AMD's machine-learning upscaler (FSR 4, provider "FSR 4.1.2") as an alternative to FSR 3.1 in the Vulkan renderer
-(`docs/FSR-PORT.md` describes FSR 3.1 and everything around it, which this builds on). It runs **natively on Vulkan**,
+(`docs/technical/FSR-PORT.md` describes FSR 3.1 and everything around it, which this builds on). It runs **natively on Vulkan**,
 on the game's own VkDevice and command buffer: no Direct3D 12 bridge, no shared images, no split submits. It takes
 exactly the inputs fsr.c prepares for FSR 3.1 (colour, depth, camera + object motion vectors, reactive mask, jitter,
 camera near / far / FOV) and is dispatched where the FSR 3.1 dispatch is. Default stays FSR 3.1, FSR stays Off by default.
@@ -112,68 +114,13 @@ Note: the conventions used here (4.x provider chosen by version id, gamma-encode
 depth / motion-vector conventions, one jitter convention for all providers) were worked out with a Direct3D 12 route
 first; the Vulkan provider made that route unnecessary, so it is not part of this port.
 
-## Measured (RX 9070 XT, 1920x1080 window, quest 101, hunter standing, 4 frames per shot; MHGU_CONTROL gpuprof)
-
-FSR 4 ran every frame: ~60 `FSR 4 frames` a second in every one-second log line while the quest scene was shown
-(2170 frames in the Quality run, 2211 in the NativeAA run, the rest being the town / loading frames, scaled as before).
-
-GPU time (prep + FSR stage = the gap before the HUD pass; whole frame), one sample each:
-
-| setting | FSR 3.1 stage / frame | FSR 4 stage / frame |
-|---|---|---|
-| Quality (1280x720 -> 1080p) | 0.886 / 1.499 ms | 1.301 / 1.915 ms (colour unflagged: 1.102 / 1.714; Sharpness 0: 1.215 / 1.831) |
-| NativeAA (1080p) | 1.488 / 2.414 ms | 1.640 / 2.492 ms |
-
-So FSR 4 costs ~0.4 ms more than FSR 3.1 at Quality and ~0.15 ms more at NativeAA here; 60 fps (vsync) in all runs.
-
-Image metrics (`metrics.py`: PSNR dB against the 4K supersampled picture / sharpness relative to it / flicker x1000 over
-4 static frames; regions chest+structure | ground | distant terrain | mountain):
-
-    native + FXAA   31.5/0.96/1.9 | 35.6/0.94/0.1 | 36.5/0.98/3.2 | 35.2/0.93/1.6
-    FSR 3.1 Quality 31.2/0.94/1.9 | 29.8/0.99/1.2 | 32.6/1.01/1.2 | 33.6/0.87/0.7
-    FSR 4   Quality 28.4/0.87/1.0 | 30.8/0.89/2.0 | 35.4/0.94/1.9 | 35.3/0.92/1.3
-    FSR 4   Quality, colour not flagged gamma 28.3/0.93/1.3 | 30.7/0.91/3.0 | 32.6/1.01/2.7 | 33.9/0.93/1.9
-    FSR 3.1 NativeAA 28.1/1.18/0.7 | 28.8/1.20/0.8 | 33.9/1.37/1.2 | 35.1/1.32/0.8
-    FSR 4   NativeAA 28.4/0.95/0.8 | 33.0/0.99/1.5 | 30.5/1.08/2.0 | 33.6/1.00/1.0
-
-Reading: it is not a clear win on this metric in a static, already clean scene: FSR 4 Quality is closer to the
-supersampled picture than FSR 3.1 Quality on the distant terrain and the mountain (+2.8 / +1.7 dB) and on the ground
-(+1.0 dB), worse on the chest / structure (-2.8 dB) and a little softer (sharpness 0.87-0.94 vs 0.87-1.01) at Sharpness
-0.8. FSR 4 NativeAA keeps the picture as sharp as the reference (0.95-1.08) where FSR 3.1 NativeAA over-sharpens (1.18-1.37 at the
-same Sharpness); its PSNR is higher on the ground (+4.2) and mountain, lower on the distant terrain (-3.4). With
-the gamma flags the colour is closer on the ground / terrain / mountain; flicker is the same order for both. One sample
-per setting, one scene: treat the numbers as indications. The crops are in the pull request (they are not kept in the repository); `FSR-PORT.md`, section "Comparison images", describes them.
-
-Seen in the pan frames (camera turning right, hunter walking in place): no ghost trails behind the hunter or the
-shield, thin features (chest straps, rope, hunter's outline) stable; no jitter-sign problem (a wrong sign shows as
-shimmer on static detail; the standing frames flicker like FSR 3.1's).
-
-## Verified
-
-- Loaded the real driver provider in game (`FSR 4.1.2`, `isSupported` = true, context created in 66-73 ms), 60 FSR 4
-  frames a second in the quest scene; menus / title / loading are scaled as with FSR 3.1.
-- Fallback: `MHGU_FSR4_DLL=C:/nonexistent/...` -> `FSR 3.1 is used`, FSR 3.1 runs (60 FSR frames a second);
-  `MHGU_FSR4_FAILTEST=100` -> `the FSR 4 dispatch failed ... FSR 3.1 takes over` at the 100th dispatch, FSR continues with
-  FSR 3.1 the next frame (one history reset, 59-60 FSR frames a second after).
-- Vulkan validation (`MHGU_VK_VALIDATION=1`, SDK 1.4.341.1 layer) with FSR 4 in the quest: no message from our own
-  commands (barriers, layouts, copies). What remains comes from AMD's own shader modules and the game's old messages:
-  the provider's SPIR-V declaring NV cooperative-matrix-2 capabilities (11 `spirv-val` errors, 9 of them the same one) and
-  storage-image sampled-type width mismatches in its RCAS / reprojection shaders (7 messages), plus the two old renderer
-  messages (a 1D image view, a fragment output without attachment). The driver compiles and runs them (frames are right).
-
-## Verified for the routes (final branch, 25 s quest-101 runs each, RX 9070 XT)
-
-- `FSR4_DRIVER_PATCH=1` (not the default): driver route, `FSR 4.1.2`, 60 FSR 4 frames a second, no exception. With `MHGU_FSR4_ROUTE=loader` and the v1.0.1 loader: `this loader offers no FSR 4`, FSR 3.1 ran.
-- `FSR4_DRIVER_PATCH=0` (the default): no loader supplied: `no loader supplied`, `no FSR 4 route available: FSR 3.1 is used`, FSR 3.1 ran; with the v1.0.1 loader: same fallback. No exception.
-- Not verified: the loader route with a loader that offers FSR 4 (none available).
-
 ## Not done / known issues
 
 - Only tested with the one provider this driver gives (4.1.2), only the Vulkan renderer on Windows, an RX 9070 XT.
   Other GPUs: the provider's `isSupported` decides (FSR 4 needs cooperative matrix + float8; RDNA 3 uses INT8 models in
   the driver package, untested).
 - Linux: unconfirmed whether FSR 4 on Vulkan runs there. FSR 4 is expected to come to Linux, but whether AMD's DLL route or
-  a similar trick works there is not confirmed yet. In this build the FSR 4 code is compiled out on non-Windows and
+  a similar trick works there is not confirmed here. In this build the FSR 4 code is compiled out on non-Windows and
   FSR 3.1 is used (the FSR 3.1 code was syntax-checked for Linux with gcc, not linked or run).
 - Tested by the author in game since: a large monster fight (no ghosting or shimmer seen), the village. Not tested:
   4K, multiplayer.

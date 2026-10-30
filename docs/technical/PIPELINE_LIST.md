@@ -1,9 +1,9 @@
-# Recording the pipeline list
+<h1 align="center">Recording the pipeline list</h1>
 
 `extras/pipelines.list` lists the shader pipelines (a shader program plus its blend / depth / vertex layout / target
 formats) the game uses in the common areas. `make` copies it next to the executable and `make dist` ships it. On a
 first run the game builds them in the background, so entering those areas for the first time doesn't show surfaces
-black for a moment. Background: [STATUS.md](STATUS.md), "Shipped pipeline list".
+black for a moment. Background: [runtime architecture](ARCHITECTURE.md).
 
 The game never says which combinations it will use, so they are recorded by playing. Every computer records the
 pipelines it draws in `cache/pipelines.bin` next to the game; exporting turns those into a list that works on any

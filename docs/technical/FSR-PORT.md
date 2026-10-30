@@ -1,4 +1,6 @@
-# FSR 3.1 upscaler (2026-10-26)
+<h1 align="center">FSR 3.1 upscaler (2026-10-26)</h1>
+
+These renderer implementation notes originate in the original project. Their dated observations describe that testing context; they are not validation of this repository's native input changes.
 
 AMD FidelityFX Super Resolution 3.1 (the FSR 3.1.4 temporal upscaler, Vulkan, from the FidelityFX SDK 1.1.4) in the
 Vulkan renderer. With `[Upscaler] FSR = On` the game renders its 3D picture at a lower resolution, FSR rebuilds it at
@@ -62,7 +64,7 @@ New:
 - `runtime/nvn/vulkan/fsr.c`, `fsr.h` - the frame analysis, stand-ins, prep / motion-vector shader (GLSL compiled at
   run time with shaderc, like the renderer's other built-in shaders), FSR context and dispatch, present.
 - `runtime/hle/camera_jitter.c`, `runtime/camera_jitter.h` - main camera capture and the jitter.
-- `docs/FSR-PORT.md` - this file.
+- `docs/technical/FSR-PORT.md` - this file.
 
 Changed (small, marked "FSR"):
 - `Makefile` - builds the FSR sources into obj/fsr/ and links them into the executable; `-I` for the wrapper header.
@@ -175,59 +177,6 @@ vectors only (`cmp_walk.png`: Off / old / new), standing hunter not more aliased
 CPU 0.03-0.14 ms a frame, ~50-155 draws captured a frame. Validation: no new messages (one, dynamic depth bias after
 a capture draw, was found and fixed).
 
-### Audit (2026-10-26, second pass): what was wrong, what was measured
-
-Images (build\shots): `cmp_display_chest.png` / `_ground` / `_distant` (at the 3440x1440 screen: old setup vs FSR
-Quality vs FSR NativeAA), `cmp_detail_structure.png` / `_ground` / `_distant` (1920x1080 window, 2x crops: native+FXAA,
-FSR Quality 0.3 / 0.8, NativeAA, Quality at 2880x1620, 4K supersampled), `cmp_pan_structure.png` (camera turning).
-
-Found and fixed:
-- No texture LOD bias: at a lower render size textures were sampled one mip too blurry. Now log2(render / output).
-- Sharpness 0.3 too soft: sharpness relative to the 4K supersampled picture (mean gradient, 4 static regions): native
-  1080p 0.93-0.98, FSR Quality 0.3 0.70-0.86 (0.58-0.78 without the LOD bias), FSR Quality 0.8 0.89-1.00. Default 0.8.
-- The user's setup (Borderless, Resolution 1920x1080 on a 3440x1440 screen) upscaled 720p to 1080p, which the present
-  then stretched to 1440p with a bilinear filter: most of what FSR rebuilt was blurred away again. With FSR on and
-  Borderless, FSR now upscales to the screen size in the picture's shape (here 2560x1440: Quality renders 1706x960).
-- A draw left out as "static" stayed on camera vectors for up to 600 frames after it started moving. Now woken the
-  same frame its own uniform data changes; in the tests most "static" candidates were woken at once (their uniform
-  data changes every frame), so in practice almost everything is captured (~150 draws a frame, 0.03-0.14 ms CPU).
-- Animated-surface detection had many false positives (47 tiles a frame in the village, among them the hunter's
-  head): characters are now left out, the search uses half-pixel steps: ~2 tiles a frame in the village, 1.4 in
-  quest 101 area 2. In the tested scenes nothing was found that needed it (the village banners move as geometry and
-  get object vectors; the river's texture moves too slowly to cross the threshold), so its visible effect there is
-  nil; it costs ~0.1-0.3 ms at 720p.
-
-Verified (numbers from MHGU_FSR_MVCHECK / MHGU_FSR_LOG, quest 101 area 2, herbivores, hunter walking):
-- Every candidate draw (~150 a frame) captured; skipped for memory / range / failed variants: 0.00 a frame;
-  "not built yet" only while an area loads. Unpaired 0-0.74 a frame (<0.5 %), all "no previous copy": draws that
-  appear that frame (level-of-detail switches, objects coming into view). Blended skinned draws: none in these scenes.
-- Moving geometry (valid object vector > 0.5 px from the camera's), mean luma difference to the previous frame along:
-  object vector 0.013-0.029, camera vector 0.028-0.084, object vector without removing the jitter change 0.025-0.050,
-  object vector with y negated 0.029-0.175, same texel 0.041-0.202. The object vectors win in every second measured:
-  sign, y convention and jitter removal are right.
-- Skinned meshes: the capture draw is recorded right after the game's draw with the same descriptor set contents
-  (exec.c stage_set over the same st.ubuf ranges, copied at record time), so each frame's positions use that frame's
-  bones; the previous frame's positions come from the previous frame's capture (its own slot of the buffer).
-- FSR's jitter sign: the three other sign combinations (MHGU_FSR_JITTER_SIGN) all measured worse (PSNR against the
-  supersampled picture down 1-8 dB, sharpness down).
-- FSR input: the game's picture after its post effects (depth of field, bloom, tone mapping, FXAA forced off) and
-  before its brightness / gamma pass (that runs after FSR, at the output size). The post effects run at the render
-  size; moving FSR before them would mean re-doing the game's post passes at the output size (not done).
-- Shipped-config run (build\mhgurecomp.ini as the user has it: FSR = On, Quality, Sharpness 0.3): log "FSR upscaling",
-  60 FSR frames a second, no fallback; "plain scaling: no 3D scene" only on the title / loading frames.
-
-Compared (1920x1080 window; PSNR dB against the 4K supersampled picture / sharpness / static flicker x1000, four
-static regions; full table in the session log):
-- native + FXAA (old default): 31.5-36.5 dB, 0.93-0.98, flicker 0.14-3.16; jagged edges, crawl in motion.
-- FSR Quality (sharpness 0.8): 28.2-34.1 dB, 0.89-1.00, flicker 0.81-1.19; smooth edges, a little less fine texture
-  detail than native (720p input), softer while the camera turns fast. GPU 1.5 ms vs 0.73 ms native here.
-- FSR NativeAA: 31.5-36.8 dB, 1.00-1.07, flicker 0.57-1.03; as sharp as native with smooth, stable edges: better than
-  native + FXAA. GPU 2.3 ms at 1080p, 3.9 ms at 2560x1440 (RX 9070 XT).
-- FSR Quality / NativeAA with RenderResolution 2880x1620 / 2560x1440 on a 1080p window: the closest to the
-  supersampled picture (up to 39.5 dB), 2.8 ms.
-On this GPU the game is light enough that NativeAA (now the default quality) is the useful setting: it is clearly
-better than native + FXAA. Quality and below pay off on slower GPUs or very high resolutions.
-
 ## Known issues / not done
 
 - Object motion covers geometry drawn with depth writes. Not covered: transparent / blended effects (no depth write:
@@ -245,73 +194,4 @@ better than native + FXAA. Quality and below pay off on slower GPUs or very high
 - Not tested in game: UltraPerformance, the hunter creation and equipment preview screens (the character select
   was), a large monster in a fight (only herbivores in quest 101's area 2), multiplayer, Alt+Enter / borderless on
   another monitor size.
-- FSR 4: see docs/FSR4-PORT.md (`Upscaler = FSR4`, native Vulkan through the driver); block matching / animated surfaces / HUD layer: see above.
-
-## Test commands (Git Bash; the game must not be running while building)
-
-    cd /c/msys64 && MSYSTEM=UCRT64 CHERE_INVOKING=1 ./usr/bin/bash.exe -lc \
-        "cd /e/Gaming/GU/MHGURecomp-src && make -j8 GAME=../Windows-MHGURecomp/data"
-
-Unattended run into a quest on a copy of the save (the real save in %APPDATA% is never touched), FSR on, screenshot,
-GPU profile, then quit:
-
-    cp -r "$APPDATA/MHGURecomp/save/save_0" <test>/save_0
-    cd /e/Gaming/GU/MHGURecomp-src/build && : > ctl.txt
-    MHGU_SAVE_DIR=<test> MHGU_WINDOW=1920x1080 MHGU_QUICKHUNT=101 MHGU_CONTROL=ctl.txt MHGU_FPS=1 \
-    MHGU_FSR=1 MHGU_FSR_LOG=1 DISABLE_RTSS_LAYER=1 DISABLE_VULKAN_OW_OVERLAY_LAYER=1 ./mhgurecomp.exe > out.txt 2>&1 &
-    # ~20 s later "[quickhunt] in town: ordered quest 101" is in out.txt; ~30 s after that the hunt has started:
-    echo "shot fsr_on" >> ctl.txt; echo gpuprof >> ctl.txt; echo "RSTICK_RIGHT 180" >> ctl.txt
-    taskkill //F //IM mhgurecomp.exe
-
-(Started from a terminal the log goes to stdout, not log.txt. The RTSS / Overwolf Vulkan layers on this machine
-crashed one start inside vkCreateDevice; their DISABLE_* variables keep them out of test runs.) Same with
-`MHGU_FSR=0` for the reference picture, `MHGU_FSR_QUALITY=performance`, `MHGU_RENDER=3840x2160` (4K output),
-`MHGU_FSR_MVCHECK=1`, `MHGU_JITTER_TEST=40,40`, `MHGU_VK_VALIDATION=1 VK_ADD_LAYER_PATH=C:\VulkanSDK\1.4.341.1\Bin`.
-Without MHGU_QUICKHUNT, pressing A every 1.5 s for ~20 s reaches the village.
-
-## Quality presets side by side
-
-The same still scene (quest 101, RX 9070 XT, 1920x1080 window with a 21:9 picture, so 1920x822) at every `FSRQuality` preset, FSR 3.1 on the left and FSR 4 on the right (the picture is in the pull request, not in the repository). Each tile is labelled with the resolution the 3D picture is rendered at; the HUD is always drawn at the output resolution. Real captures, nothing edited apart from cropping the black bars and scaling to fit. Frame time on that card (whole-frame GPU ms, FSR 3.1 / FSR 4): NativeAA 1.98 / 2.06, Quality 1.27 / 1.56, Balanced 1.16 / 1.47, Performance 1.04 / 1.37, UltraPerformance 0.87 / 1.23.
-
-## Comparison images
-
-Captures from the test runs, shown in the pull request and not stored in the repository (quest 101, RX 9070 XT, 1920x1080 window, crops of 4-frame captures; nothing edited).
-Panel labels in images 1-5: `nat_fxaa` = native 1080p with FXAA (no FSR), `f3q` = FSR 3.1 Quality (1280x720 -> 1080p),
-`f4q` = FSR 4 Quality, `f4naa` = FSR 4 NativeAA, `ss4k` = 4K supersampled reference. Within one image the hunter or the
-animated parts can be in a slightly different pose per panel (the panels are different runs); compare edges and texture, not poses.
-
-What can be seen across the set (my reading; one scene, one GPU; the numbers are in the measurements above and in `FSR4-PORT.md`):
-- Native + FXAA has stair-stepped geometry edges (chest strap and rim, cloth edge, sword); every FSR variant has smooth edges.
-- FSR 3.1 Quality and FSR 4 Quality rebuild texture detail from 720p input to about native level, a little softer than native + FXAA on some
-  textures; FSR 4 Quality is a little softer than FSR 3.1 Quality (sharpness metrics 0.87-0.94 vs 0.87-1.01).
-- FSR 4 NativeAA is the closest to the 4K reference in sharpness; FSR 3.1 NativeAA (images 6-8) is visibly sharper than its Quality mode (sharpness 0.8 vs 0.3 there).
-- In the pan crops (4, 5), no ghost trails are visible behind the hunter or on the ground in any FSR panel.
-- A thin green outline on the headband is present in native and all FSR panels (a game texture/outline feature, not FSR).
-
-1. Chest and structure, static: native+FXAA, FSR 3.1 Quality, FSR 4 Quality / FSR 4 NativeAA, 4K reference.
-
-2. Ground texture, static.
-
-3. Hunter cloth, sword and armour, static.
-
-4. Camera turning, hunter walking in place: motion / ghosting check on the character.
-
-5. Camera turning, ground.
-
-The next three are FSR 3.1 only, on a 2560x1440 screen: the old setup (native 1920x1080 stretched to the screen), FSR 3.1 Quality
-(1706x960 -> 2560x1440, sharpness 0.3) and FSR 3.1 NativeAA (2560x1440, sharpness 0.8).
-
-6. Chest.
-
-7. Hunter and ground.
-
-8. Distant terrain.
-
-## Other upscalers
-
-Nothing in the preparation is specific to FSR: the jittered main camera (`runtime/hle/camera_jitter.c`), per-pixel motion vectors from the
-camera and from moving objects, the scene depth, the reactive and animated-surface masks, the HUD split (the HUD is drawn after the upscale at
-output size), the texture LOD bias and the output-size handling (`runtime/nvn/vulkan/fsr.c`, `textures.c`) are what any temporal upscaler
-needs. The upscaler itself is called from one place: `run_fsr` in `fsr.c` prepares the inputs and then records either the FSR 3.1 dispatch
-or `vk_fsr4_dispatch` (`fsr4.c`, which takes all of them in one `Fsr4Dispatch` struct). A DLSS backend (NVIDIA, via NGX or Streamline on
-Vulkan) could be added the same way by someone with an NVIDIA RTX card. The author has no such card, so it is neither implemented nor tested.
+- FSR 4: see docs/technical/FSR4-PORT.md (`Upscaler = FSR4`, native Vulkan through the driver); block matching / animated surfaces / HUD layer: see above.

@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in MHGU Recomp doesn't work as it should.
+description: Report an issue in MHGURecomp Native Keyboard & Mouse.
 body:
   - type: markdown
     attributes:

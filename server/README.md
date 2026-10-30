@@ -1,4 +1,8 @@
-# MHGURecomp hub server
+<h1 align="center">MHGURecomp hub server</h1>
+
+[English](../README.md) · [简体中文](../docs/README.zh-CN.md) · [繁體中文](../docs/README.zh-TW.md)
+
+This is the optional hub server shipped by [MHGURecomp Native Keyboard & Mouse](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse). Use compatible client builds; availability of the original project's public service is not guaranteed by this repository.
 
 The lobby / relay server for internet hubs: MHGURecomp players find each other's Local Play hubs through it and
 play together without forwarding a port. Like an LDN server for Ryujinx, but for this port only (it lists MHGURecomp

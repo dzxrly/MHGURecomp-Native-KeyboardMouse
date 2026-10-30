@@ -138,7 +138,7 @@ $(O)/fsr/src/ffx_fsr3_glsl.c.o: FSRFLAGS += -DFFX_GPU_DIR='"$(FFX_GPU)"' -DFFX_P
 $(O)/fsr/src/ffx_fsr3_glsl.c.o: $(wildcard $(FFX_GPU)/*.h $(FFX_GPU)/*/*.h $(FFX_PASS)/*.glsl)
 RTFLAGS  += -I$(FSR)/include -Ithird_party/ffx-api
 # FSR4_DRIVER_PATCH=1 (opt-in): FSR 4 can use the AMD driver's own amdvkffx64.dll directly, which needs one in-memory patch of
-# that DLL's GetModuleHandleW import (runtime/nvn/vulkan/fsr4.c, docs/FSR4-PORT.md). The default, FSR4_DRIVER_PATCH=0, leaves
+# that DLL's GetModuleHandleW import (runtime/nvn/vulkan/fsr4.c, docs/technical/FSR4-PORT.md). The default, FSR4_DRIVER_PATCH=0, leaves
 # all of that code out: nothing of AMD's is touched, and FSR 4 is only used through a loader DLL the player supplies (else FSR 3.1).
 FSR4_DRIVER_PATCH ?= 0
 .DEFAULT_GOAL := all
@@ -303,7 +303,7 @@ $(B)/licenses/FFmpeg.txt: $(FFMPEG_DIR)/.built
 	@{ echo "This program contains FFmpeg $(FFMPEG_VER) (libavformat, libavcodec, libavutil), linked statically, under the"; \
 	   echo "GNU Lesser General Public License 2.1 or later (below). Its source code is the release at"; \
 	   echo "https://ffmpeg.org/releases/ffmpeg-$(FFMPEG_VER).tar.xz, built with the options in this program's Makefile (FFMPEG_CONF);"; \
-	   echo "the program's own source is at https://github.com/morerokk/MHGURecomp, to rebuild it with a changed FFmpeg."; \
+	   echo "the program's own source is at https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse, to rebuild it with a changed FFmpeg."; \
 	   echo; cat $(FFMPEG_DIR)/src/COPYING.LGPLv2.1; } > $@
 
 $(GAMELIB): $(GEN_OBJ) | $(EXE)

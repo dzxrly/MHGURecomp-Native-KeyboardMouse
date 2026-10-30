@@ -1,4 +1,4 @@
-# Host settings overlay
+<h1 align="center">Host settings overlay</h1>
 
 Minus + Plus (Back/Select + Start) or F1 opens a single panel inside the game.
 Insert still opens Forge. Options, Save and Reset share one scrolling flow, in that order.
@@ -88,25 +88,11 @@ windowing on held face buttons, failed writes, numeric activation without a keyp
 close, explicit exit/restart, quest addition/removal/reset, 200% Spanish layout,
 scrolling and a 640×480 viewport. Runtime smoke checks use an isolated save and
 config. Physical controller feel and platform-specific DPI still need human
-acceptance before an upstream PR.
+acceptance before a release.
 
-## Confirmation experiment (host settings only)
+## Confirmation button
 
-Controls > Confirm button (recomp) selects Original, Bottom button or Right button,
-independently of FaceButtons and ButtonIcons. Save applies it immediately and
-persists `MenuConfirm = Original|South|East` under [Controls]. The original policy
-is the default. The new button is used for navigation, all settings confirmations
-and Back; guides follow the saved policy. Held buttons are suppressed during a
-policy change and must release before the new mapping accepts them. Returning
-from an overlay also waits for held face buttons to release before gameplay.
-Forge retains its existing mapping, as do the original game's menus and combat.
-
-This is the testable host portion of contextual confirmation. In-game sPad fields
-+0x6B8C/+0x6B90 were confirmed at runtime as 0x2000/0x4000, but exchanging them did
-not establish a working title-screen B-confirm path. No guest-memory probe or
-unverified in-game remap is shipped. Original menu consumers and their prompts
-still require separate identification and validation before this option can
-cover the game itself.
+Controls > Confirm button (recomp) writes `MenuConfirm = Original|South|East` under `[Controls]`. It affects only the PC settings overlay and its guides. Forge and the game's own menus retain their existing mapping. Held buttons must release before a changed mapping accepts them.
 
 ## FSR settings
 
