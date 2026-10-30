@@ -174,6 +174,8 @@ In-game checks cover bowgun/Bow aim and projectile direction, both Bow control t
 
 Remaining work includes Bow-specific prompts, actual Prowler Support Move activation with an equipped move, variable zoom, and wider weapon/style/ammo and frame-rate testing. Multi-FPS mouse sampler tests are not a substitute for native-angle play tests. Full-page controller illustrations in the handbook are still present.
 
+Additional Windows checks on 0.11.3 cover Great Sword draw/attack/guard and Sword and Shield attack, X+A and guard through actual mouse buttons. Great Sword charge levels and full move chains remain unverified. Ordinary-camera 1,000-count input matched at the selected 30/120/240 FPS settings; HBG direct aim, projectile direction and discarded firing-lock input were checked at 30 and 240. These settings do not establish stable delivered frame rates or complete weapon/style coverage.
+
 `InputMode = Original` retains the original mapping: WASD move, mouse camera, left/right mouse X/A, Space/R B/Y, Q/E L/R, Tab/T ZL/ZR, Enter/Backspace Plus/Minus. In that mode Esc releases the mouse.
 
 ## Settings and files

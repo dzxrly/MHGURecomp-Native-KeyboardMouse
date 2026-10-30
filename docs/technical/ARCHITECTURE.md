@@ -44,13 +44,13 @@ Village cameras, fixed Ballista and Prowler special aiming retain the stick path
 
 The Auto pack contains both text profiles without changing the original message count or label indices. A message getter selects the appended Melee strings when appropriate. Known controller atlases carry an exact Ranged baseline and Melee block differences. The Vulkan upload selects the active variant and refreshes cached textures on preset changes.
 
-The seven-language pack is generated from the user’s own unmodified game resources. Generated ARC files and game textures must not be committed. Existing single-profile packs are skipped; an explicitly disabled Auto mod remains disabled.
+The explicitly requested prebuilt seven-language Auto pack is maintained under `extras/keyboard-mouse/prebuilt/` and distributed with Windows releases. Raw exefs/romfs stay outside Git and remain read-only; compatibility changes belong in project code or mod overlays. Existing single-profile packs are skipped; an explicitly disabled Auto mod remains disabled.
 
 ## Verification boundaries
 
 The README lists the current exercised actions and remaining work. A shared preset provides bindings for a weapon; it does not establish that every move, style, ammo type or multiplayer context has been tested.
 
-The current native-angle play tests were performed on Windows at 60 FPS. Existing sampler tests cover other frame and mouse-report rates only for the compatibility conversion. The FSR and multiplayer notes retain their own narrower validation context.
+Native-angle play tests are on Windows. In addition to the original 60 FPS checks, ordinary-camera count response was checked at selected 30/120/240 FPS settings, and HBG direct aim/projectile direction/firing gates at 30/240. Selected settings do not prove stable delivered rates. Great Sword draw/attack/guard and Sword and Shield attack/X+A/guard have limited mouse-button evidence; charge levels and full chains remain unverified. Sampler tests cover mouse-report-rate combinations only for the compatibility conversion. FSR and multiplayer retain their own narrower validation context.
 
 Use isolated configuration and save directories for runtime experiments. Do not write experimental equipment changes back to the player’s real save.
 
