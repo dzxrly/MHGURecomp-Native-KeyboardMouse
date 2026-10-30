@@ -2,8 +2,8 @@
 
 [English](../../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md)
 
-Full source builds can recompile game code from your own dump. Release builds use a verified prebuilt code library
-and the checked-in Auto prompt resources; they do not need the ROM. Raw game dumps and keys remain excluded.
+This project targets Windows only; Linux is incompatible. Builds read the owner's dump when recompiling game code,
+and never modify it. Releases are built locally and include the checked-in Auto prompt mod.
 
 ### 1. Tools (Windows)
 
@@ -66,7 +66,7 @@ Useful targets and options:
 The game's movies are MP4 files with H.264 video and AAC audio. The first build downloads FFmpeg's source
 (`third_party/ffmpeg/`, a pinned release checked against its SHA-256), builds only the MP4 reader and those two
 decoders into `obj/`, and links them into the executable. Nothing of FFmpeg needs to be installed or shipped, and the
-Linux build runs on any distribution whatever FFmpeg version it has (or none). This needs `curl` and, for FFmpeg's
+build does not depend on a separately installed FFmpeg version. This needs `curl` and, for FFmpeg's
 fast x86 code, `nasm` (without it FFmpeg uses plain C, which is fast enough for these movies). It takes a few minutes,
 once. FFmpeg is LGPL 2.1; its license goes into `build/licenses/`.
 
@@ -75,60 +75,25 @@ distribution package would; that build then only runs with that FFmpeg version.
 
 ### Making a release
 
-The independent `Independent release` workflow builds this repository's runtime and updater on GitHub-hosted
-Windows and Ubuntu runners. No self-hosted runner, local directory, ROM upload or repository secret is required.
-Windows installs the current MSYS2 UCRT64 toolchain; Linux builds in the current Arch Linux container, matching
-its release archive's target. All action dependencies use their current Node.js 24 releases.
+This project is Windows-only. Linux is incompatible and no Linux release package is provided. Build and verify
+locally, then upload the completed Windows archive to this repository's GitHub Releases. Automated Actions
+release building is disabled; no runner deployment, remote build inputs or cloud toolchain is needed.
 
-`UPSTREAM_VERSION` pins the reviewed upstream version (currently `0.11.3`). The workflow verifies that tag exists
-and uses the same version for binaries, archives and the optional release. Merge and review an upstream version
-before changing this file. Manually select Windows/Linux/both and enable `publish` to publish; otherwise the
-archives remain Actions artifacts. Existing releases and tags pointing at another commit are not overwritten.
-
-The stable Auto mod is checked into `extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto/romfs/` and is packed
-directly from that directory. Rebuild it locally with `tools/build_keyboard_mouse_assets.py` only when the icons,
-text or pack format change. Only these explicitly requested prompt resources are an exception to the raw-game-data
-exclusions; no exefs, base romfs, save or cache belongs there. `.gitattributes` preserves their bytes on checkout.
-
-`tools/fetch_gamelib.py` obtains the selected platform's game code library from the published
-[morerokk/MHGURecomp release](https://github.com/morerokk/MHGURecomp/releases), verifies the archive's size and
-GitHub-provided SHA-256, and extracts only `mhgugame.dll` or `.so`. Original-project executables are not packaged.
-The rebuilt runtime then checks the library's ABI and ID through `--check-gamelib`, without opening a ROM, window
-or save. Interface IDs canonicalize source line endings to match upstream's existing CRLF-built libraries on
-both hosts. A mismatch fails the release; the expected ID is never replaced with a value read from the library.
-
-Release jobs never run `make gen`, read exefs/romfs or regenerate the mod. A developer with the normal build tools
-can run the same entry point in the repository root:
+The stable Auto mod is included in the repository and is packaged directly, without reading or modifying a ROM:
 
 ```bash
-python tools/release.py
+make dist VERSION=0.11.3 KEYBOARD_MOUSE_MOD=extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto BONUS=
 ```
 
-`make dist VERSION=<the release's tag>` builds everything with that version and packs it for GitHub:
+This writes `dist/Windows-MHGURecomp.0.11.3.zip` with this project's runtime and updater, the matching game code
+library, required DLLs, licenses and the bundled Auto mod. It excludes raw exefs/romfs, user settings, saves, caches
+and other mods. The version follows the reviewed upstream version in `UPSTREAM_VERSION`. All base game files remain
+read-only; compatibility changes belong in project code or mod overlays.
 
-```bash
-git fetch --tags                          # (so builds between releases know the last one)
-make dist VERSION=0.11.3 KEYBOARD_MOUSE_MOD=/path/to/Keyboard_Mouse_Input_Auto BONUS=
-```
-
-On Windows that writes `dist\Windows-MHGURecomp.0.11.3.zip`; on Linux (or in WSL, with `B=build-linux
-O=obj-linux`) `dist/ArchLinux-MHGURecomp.0.11.3.tar.gz`, which keeps the programs executable. Each holds one folder
-with `mhgurecomp(.exe)`, `mhgugame.dll` / `.so`, `mhgurecomp-updater(.exe)`, the bundled DLLs, `licenses\`,
-`bonus\system` (from `BONUS`, else left empty), the explicitly selected Auto prompt mod, and empty `data\` and
-`cheats\` folders; never the build folder's ROM, settings, caches or other mods. The updater may replace only the
-bundled Auto mod's `romfs/` resources; its disabled state/load order and all other mods remain protected.
-`make dist` prints each archive's SHA-256.
-
-Upload both archives to a GitHub release whose tag is exactly that version (`0.10.4`, no `v`), as a normal release,
-not a pre-release. The updater only looks at GitHub's "latest" release, compares its tag with its own version as
-numbers (0.10.10 is newer than 0.10.9), and picks the asset starting with `Windows-` (`.zip`) or `ArchLinux-`
-(`.tar.gz`, else `.zip`). GitHub records each upload's SHA-256, which the updater checks. To hold a broken release
-back, make it a draft or pre-release: the updater then sees the previous one as the latest.
-
-The version comes from `git describe --tags`. A build that isn't exactly a tag (`0.10.3-4-gabc1234`) never updates
-itself, so a development build is never replaced by a release (`--update-force` overrides that). Options for testing
-the updater: `--update-no-launch` (don't start the game afterwards) and `MHGU_UPDATE_API=<url>` (another "latest
-release" address).
+After local verification, upload the archive to this repository's normal GitHub release with the same numeric tag
+(`0.11.3`, without `v`). The updater only checks this repository. It may update the bundled Auto mod's `romfs/`
+resources while preserving disabled state, load order, other mods, settings and saves. A development version is not
+automatically replaced by a release; `--update-force` and `--update-no-launch` are diagnostic options.
 
 `make` fills `licenses\` with everything a copy has to carry: this project's `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`
 (code compiled in), FFmpeg's license, and on Windows the licenses of the MSYS2 packages behind the bundled DLLs and
@@ -138,51 +103,6 @@ release makes that offer, so keep those sources at hand for three years (the MSY
 
 The exe creates the `mods` and `cheats` folders and the ini on first start. Players then add their own `data\` as
 described above.
-
-### Linux
-
-The Windows build runs under Proton / Wine. A native Linux build is supported as well: the Makefile picks
-`runtime/platform/linux.c` when `uname -s` isn't Windows and everything else is shared. The original project tested Gentoo x86_64 with clang under Wayland (NVIDIA); this fork's native-input play tests are on Windows. Besides `make`, `git`, `clang`, `lld` and Python 3.10 or newer it
-needs:
-
-- SDL3, the Vulkan loader and headers and shaderc — the same libraries the MSYS2 list above installs, under your
-  distro's names — plus `curl` and optionally `nasm` for building FFmpeg (see "FFmpeg" above; no FFmpeg package
-  needed);
-- `vk_mem_alloc.h` (3.4.0) in `third_party/vk_mem_alloc/`, which the Makefile has on the include path (a
-  distro package that installs the header where the compiler looks by default works just as well);
-- `zenity` or `kdialog` for the dialog on a fatal error. Without either, the message goes to the terminal and
-  to `log.txt` as usual;
-- for the updater: zlib's headers to build it, and `libcurl.so.4` (curl) when it runs, which SteamOS and the
-  usual desktop distributions have. It loads libcurl itself, so without it the updater just starts the game.
-
-```bash
-python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt
-make gen GAME=../mhgu/game       # as above: the folder holding exefs/ and romfs/
-make -j8 GAME=../mhgu/game
-cd build && ./mhgurecomp
-```
-
-`build/` becomes the game folder exactly as on Windows: `mhgurecomp`, `mhgugame.so` with the recompiled game
-code and `data/` as hard links to your game files, nothing else; the ini, caches and `mods/` are written beside
-them when it runs (`MHGU_HOME=<folder>` puts those there instead). Saves go to
-`$XDG_DATA_HOME/MHGURecomp/save`, default `~/.local/share/MHGURecomp/save` — the folder the Windows build
-keeps them in under `%APPDATA%`, same layout, so moving a save across is copying `save_0`.
-
-From Windows, the Linux build can be made in WSL with Arch Linux (`wsl --install -d archlinux`), straight from the
-Windows checkout, into its own folders so the Windows build is left alone:
-
-```bash
-pacman -S --needed make git clang lld python sdl3 vulkan-headers vulkan-icd-loader shaderc nasm vulkan-swrast
-mkdir -p /usr/local/include/vma && cp /mnt/c/msys64/ucrt64/include/vma/vk_mem_alloc.h /usr/local/include/vma/
-make -j16 B=build-linux O=obj-linux     # in the repository, under /mnt/c/...
-```
-
-Arch has no package for `vk_mem_alloc.h`; MSYS2's (3.4.0) is the one the Windows build uses. `build-linux/data` can
-hold links to the game files (`ln -s /mnt/c/.../exefs build-linux/data/exefs`, same for `romfs`, then
-`touch build-linux/data/.complete`) instead of a second copy. It also runs there, in a WSLg window, slowly: WSL's
-own Vulkan driver (dzn, Vulkan on Direct3D 12) can't create the renderer's pipeline layouts, so use Mesa's software
-one with `VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json`. WSLg can't capture the mouse (clicks still work as
-buttons), and screenshots come out black there.
 
 ## Selective upstream synchronization
 

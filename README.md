@@ -32,12 +32,12 @@ in `mods/`. `mhgurecomp --check-rom <game-folder>` checks without launching the 
 The `/` key opens keyboard chat in town and quests; Enter sends and Esc cancels. Change `Controls.ChatKey` in F1
 settings; occupied keyboard/mouse keys are marked. `Anti-aliasing.FXAAMode = 3_11` selects FXAA 3.11.
 
-- Windows 10/11 64-bit or Linux.
+- Windows 10/11 64-bit. **Linux is incompatible with this project.**
 - AVX2-capable CPU, Vulkan 1.2-capable GPU, at least 1 GB VRAM and 4 GB RAM.
 - Your own complete game files with the **1.4.0 update merged into the base game**.
 - Title ID: `0100770008DD8000`; the `main` executable’s build ID begins with `FB08F1D20FD1204F`.
 
-The native input changes have been exercised on Windows at 60 FPS. The inherited Linux runtime remains available; the same set of native-input play tests has not been repeated there.
+The project targets Windows only. Its native input play tests are performed on Windows.
 
 ## Installation
 
@@ -86,17 +86,7 @@ The source default is still `InputMode = Original`. Controllers work in either m
 
 ### Install automatic prompts
 
-Release archives include `mods/Keyboard_Mouse_Input_Auto`; use the bundled pack directly. The following generation
-command is only needed for source builds or rebuilding the pack locally.
-
-Using Python 3.10 or newer, run from the source repository:
-
-   ```sh
-   python -m pip install "Pillow>=12.2"
-   python tools/build_keyboard_mouse_assets.py /path/to/game/romfs /path/to/game/mods/Keyboard_Mouse_Input_Auto --layout Auto
-   ```
-
-Use your unmodified game `romfs` as input. The output directory must be empty and outside the input directory. Enable the resulting `Keyboard_Mouse_Input_Auto` mod in the F1 **Mods** tab and restart.
+Release archives include `mods/Keyboard_Mouse_Input_Auto`. Keep that directory in `mods/`, enable it in the F1 **Mods** tab and restart. No separate download or resource-generation step is needed.
 
    ```text
    mods/
@@ -196,7 +186,6 @@ F1 opens PC settings; Alt+Enter or F11 toggles fullscreen, F12 takes a screensho
 | --- | --- |
 | Settings / log | `mhgurecomp.ini` / `log.txt` beside the executable |
 | Windows saves | `%APPDATA%\MHGURecomp\save\save_0\` |
-| Linux saves | `$XDG_DATA_HOME/MHGURecomp/save/save_0/`, default `~/.local/share/MHGURecomp/save/save_0/` |
 | Mods / cheats | `mods/` / `cheats/` beside the executable |
 | Screenshots / shader cache | `shots/` / `cache/` beside the executable |
 
@@ -229,7 +218,7 @@ Clone this repository, install the required toolchain and Python dependencies, t
    make -j4 GAME=/path/to/game
    ```
 
-The complete [Windows/Linux build and release guide](docs/technical/BUILDING.md) covers MSYS2 packages, Python, FFmpeg and output folders. Binaries keep the names `mhgurecomp` and `mhgugame`.
+The complete [Windows build and release guide](docs/technical/BUILDING.md) covers MSYS2 packages, Python, FFmpeg and output folders. Binaries keep the names `mhgurecomp` and `mhgugame`.
 
 Existing input/configuration checks:
 

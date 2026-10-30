@@ -28,12 +28,12 @@
 
 在村庄或任务中按 `/` 打开键盘聊天，Enter 发送、Esc 取消；可在 F1 设置修改 `Controls.ChatKey`，已被键鼠操作占用的按键会标出。`Anti-aliasing.FXAAMode = 3_11` 可选择 FXAA 3.11。
 
-- Windows 10／11 64位或 Linux。
+- Windows 10／11 64位。**Linux 与本项目不兼容。**
 - 支持 AVX2 的处理器、支持 Vulkan 1.2 的显卡，至少1GB显存、4GB内存。
 - 自己导出的完整游戏文件，**将1.4.0更新合并到本体资源中**。
 - Title ID：`0100770008DD8000`；`main` 的 Build ID 以 `FB08F1D20FD1204F` 开头。
 
-目前原生输入的实际游戏测试在 Windows、60FPS 下进行。项目保留 Linux 运行时，但尚未在 Linux 重复同一组键鼠实测。
+本项目仅针对 Windows，原生输入的实际游戏测试也在 Windows 下进行。
 
 ## 安装
 
@@ -82,16 +82,7 @@
 
 ### 安装自动提示包
 
-本仓库的 Release 包已包含 `mods/Keyboard_Mouse_Input_Auto`，可直接使用随包提示层。下方生成命令仅用于从源码构建，或在本地重新生成提示包。
-
-使用 Python 3.10或更新版本，在源码仓库根目录运行：
-
-   ```sh
-   python -m pip install "Pillow>=12.2"
-   python tools/build_keyboard_mouse_assets.py /path/to/game/romfs /path/to/game/mods/Keyboard_Mouse_Input_Auto --layout Auto
-   ```
-
-输入应为未修改的游戏 `romfs`；输出目录应为空，并位于输入目录之外。生成后，在 F1 设置的 **Mods** 页启用 `Keyboard_Mouse_Input_Auto` 并重启。
+Release 包已包含 `mods/Keyboard_Mouse_Input_Auto`。保留该目录，在 F1 设置的 **Mods** 页启用后重启即可，无需另行下载或生成资源。
 
    ```text
    mods/
@@ -191,7 +182,6 @@ F1 打开 PC 设置；Alt+Enter 或 F11 切换全屏，F12 截图，F7 切换 MS
 | --- | --- |
 | 配置／日志 | 程序旁的 `mhgurecomp.ini`／`log.txt` |
 | Windows 存档 | `%APPDATA%\MHGURecomp\save\save_0\` |
-| Linux 存档 | `$XDG_DATA_HOME/MHGURecomp/save/save_0/`，默认 `~/.local/share/MHGURecomp/save/save_0/` |
 | 模组／金手指 | 程序旁的 `mods/`／`cheats/` |
 | 截图／着色器缓存 | 程序旁的 `shots/`／`cache/` |
 
@@ -224,7 +214,7 @@ F1 打开 PC 设置；Alt+Enter 或 F11 切换全屏，F12 截图，F7 切换 MS
    make -j4 GAME=/path/to/game
    ```
 
-完整的 [Windows／Linux 构建及打包说明](technical/BUILDING.md)包含 MSYS2 软件包、Python、FFmpeg 和输出目录。程序仍使用 `mhgurecomp`、`mhgugame` 文件名。
+完整的 [Windows 构建及打包说明](technical/BUILDING.md)包含 MSYS2 软件包、Python、FFmpeg 和输出目录。程序仍使用 `mhgurecomp`、`mhgugame` 文件名。
 
 现有输入与配置检查：
 

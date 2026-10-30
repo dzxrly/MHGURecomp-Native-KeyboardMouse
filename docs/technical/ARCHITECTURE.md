@@ -21,8 +21,8 @@ base-romfs SHA-256 fingerprints against the supported Switch MHGU 1.4.0 referenc
 check. These are compatibility checks, not a whole-ROM integrity proof. Unsupported, missing or modified references
 produce a warning and stop startup before fixed-address hooks. `--check-rom <folder>` runs only these checks.
 `--check-gamelib` separately validates the prepared code library's ABI/ID without a ROM. Release builds consume
-the checked-in prompt pack and a size/checksum-verified library from the pinned upstream release; they do not
-need access to the dump or a self-hosted runner.
+the checked-in prompt pack and a matching local game library. Releases are built locally for Windows and uploaded
+manually; Linux is incompatible with this project.
 
 | Component | Responsibility |
 | --- | --- |

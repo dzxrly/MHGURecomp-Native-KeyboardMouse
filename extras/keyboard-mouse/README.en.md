@@ -4,6 +4,6 @@
 
 Setup, full bindings, Bow/Prowler controls, sensitivity and current limitations are documented directly in the three READMEs above.
 
-The artwork and mappings in this directory are used by `tools/build_keyboard_mouse_assets.py` to generate the Auto mod from your own game resources. Generated ARC files stay local.
+Release archives include the Auto prompt mod; users only need to enable it as described in the README. This directory holds development artwork, mappings and the fixed resources distributed from `prebuilt/Keyboard_Mouse_Input_Auto`.
 
 Implementation: [native input and automatic prompts](../../docs/technical/ARCHITECTURE.md#input-flow). Artwork prompts: [imagegen-prompts.txt](imagegen-prompts.txt).
