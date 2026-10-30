@@ -1,9 +1,9 @@
-<h1 align="center">Keyboard/mouse resources</h1>
+<h1 align="center">Keyboard/mouse resources for maintainers</h1>
 
-[English](../../README.md#keyboard-and-mouse) · [简体中文](../../docs/README.zh-CN.md#键鼠配置) · [繁體中文](../../docs/README.zh-TW.md#鍵鼠設定)
+[简体中文](README.md) · [Developer documentation](../../docs/technical/README.md)
 
-Setup, full bindings, Bow/Prowler controls, sensitivity and current limitations are documented directly in the three READMEs above.
+Players only need to enable the Auto prompt mod bundled with their release; see the [user guide](../../README.md#keyboard-and-mouse).
 
-Release archives include the Auto prompt mod; users only need to enable it as described in the README. This directory holds development artwork, mappings and the fixed resources distributed from `prebuilt/Keyboard_Mouse_Input_Auto`.
+This maintainer directory holds development artwork, mappings and the fixed resources distributed from `prebuilt/Keyboard_Mouse_Input_Auto`. Release packaging consumes that prebuilt directory directly. Preserve `romfs/keyboard_mouse_input.flag` and `romfs/keyboard_mouse_prompts.bin` when maintaining the pack.
 
 Implementation: [native input and automatic prompts](../../docs/technical/ARCHITECTURE.md#input-flow). Artwork prompts: [imagegen-prompts.txt](imagegen-prompts.txt).

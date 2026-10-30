@@ -1,5 +1,9 @@
 <h1 align="center">Host settings overlay</h1>
 
+[Developer documentation](README.md)
+
+This document describes the overlay's implementation behavior and validation. Player configuration steps are in the [user guide](../../README.md#settings-and-files).
+
 Minus + Plus (Back/Select + Start) or F1 opens a single panel inside the game.
 Insert still opens Forge. Options, Save and Reset share one scrolling flow, in that order.
 Back appears only as a guide beneath the options. Discard is available only

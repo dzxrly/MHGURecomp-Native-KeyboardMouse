@@ -1,12 +1,12 @@
 <h1 align="center">Building and releasing</h1>
 
-[English](../../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md)
+[Developer documentation](README.md) · [Testing and coverage](TESTING.md)
 
 This project targets Windows only. Linux is currently unsupported because no Linux build and test environment is
 available for this project. Builds read the owner's dump when recompiling game code,
 and never modify it. Releases are built locally and include the checked-in Auto prompt mod.
 
-### 1. Tools (Windows)
+## 1. Tools (Windows)
 
 1. Install [MSYS2](https://www.msys2.org/) to `C:\msys64`.
 2. In the **MSYS2 UCRT64** shell, install the compiler and libraries:
@@ -30,7 +30,14 @@ and never modify it. Releases are built locally and include the checked-in Auto 
    tools\venv\Scripts\pip install -r tools\requirements.txt
    ```
 
-### 2. Recompile and build
+## 2. Recompile and build
+
+Clone this repository:
+
+```sh
+git clone https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse.git
+cd MHGURecomp-Native-KeyboardMouse
+```
 
 From the UCRT64 shell, in the repository folder, with your game files in a folder holding `exefs\` and `romfs\` (as described in the main README):
 
@@ -49,6 +56,8 @@ to `obj\`):
 - the MSYS2 DLLs they need;
 - `data\exefs` and `data\romfs`, hard links to your game files, so they take no extra disk space.
 
+Hard-linked files share their contents with the source dump. Treat `build/data` as read-only too; make resource changes only through mod overlays.
+
 To play from another folder, copy the contents of `build\` there; to update that folder, copy them over it (`data\`
 can be skipped when it is already there). The build never contains settings, caches, mods or logs, so your
 `mhgurecomp.ini` and the rest stay as they are. Or start `run-game.bat`: it runs `build\mhgurecomp.exe` with the
@@ -62,7 +71,7 @@ Useful targets and options:
 - `GENARCH=-march=x86-64-v2`: compiles the game code without AVX2, for older CPUs. Untested.
 - `FFMPEG=system`: links the system's FFmpeg libraries instead of building them (see below).
 
-### FFmpeg
+## FFmpeg
 
 The game's movies are MP4 files with H.264 video and AAC audio. The first build downloads FFmpeg's source
 (`third_party/ffmpeg/`, a pinned release checked against its SHA-256), builds only the MP4 reader and those two
@@ -74,7 +83,7 @@ once. FFmpeg is LGPL 2.1; its license goes into `build/licenses/`.
 `make FFMPEG=system` links the system's avformat / avcodec / avutil instead (FFmpeg 5.1 or newer), as a
 distribution package would; that build then only runs with that FFmpeg version.
 
-### Making a release
+## Making a release
 
 This project is Windows-only. There is currently no Linux build and test environment, so Linux is unsupported and
 no Linux release package is provided. Build and verify
