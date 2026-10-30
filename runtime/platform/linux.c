@@ -179,7 +179,7 @@ void plat_standalone(void) {
     }
 }
 
-// $XDG_DATA_HOME/MHGURecomp, else ~/.local/share/MHGURecomp (docs/technical/ARCHITECTURE.md "Save data", runtime/platform.h).
+// $XDG_DATA_HOME/MHGURecomp, else ~/.local/share/MHGURecomp (docs/DEVELOPMENT.md#runtime, runtime/platform.h).
 static bool mkdir_p(const char *path) {
     char buf[PATH_MAX];
     snprintf(buf, sizeof buf, "%s", path);

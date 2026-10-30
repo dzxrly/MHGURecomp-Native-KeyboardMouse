@@ -960,11 +960,15 @@ static void three_same(Cpu *c, uint32_t pc, uint32_t w) {
         for (uint32_t i = 0; i < k; i++) c->v.s[d * 2 + i] = t[i];
         return;
     }
-    if (A == 0xB && B && !U) {  // VPADD integer
+    if ((A == 0xB && B && !U) || (A == 0xA && size < 64)) {  // VPADD / VPMAX / VPMIN integer
         uint32_t per = 64 / size;
         uint64_t vals[16], t[8];
         for (uint32_t i = 0; i < per; i++) { vals[i] = lget(c, n, i, size); vals[per + i] = lget(c, m, i, size); }
-        for (uint32_t i = 0; i < per; i++) t[i] = (vals[2 * i] + vals[2 * i + 1]) & lmask(size);
+        for (uint32_t i = 0; i < per; i++) {
+            uint64_t a = vals[2 * i], b = vals[2 * i + 1];
+            bool gt = U ? a > b : sx(a, size) > sx(b, size);
+            t[i] = A == 0xB ? (a + b) & lmask(size) : (B ? !gt : gt) ? a : b;
+        }
         for (uint32_t i = 0; i < per; i++) lset(c, d, i, size, t[i]);
         return;
     }
@@ -1484,8 +1488,8 @@ static uint32_t code_word(uint32_t pc) {
 volatile uint32_t g_interp_watch;
 static volatile int watch_left;
 void interp_watch(uint32_t addr, int n) { watch_left = n, g_interp_watch = addr; }
-// (debug) A guest range whose reads by interpreted code (LDR / LDRB / LDRH / LDRSH / LDRSB with an immediate offset)
-// are logged, once per instruction ("interpread": host_input.c).
+// (debug) A guest range whose reads by interpreted code (LDR / LDRB / LDRH / LDRSH / LDRSB with an immediate or a
+// register offset, VLDR) are logged, once per instruction ("interpread": host_input.c).
 static volatile uint32_t read_lo, read_hi;
 static uint32_t read_seen[256];
 static int read_nseen;
@@ -1493,7 +1497,10 @@ void interp_read_watch(uint32_t lo, uint32_t hi) { read_nseen = 0, read_lo = lo,
 static void read_check(const Cpu *c, uint32_t pc, uint32_t w) {
     uint32_t imm;
     if ((w & 0x0E100000u) == 0x04100000u && !(w & 0x02000000u)) imm = w & 0xFFFu;  // LDR / LDRB immediate
+    else if ((w & 0x0E100010u) == 0x06100000u && !(w & 0xFF0u)) imm = c->r[w & 15];  // LDR / LDRB register
     else if ((w & 0x0E5000B0u) == 0x005000B0u) imm = ((w >> 4) & 0xF0u) | (w & 0xFu);  // LDRH / LDRSH / LDRSB imm
+    else if ((w & 0x0E500F90u) == 0x00100090u && (w & 0x60u)) imm = c->r[w & 15];  // LDRH / LDRSH / LDRSB register
+    else if ((w & 0x0F300E00u) == 0x0D100A00u) imm = (w & 0xFFu) << 2;  // VLDR
     else return;
     if ((w >> 28) == 0xF) return;
     uint32_t rn = (w >> 16) & 15, base = rn == 15 ? pc + 8 : c->r[rn];

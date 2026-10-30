@@ -1,4 +1,4 @@
-// FSR 4 through AMD's driver (see fsr4.h and docs/technical/FSR4-PORT.md).
+// FSR 4 through AMD's driver (see fsr4.h and docs/DEVELOPMENT.md#fsr4).
 //
 // The AMD Vulkan driver package carries amdvkffx64.dll, which exports UpdateFfxApiProvider(Ex): the FidelityFX
 // "external provider" hook. Called with a description type it fills in a table of function pointers (create / destroy /
@@ -11,7 +11,7 @@
 // when built with FSR4_DRIVER_PATCH=1 (off by default).
 // Route 2 ("loader"): AMD's own FidelityFX loader amd_fidelityfx_vk.dll that the player supplies (beside the exe, or
 // MHGU_FSR4_LOADER=<path>), used through the public ffx-api (ffxQuery / ffxCreateContext / ffxDispatch): no patching.
-// UNVERIFIED: no loader that offers FSR 4 was available to test with (see docs/technical/FSR4-PORT.md).
+// UNVERIFIED: no loader that offers FSR 4 was available to test with (see docs/DEVELOPMENT.md#fsr4).
 // Neither route: FSR 3.1 (fsr.c).
 //
 //   MHGU_FSR_DEBUG=1   FFX debug checking of the inputs (messages in the log)

@@ -197,6 +197,7 @@ int main(int argc, char **argv) {
     assert(config_defaults().mute_in_background==0);
     assert(config_defaults().combo_window==COMBO_LENIENT);
     assert(config_defaults().fxaa_mode==FXAA_ORIGINAL);
+    assert(config_defaults().smooth_gradients==0);
     fsr_config.fsr=1;fsr_config.fsr_upscaler=FSR_UP_4;fsr_config.fsr_quality=FSR_BALANCED;
     fsr_config.fsr_sharpness=.65f;fsr_config.fsr_objmotion=0;fsr_config.fsr_reactive=.35f;fsr_config.fsr_animsurf=0;
     fsr_config.msaa=8;fsr_config.fxaa=1;
@@ -227,6 +228,21 @@ int main(int argc, char **argv) {
     fsr_saved.fsr=0;assert(config_save(&fsr_saved,error,sizeof error));
     assert(config_live_msaa()==1 && config_live_fxaa()==0); // Remains active until restart.
     g_config=initial;config_load();assert(config_live_msaa()==8 && config_live_fxaa()==1);
+    // SmoothGradients is live, persisted, and independent of native-input defaults.
+    Config smooth=config_editable();smooth.smooth_gradients=1;
+    assert(config_save(&smooth,error,sizeof error) && !config_restart_required(&smooth));
+    assert(config_live_smooth_gradients()==1);
+    text=read_file(path);assert(strstr(text,"SmoothGradients = On"));free(text);
+    g_config=initial;config_load();assert(config_editable().smooth_gradients==1);
+    set_env("MHGU_RT16","0");
+    g_config=initial;config_load();smooth=config_editable();
+    assert(smooth.smooth_gradients==1 && g_config.smooth_gradients==0 && !config_live_smooth_gradients());
+    smooth.volume=38;assert(config_save(&smooth,error,sizeof error) && !config_live_smooth_gradients());
+    set_env("MHGU_RT16","");
+    g_config=initial;config_load();assert(config_live_smooth_gradients()==1);
+    smooth=config_editable();smooth.smooth_gradients=0;
+    assert(config_save(&smooth,error,sizeof error) && !config_live_smooth_gradients());
+    bad=smooth;bad.smooth_gradients=2;assert(!config_save(&bad,error,sizeof error));
     remove(path);
     puts("PASS: INI round trip, Auto/Desktop, environment overrides, comments/unknown keys, duplicate aliases, quest removal, invalid input, atomic write failure, live volume and English/Spanish, icons, hot settings and restart classification.");
     return 0;

@@ -52,13 +52,13 @@ Copy both complete folders, keeping all other files from the release archive bes
 
 Close the program, set these values in `mhgurecomp.ini`, then start it again:
 
-   ```ini
-   [Controls]
-   InputMode = Keyboard_Mouse_Input
+```ini
+[Controls]
+InputMode = Keyboard_Mouse_Input
 
-   [Mouse]
-   MouseSensitivity = 1.0
-   ```
+[Mouse]
+MouseSensitivity = 1.0
+```
 
 The default mode is `Original`; use `Keyboard_Mouse_Input` for the controls below. Controllers work in either mode. Light Bowgun, Heavy Bowgun and Bow automatically use **Ranged**; other Hunter weapons and Prowler use **Melee**. Equipment changes switch bindings and prompts without restarting.
 
@@ -68,29 +68,29 @@ The release includes `mods/Keyboard_Mouse_Input_Auto`. Enable it in **F1 → Mod
 
 ### Bindings
 
-| Input | Melee | Ranged |
-| --- | --- | --- |
-| WASD | Left stick: move | Left stick: move |
-| Mouse movement | Quest camera | Quest camera / weapon aim |
-| Left mouse | X: primary attack / draw | A: fire, confirm / interact |
-| Right mouse | A: secondary attack, confirm / interact | R: aim |
-| R | R: guard / weapon special action | X: reload / draw |
-| Mouse side button 5 | R: guard / weapon special action | Unbound |
-| F / Mouse side button 4 | Y: sheathe / use item | Y: sheathe / use item |
-| E | Y: sheathe / use item | R: aim |
-| Left Shift | R: ordinary sprint | R: ordinary sprint |
-| Space | B: evade, cancel / back | B: evade, cancel / back |
-| C | X+A: combined attack | X+A: combined action |
-| Wheel up / down | L+Y / L+A: select item | L+X / L+B: select ammo or coating |
-| Q | L: item bar / camera operation | L: item bar / camera operation |
-| Esc / Enter / Numpad Enter | Plus: game menu | Plus: game menu |
-| Backspace | Minus: secondary menu | Minus: secondary menu |
-| Tab / Middle mouse | ZL: switch target (control type 1) | ZL: switch target (control type 1) |
-| T | ZR | ZR |
-| 1 / 2 / 3 | D-pad up / right / down: Hunter Arts (control type 1) | D-pad up / right / down: Hunter Arts (control type 1) |
-| Arrow keys | D-pad | D-pad |
-| Ctrl / Alt | Left / right stick click | Left / right stick click |
-| F1 / F2 | PC settings / release mouse | PC settings / release mouse |
+| Input                      | Melee                                                 | Ranged                                                |
+| -------------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
+| WASD                       | Left stick: move                                      | Left stick: move                                      |
+| Mouse movement             | Quest camera                                          | Quest camera / weapon aim                             |
+| Left mouse                 | X: primary attack / draw                              | A: fire, confirm / interact                           |
+| Right mouse                | A: secondary attack, confirm / interact               | R: aim                                                |
+| R                          | R: guard / weapon special action                      | X: reload / draw                                      |
+| Mouse side button 5        | R: guard / weapon special action                      | Unbound                                               |
+| F / Mouse side button 4    | Y: sheathe / use item                                 | Y: sheathe / use item                                 |
+| E                          | Y: sheathe / use item                                 | R: aim                                                |
+| Left Shift                 | R: ordinary sprint                                    | R: ordinary sprint                                    |
+| Space                      | B: evade, cancel / back                               | B: evade, cancel / back                               |
+| C                          | X+A: combined attack                                  | X+A: combined action                                  |
+| Wheel up / down            | L+Y / L+A: select item                                | L+X / L+B: select ammo or coating                     |
+| Q                          | L: item bar / camera operation                        | L: item bar / camera operation                        |
+| Esc / Enter / Numpad Enter | Plus: game menu                                       | Plus: game menu                                       |
+| Backspace                  | Minus: secondary menu                                 | Minus: secondary menu                                 |
+| Tab / Middle mouse         | ZL: switch target (control type 1)                    | ZL: switch target (control type 1)                    |
+| T                          | ZR                                                    | ZR                                                    |
+| 1 / 2 / 3                  | D-pad up / right / down: Hunter Arts (control type 1) | D-pad up / right / down: Hunter Arts (control type 1) |
+| Arrow keys                 | D-pad                                                 | D-pad                                                 |
+| Ctrl / Alt                 | Left / right stick click                              | Left / right stick click                              |
+| F1 / F2                    | PC settings / release mouse                           | PC settings / release mouse                           |
 
 Bindings use physical QWERTY key positions. In game menus, confirm with right mouse in Melee or left mouse in Ranged; Space goes back. Original game menus use button navigation rather than pointer clicks. Press F2 to release the mouse; click the window to capture it again.
 
@@ -100,11 +100,11 @@ Press `/` to chat in town or quests, Enter to send and Esc to cancel. Change the
 
 Bow uses Ranged. With the Bow sheathed, left mouse remains A for interaction; press R (game X) to draw. While drawn:
 
-| Input | Bow control type 1 | Bow control type 2 |
-| --- | --- | --- |
-| Left mouse | X: charge; release to shoot | Configured game R: charge; release to shoot |
-| Right mouse | Configured game R: hold to aim | X: click to toggle aim |
-| Mouse side button 5 | A: secondary Bow action | A: secondary Bow action |
+| Input               | Bow control type 1             | Bow control type 2                          |
+| ------------------- | ------------------------------ | ------------------------------------------- |
+| Left mouse          | X: charge; release to shoot    | Configured game R: charge; release to shoot |
+| Right mouse         | Configured game R: hold to aim | X: click to toggle aim                      |
+| Mouse side button 5 | A: secondary Bow action        | A: secondary Bow action                     |
 
 Mouse controls follow the game’s Bow control type and R/ZR swap option. Keyboard controls stay as in the main table; menus use left mouse to confirm. Bow prompts still show the base Ranged layout, so use this table for Bow mouse controls.
 
@@ -122,12 +122,14 @@ F1 opens PC settings; Alt+Enter or F11 toggles fullscreen, F12 takes a screensho
 
 Use F1 to adjust graphics, audio, controls and multiplayer. Choose **Save** to keep changes; settings marked with an asterisk require a restart. The ini contains additional explanations. Enabling FSR takes over anti-aliasing.
 
-| Content | Location |
-| --- | --- |
-| Settings / log | `mhgurecomp.ini` / `log.txt` beside the executable |
-| Windows saves | `%APPDATA%\MHGURecomp\save\save_0\` |
-| Mods / cheats | `mods/` / `cheats/` beside the executable |
-| Screenshots / shader cache | `shots/` / `cache/` beside the executable |
+**Smooth gradients** reduces colour banding in skies and glows. It is off by default, takes effect after saving without a restart, and increases GPU work.
+
+| Content                    | Location                                           |
+| -------------------------- | -------------------------------------------------- |
+| Settings / log             | `mhgurecomp.ini` / `log.txt` beside the executable |
+| Windows saves              | `%APPDATA%\MHGURecomp\save\save_0\`                |
+| Mods / cheats              | `mods/` / `cheats/` beside the executable          |
+| Screenshots / shader cache | `shots/` / `cache/` beside the executable          |
 
 Import your own Switch save by copying `system` and `system_backup` into `save_0`. Back up existing saves first.
 
@@ -150,7 +152,7 @@ Download updates from **this repository**. Replace program files and the bundled
 - **Problems at high FPS:** try 60 FPS with VSync enabled.
 - **Other problems:** report your program version, hardware, reproduction steps and `log.txt` in [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues). Copy the log before starting the game again.
 
-[Developer documentation](docs/technical/README.md) covers source builds, releases, implementation and testing. It is separate from this user guide.
+[Developer documentation](docs/DEVELOPMENT.md#development) covers source builds, releases, implementation and testing. It is separate from this user guide.
 
 ## License
 
