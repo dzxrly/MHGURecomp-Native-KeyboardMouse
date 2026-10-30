@@ -86,7 +86,12 @@ off it only uploads the release archives as Actions artifacts. With it on, a sep
 them to this repository. Existing releases are not overwritten, and a version tag pointing at another commit is
 rejected. The runtime and updater are compiled here; original-project executables are not repackaged as this project.
 
-Build jobs use dedicated self-hosted x64 runners with the additional label `mhgu-release`. Windows expects MSYS2
+Build jobs use dedicated self-hosted x64 runners with the additional label `mhgu-release`.
+The workflow uses Node.js 24 actions (checkout 7.0.1, upload-artifact 7.0.2, download-artifact 8.0.2) and explicit
+Ubuntu 26.04 hosted jobs. Keep self-hosted Actions Runner current (2.338.2 at this update; Node.js 24 needs at least
+2.327.1). These action versions do not install or upgrade the runner application themselves.
+
+Windows expects MSYS2
 UCRT64 at `C:\msys64` with the packages described above; Linux expects the toolchain described below. Release builds
 need Python and Pillow; the recompiler's extra Python packages are only needed when preparing a game library separately.
 This workflow does not register a runner or install a service. It has no pull-request
