@@ -43,13 +43,34 @@ static inline void mouse_look_velocity(MouseLook *m, uint64_t now, uint64_t wind
 }
 
 static inline void mouse_look_stick(MouseLook *m, uint64_t now, uint64_t window, float sensitivity,
-                                  const MouseConversion *config, int *rx, int *ry) {
+                                  const MouseConversion *config, bool aiming, int *rx, int *ry) {
     float x, y;
     mouse_look_velocity(m, now, window, &x, &y);
     x *= sensitivity / config->full_stick_speed; y *= -sensitivity / config->full_stick_speed;
     float magnitude = sqrtf(x*x + y*y);
     *rx = *ry = 0;
     if (magnitude == 0 || magnitude < config->low_speed_cutoff) return;
+    if (aiming && config->aim_deadzone_compensation > 0) {
+        // The SDK exposes per-axis direction buttons (>16000) alongside the analog stick, whereas the
+        // ordinary camera responds to a round ~39% dead zone. A radial 40% floor misses those buttons.
+        // Rectangular anti-deadzone offsets only moving axes, then bounds the result to the stick circle.
+        if (magnitude > 1) x /= magnitude, y /= magnitude;
+        float floor = config->aim_deadzone_compensation;
+        if (x != 0) x = copysignf(floor + (1.0f - floor) * fabsf(x), x);
+        if (y != 0) y = copysignf(floor + (1.0f - floor) * fabsf(y), y);
+        float length = sqrtf(x*x + y*y);
+        if (length > 1) {
+            x /= length; y /= length;
+            // Circle clipping must not push the smaller moving axis back into its dead zone.
+            // At most 1/sqrt(2) can be guaranteed on both axes inside a unit circle.
+            float minimum = fminf(floor, 0.70710678f);
+            float maximum = sqrtf(1.0f - minimum * minimum);
+            if (x != 0 && fabsf(x) < minimum) x = copysignf(minimum, x), y = copysignf(maximum, y);
+            else if (y != 0 && fabsf(y) < minimum) y = copysignf(minimum, y), x = copysignf(maximum, x);
+        }
+        *rx = (int)(x * 32767.0f); *ry = (int)(y * 32767.0f);
+        return;
+    }
     // Preserve radial direction, the game's measured dead zone compensation and maximum stick speed.
     float deadzone = config->deadzone_compensation;
     float scale = (deadzone + (1.0f - deadzone) * fminf(magnitude, 1.0f)) / magnitude * 32767.0f;

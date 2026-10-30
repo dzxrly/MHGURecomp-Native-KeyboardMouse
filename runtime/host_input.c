@@ -597,8 +597,10 @@ static void mouse_update(int *rx, int *ry) {
         uint64_t mouse_now = SDL_GetTicksNS();
         if (now < test_until && dt > 0) mouse_look_add(&mouse_look, test_vx * dt, test_vy * dt, mouse_now);
         int x, y;
+        bool aiming = g_config.keyboard_layout == KEYBOARD_RANGED &&
+                      ((mouse_buttons & B(BTN_R)) || keys[SDL_SCANCODE_E]);
         mouse_look_stick(&mouse_look, mouse_now, mouse_look_window(fmaxf(cap_seconds, frame_seconds), conversion),
-                         config_live_mouse_sensitivity(), conversion, &x, &y);
+                         config_live_mouse_sensitivity(), conversion, aiming, &x, &y);
         *rx += x; *ry += y;
         mouse_dx = mouse_dy = 0;
         return;
@@ -646,8 +648,8 @@ void host_input_update(void) {
         if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
             LOG("[input] Keyboard_Mouse_Input: %s layout, F/Mouse4 sheathe, Shift ordinary run, C X+A\n", g_config.keyboard_layout == KEYBOARD_MELEE ? "Melee" : "Ranged");
             const MouseConversion *c = &g_config.mouse_conversion;
-            LOG("[input] mouse conversion: MinWindowMs=%g FullStickSpeed=%g DeadzoneCompensation=%g LowSpeedCutoff=%g FrameTimeSmoothing=%g (restart settings)\n",
-                c->min_window_ms, c->full_stick_speed, c->deadzone_compensation, c->low_speed_cutoff, c->frame_time_smoothing);
+            LOG("[input] mouse conversion: MinWindowMs=%g FullStickSpeed=%g DeadzoneCompensation=%g AimDeadzoneCompensation=%g LowSpeedCutoff=%g FrameTimeSmoothing=%g (restart settings)\n",
+                c->min_window_ms, c->full_stick_speed, c->deadzone_compensation, c->aim_deadzone_compensation, c->low_speed_cutoff, c->frame_time_smoothing);
         }
     }
     rumble_update();

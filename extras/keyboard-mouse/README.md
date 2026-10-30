@@ -84,14 +84,15 @@ Shift 对应游戏的通用奔跑，与强力冲刺分开。拔刀时，同一�
 
 ## 鼠标设置
 
-`[Mouse]` 下的 `MouseSensitivity` 控制总体灵敏度。`[MouseConversion]` 调整鼠标到右摇杆的转换，只在 `Keyboard_Mouse_Input` 模式下生效，近战和远程共用。修改这五项参数后需要重启游戏。
+`[Mouse]` 下的 `MouseSensitivity` 控制总体灵敏度。`[MouseConversion]` 调整鼠标到右摇杆的转换，只在 `Keyboard_Mouse_Input` 模式下生效。修改这些参数后需要重启游戏。
 
 ```ini
 [MouseConversion]
 MinWindowMs = 8.0
 FullStickSpeed = 1500.0
 DeadzoneCompensation = 0.40
-LowSpeedCutoff = 0.002
+AimDeadzoneCompensation = 0.50
+LowSpeedCutoff = 0.0
 FrameTimeSmoothing = 0.25
 ```
 
@@ -102,12 +103,15 @@ FrameTimeSmoothing = 0.25
 | `MinWindowMs` | 1～50 毫秒 | 鼠标位移的平均窗口下限。增大后更平滑，停手后归零也更慢。实际窗口按完整帧间隔取整，最长100毫秒。 |
 | `FullStickSpeed` | 100～100000 计数／秒 | 灵敏度为1时，达到满摇杆所需的鼠标速度。数值越大，同样鼠标速度对应的摇杆幅度越小。 |
 | `DeadzoneCompensation` | 0～0.95，满摇杆幅度的比例 | 补偿游戏的摇杆死区。增大可加强小幅移动的响应，过低时小幅移动可能无法带动镜头。 |
+| `AimDeadzoneCompensation` | 0～0.95，每个轴的满幅比例 | 远程布局按住鼠标右键或 E 时，对有移动的轴分别补偿。默认0.50使慢速水平、垂直和斜向输入都能触发右摇杆方向按键；设为0时使用普通视角的圆形补偿。 |
 | `LowSpeedCutoff` | 0～0.1，归一化速度 | 忽略低于此值的移动。减小可保留更细微的输入；设为0时关闭这道过滤。 |
 | `FrameTimeSmoothing` | 0.01～1，新帧间隔的权重 | 调整帧间隔估计。数值大时更快跟随帧率变化，小则更稳定；它不直接平滑鼠标速度。 |
 
-先用 `MouseSensitivity` 调整总体速度。需要进一步调整时，再改上表中的参数。达到满摇杆所需的实际速度为 `FullStickSpeed ÷ MouseSensitivity`；默认低速截止对应每秒3个计数。
+先用 `MouseSensitivity` 调整总体速度。需要进一步调整时，再改上表中的参数。普通视角达到满摇杆所需的实际速度为 `FullStickSpeed ÷ MouseSensitivity`。默认不额外过滤低速移动；已有配置中的 `LowSpeedCutoff = 0.002` 仍会过滤低于每秒3个计数的输入（灵敏度为1时），需要保留这些输入时将其改为0。
 
-鼠标输入仍会转换成右摇杆输入，受游戏最大转速限制，同样的鼠标移动距离不一定产生相同转角。失焦、释放鼠标、输入文字或打开 PC 菜单时，会清空之前的鼠标位移。
+普通视角使用圆形死区补偿。远程布局按住右键或 E 时使用按轴补偿，输出仍限制在摇杆圆内；仅按 Shift 奔跑不会启用瞄准补偿。该配置跟随按键，不检测武器或游戏当前是否进入瞄准；弓的操作类型和动作仍以游戏内设置为准。按轴补偿会改变低速斜向输入的比例，若感觉斜向过强，可设为0关闭。
+
+鼠标输入仍会转换成右摇杆输入，受游戏最大转速限制，同样的鼠标移动距离不一定产生相同转角。转换设置只影响鼠标输入，游戏的射击动作、后坐力及瞄准限制保持原样。失焦、释放鼠标、输入文字或打开 PC 菜单时，会清空之前的鼠标位移。
 
 各参数的默认值和范围也写在 INI 注释中。启动日志的 `[input] mouse conversion:` 行可查看实际加载的数值。
 

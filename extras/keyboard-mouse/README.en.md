@@ -84,14 +84,15 @@ Keys use physical QWERTY positions, including on other keyboard layouts.
 
 ## Mouse settings
 
-`MouseSensitivity` under `[Mouse]` sets the overall sensitivity. `[MouseConversion]` adjusts how mouse motion becomes right-stick input in `Keyboard_Mouse_Input` mode. Melee and Ranged share these settings. Restart the game after changing any of the five values.
+`MouseSensitivity` under `[Mouse]` sets the overall sensitivity. `[MouseConversion]` adjusts how mouse motion becomes right-stick input in `Keyboard_Mouse_Input` mode. Restart the game after changing these values.
 
 ```ini
 [MouseConversion]
 MinWindowMs = 8.0
 FullStickSpeed = 1500.0
 DeadzoneCompensation = 0.40
-LowSpeedCutoff = 0.002
+AimDeadzoneCompensation = 0.50
+LowSpeedCutoff = 0.0
 FrameTimeSmoothing = 0.25
 ```
 
@@ -102,12 +103,15 @@ FrameTimeSmoothing = 0.25
 | `MinWindowMs` | 1–50 milliseconds | Minimum averaging window for mouse displacement. Higher is smoother and takes longer to return to zero after stopping. The actual window spans whole frame intervals, up to 100 ms. |
 | `FullStickSpeed` | 100–100000 counts/second | Mouse speed that reaches full stick at sensitivity 1. Higher produces less stick deflection for the same mouse speed. |
 | `DeadzoneCompensation` | 0–0.95 of full stick | Compensates for the game's stick dead zone. Higher strengthens small movements; too low may leave them unable to move the camera. |
+| `AimDeadzoneCompensation` | 0–0.95 of each axis | In Ranged, holding RMB or E offsets each moving axis separately. The default 0.50 lets slow horizontal, vertical and diagonal inputs activate right-stick direction buttons. Zero uses the ordinary radial conversion. |
 | `LowSpeedCutoff` | 0–0.1 normalized speed | Ignores motion below this value. Lower allows finer input; zero disables this filter. |
 | `FrameTimeSmoothing` | 0.01–1, weight of the latest frame interval | Adjusts the frame-time estimate. Higher follows FPS changes faster; lower is more stable. It does not directly smooth mouse velocity. |
 
-Start with `MouseSensitivity` for overall speed, then use the settings above for further adjustment. Full stick is reached at `FullStickSpeed / MouseSensitivity`; the default low-speed cutoff corresponds to 3 counts per second.
+Start with `MouseSensitivity` for overall speed, then use the settings above for further adjustment. Ordinary camera movement reaches full stick at `FullStickSpeed / MouseSensitivity`. The default adds no low-speed filter. An existing `LowSpeedCutoff = 0.002` still filters inputs below 3 counts per second at sensitivity 1; change it to zero to retain those inputs.
 
-The mouse drives the right stick and remains subject to the game's maximum turn speed. Moving it the same distance does not always produce the same camera angle. Losing focus, releasing the mouse, entering text or opening a PC menu clears the motion history.
+Ordinary camera movement uses radial deadzone compensation. In Ranged, holding RMB or E selects per-axis compensation, with output still bounded to the stick circle. Shift alone does not select it. This follows the held keys without detecting the equipped weapon or actual aiming state; Bow controls still depend on the in-game control type. Per-axis compensation changes low-speed diagonal ratios; set it to zero if diagonal movement feels too strong.
+
+The mouse drives the right stick and remains subject to the game's maximum turn speed. Moving it the same distance does not always produce the same camera angle. These settings change mouse input only; the game's firing animations, recoil and aiming restrictions remain unchanged. Losing focus, releasing the mouse, entering text or opening a PC menu clears the motion history.
 
 Defaults and ranges are also listed in the INI comments. Check the `[input] mouse conversion:` line in the startup log for the values in use.
 

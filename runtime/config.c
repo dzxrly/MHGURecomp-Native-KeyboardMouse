@@ -158,8 +158,8 @@ static const char DEFAULT_INI[] =
     "MouseSensitivity = 1.0\n"
     "\n"
     "[MouseConversion]\n"
-    "; Keyboard_Mouse_Input only (both layouts). All five settings below require a restart.\n"
-    "; Defaults preserve the current conversion. [Mouse] MouseSensitivity still multiplies input speed.\n"
+    "; Keyboard_Mouse_Input only. These settings require a restart.\n"
+    "; [Mouse] MouseSensitivity multiplies input speed in both layouts.\n"
     "; Minimum averaging window in milliseconds (1-50, default 8). Larger is smoother but stops later.\n"
     "; The actual window spans whole frame intervals; slower frames can make it longer, up to 100 ms.\n"
     "MinWindowMs = 8.0\n"
@@ -172,9 +172,14 @@ static const char DEFAULT_INI[] =
     "; Raising it makes the initial response stronger; too low may leave small movements inside the game dead zone.\n"
     "DeadzoneCompensation = 0.40\n"
     "\n"
-    "; Cutoff in normalized speed = counts/s * MouseSensitivity / FullStickSpeed (0-0.1, default 0.002).\n"
-    "; Default is 3 counts/s at sensitivity 1. Zero disables this extra cutoff, not the game's dead zone.\n"
-    "LowSpeedCutoff = 0.002\n"
+    "; Ranged while holding RMB or E: minimum tilt on each moving axis (0-0.95, default 0.50).\n"
+    "; The default crosses the right-stick direction-button threshold without changing game aiming logic.\n"
+    "; Zero uses the ordinary radial conversion. Shift sprint does not select this profile.\n"
+    "AimDeadzoneCompensation = 0.50\n"
+    "\n"
+    "; Cutoff in normalized speed = counts/s * MouseSensitivity / FullStickSpeed (0-0.1, default 0).\n"
+    "; Zero preserves every nonzero movement; it does not disable the game's dead zone.\n"
+    "LowSpeedCutoff = 0.0\n"
     "\n"
     "; Weight of a newly measured frame interval (0.01-1, default 0.25).\n"
     "; Higher follows FPS changes faster. This smooths the frame-time estimate, not mouse velocity.\n"
@@ -399,6 +404,7 @@ const ConfigSetting g_settings[] = {
     {"MouseConversion", "MinWindowMs", SET_FLOAT, F(mouse_conversion.min_window_ms), 0, 1.0f, 50.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"MouseConversion", "FullStickSpeed", SET_FLOAT, F(mouse_conversion.full_stick_speed), 0, 100.0f, 100000.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"MouseConversion", "DeadzoneCompensation", SET_FLOAT, F(mouse_conversion.deadzone_compensation), 0, 0.0f, 0.95f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
+    {"MouseConversion", "AimDeadzoneCompensation", SET_FLOAT, F(mouse_conversion.aim_deadzone_compensation), 0, 0.0f, 0.95f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"MouseConversion", "LowSpeedCutoff", SET_FLOAT, F(mouse_conversion.low_speed_cutoff), 0, 0.0f, 0.1f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"MouseConversion", "FrameTimeSmoothing", SET_FLOAT, F(mouse_conversion.frame_time_smoothing), 0, 0.01f, 1.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"Multiplayer", "Port", SET_INT, F(ldn_port), 0, 1, 65535, NULL, NULL, true, ERR_NET},

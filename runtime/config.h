@@ -33,8 +33,9 @@ typedef struct {
     float deadzone_compensation; // output stick magnitude added to cross the game's dead zone, 0..0.95
     float low_speed_cutoff;    // normalized speed below which output is zero, 0..0.1
     float frame_time_smoothing; // weight of each new measured frame interval, 0.01..1
+    float aim_deadzone_compensation; // Ranged RMB/E: per-axis floor; 0 uses ordinary radial conversion
 } MouseConversion;
-#define MOUSE_CONVERSION_DEFAULTS {8.0f, 1500.0f, 0.40f, 0.002f, 0.25f}
+#define MOUSE_CONVERSION_DEFAULTS {8.0f, 1500.0f, 0.40f, 0.0f, 0.25f, 0.50f}
 
 typedef struct {
     int display_mode;         // DISPLAY_*
