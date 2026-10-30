@@ -92,7 +92,9 @@ endif
 # GAMELIB_ID: what the game code library is compiled against. A library with another id is refused at startup.
 GAMELIB_SRCS := tools/gen.py tools/lifter.py tools/neon.py tools/nso.py tools/gamelib_entry.c \
                 runtime/hle/hle_symbols.txt runtime/cpu.h runtime/vfp.h runtime/neon_rt.h runtime/gamelib.h
-GAMELIB_ID := $(shell (cat $(GAMELIB_SRCS); echo '$(GENFLAGS)') | sha256sum | cut -c1-16)
+# Upstream release libraries were built from a CRLF checkout, including the Linux library.
+# Canonicalize source newlines so fresh Linux/Windows checkouts compute those same interface IDs.
+GAMELIB_ID := $(shell (sed 's/\r$$//' $(GAMELIB_SRCS) | sed 's/$$/\r/'; echo '$(GENFLAGS)') | sha256sum | cut -c1-16)
 # SHADER_ID: the shader translator, whose output cache/programs.bin keeps (runtime/nvn/vulkan/exec.c): the cache stays
 # valid across builds until the translator changes. (Line endings ignored: the same sources hash the same everywhere.)
 SHADER_SRCS := runtime/nvn/maxwell/translate.c runtime/nvn/maxwell/shader.h
@@ -336,7 +338,7 @@ PY := $(firstword $(wildcard tools/venv/Scripts/python.exe) $(wildcard tools/ven
 # GCC runtime, VulkanMemoryAllocator, and glslang / SPIRV-Tools inside shaderc's DLL)
 LICENSE_PKGS := libstdc++ libgcc libwinpthread vulkan-memory-allocator glslang spirv-tools zlib
 bundle: $(EXE) $(if $(GEN_SRC),$(GAMELIB)) $(UPDATER)
-	@$(PY) tools/bundle_dlls.py "$$(cygpath -m "$$(dirname "$$(command -v $(CC))")")" $(B) $^ \
+	@$(PY) tools/bundle_dlls.py "$$(cygpath -m "$$(dirname "$$(command -v $(CC))")")" $(B) $^ $(if $(GEN_SRC),,$(wildcard $(GAMELIB))) \
 	    --licenses $(B)/licenses --with $(LICENSE_PKGS)
 
 data: $(B)/data/.complete

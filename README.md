@@ -8,7 +8,7 @@ A native PC port of **Monster Hunter Generations Ultimate**, targeting the Ninte
 
 This repository was forked from [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp). It is developed independently with a focus on **native keyboard and mouse input**, and periodically incorporates selected upstream changes through manual synchronization.
 
-**No game files, generated game code or keys are included.** Supply files dumped from your own copy of the game.
+**No raw game dump, generated game source or keys are included.** The repository includes the prebuilt PC prompt mod. Supply your own game dump to play.
 
 ## Features
 

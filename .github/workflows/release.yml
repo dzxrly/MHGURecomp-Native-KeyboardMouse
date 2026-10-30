@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: Dedicated self-hosted runners to use
+        description: GitHub-hosted platforms to build
         type: choice
         options: [windows, linux, both]
         default: windows
@@ -44,7 +44,7 @@ jobs:
           python3 - <<'PY'
           import json, os
           platforms = ['windows', 'linux'] if os.environ['PLATFORM'] == 'both' else [os.environ['PLATFORM']]
-          entries = [{'platform': p, 'os': 'Windows' if p == 'windows' else 'Linux'} for p in platforms]
+          entries = [{'platform': p, 'runner': 'windows-latest' if p == 'windows' else 'ubuntu-26.04'} for p in platforms]
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('matrix=' + json.dumps({'include': entries}) + '\n')
           PY
@@ -54,30 +54,45 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
-    runs-on: [self-hosted, '${{ matrix.os }}', X64, mhgu-release]
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
-      MSYSTEM: UCRT64
-      CHERE_INVOKING: '1'
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Build Windows from prepared dependencies (no ROM)
+      - name: Set up current MSYS2 UCRT64 toolchain
         if: matrix.platform == 'windows'
-        shell: C:\msys64\usr\bin\bash.exe --login -e -o pipefail {0}
+        uses: msys2/setup-msys2@v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make git diffutils
+            mingw-w64-ucrt-x86_64-clang mingw-w64-ucrt-x86_64-lld
+            mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-sdl3
+            mingw-w64-ucrt-x86_64-shaderc mingw-w64-ucrt-x86_64-nasm
+            mingw-w64-ucrt-x86_64-vulkan-headers mingw-w64-ucrt-x86_64-vulkan-loader
+            mingw-w64-ucrt-x86_64-vulkan-memory-allocator mingw-w64-ucrt-x86_64-zlib
+            mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-pillow
+      - name: Build Windows with repository prompts and verified upstream game library
+        if: matrix.platform == 'windows'
+        shell: msys2 {0}
         run: |
-          test -n "${MHGU_RELEASE_INPUTS:-}" || { echo 'Set MHGU_RELEASE_INPUTS on this dedicated runner.'; exit 1; }
-          python3 tools/release.py --inputs "$MHGU_RELEASE_INPUTS" --version "$VERSION"
-      - name: Build Linux from prepared dependencies (no ROM)
+          python3 tools/release.py --version "$VERSION"
+      - name: Build Linux in current Arch toolchain (no ROM)
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${MHGU_RELEASE_INPUTS:-}" || { echo 'Set MHGU_RELEASE_INPUTS on this dedicated runner.'; exit 1; }
-          python3 tools/release.py --inputs "$MHGU_RELEASE_INPUTS" --version "$VERSION"
+          docker run --rm -e VERSION -v "$PWD:/work" -w /work archlinux:latest bash -e -c '
+            pacman -Syu --noconfirm --needed base-devel git clang lld python python-pillow \
+              sdl3 vulkan-headers vulkan-icd-loader shaderc nasm
+            git config --global --add safe.directory /work
+            python tools/release.py --version "$VERSION"
+          '
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-${{ matrix.platform }}-${{ needs.prepare.outputs.version }}

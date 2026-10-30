@@ -1,4 +1,5 @@
-# Nothing from the game may be committed: no game files, no generated code, no extracted data.
+# Raw game files, generated game code and extracted data stay excluded.
+# The explicitly requested prebuilt PC prompt resources are the sole exception below.
 /generated/
 /build/
 /obj/
@@ -16,6 +17,7 @@ __pycache__/
 *.exe
 *.dll
 *.arc
+!/extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto/romfs/**/*.arc
 *.keys
 *.rar
 *.zip

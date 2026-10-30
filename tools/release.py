@@ -4,11 +4,11 @@ import argparse
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 
 from dist import prompt_files
+from fetch_gamelib import fetch
 
 
 def run(*args, env=None):
@@ -17,7 +17,6 @@ def run(*args, env=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--inputs", required=True, type=Path)
     parser.add_argument(
         "--version", default=Path("UPSTREAM_VERSION").read_text().strip()
     )
@@ -33,22 +32,20 @@ def main():
         )
     if args.jobs < 1:
         parser.error("--jobs must be positive")
-    inputs = args.inputs.resolve()
-    if (inputs / "UPSTREAM_VERSION").read_text().strip() != args.version:
-        parser.error("Prepared dependencies belong to another upstream version")
     platform = "windows" if os.name == "nt" else "linux"
     library = "mhgugame.dll" if os.name == "nt" else "mhgugame.so"
-    source = inputs / platform / library
-    if not source.is_file():
-        parser.error(f"Prepared game library is missing: {source}")
-    prompt_mod = inputs / "Keyboard_Mouse_Input_Auto"
+    prompt_mod = Path(
+        "extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto"
+    ).resolve()
     prompt_files(prompt_mod)
     if any(Path("generated").glob("*/*.c")):
         parser.error(
             "Release builds use prepared libraries; use a clean checkout without generated game code"
         )
-    Path("build").mkdir(exist_ok=True)
-    shutil.copyfile(source, Path("build") / library)
+    try:
+        fetch(args.version, platform, Path("build"))
+    except (OSError, ValueError, KeyError) as error:
+        parser.exit(1, f"Game library download failed: {error}\n")
     # An explicitly absent game path prevents make's optional data target from copying a ROM.
     common = [
         args.make,

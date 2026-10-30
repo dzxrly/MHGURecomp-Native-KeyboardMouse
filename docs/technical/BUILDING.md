@@ -2,8 +2,8 @@
 
 [English](../../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md)
 
-The build recompiles the game code from your own copy of the game. Nothing in this repository contains game code or
-data, and the build never uploads anything.
+Full source builds can recompile game code from your own dump. Release builds use a verified prebuilt code library
+and the checked-in Auto prompt resources; they do not need the ROM. Raw game dumps and keys remain excluded.
 
 ### 1. Tools (Windows)
 
@@ -75,50 +75,33 @@ distribution package would; that build then only runs with that FFmpeg version.
 
 ### Making a release
 
-The independent `Independent release` workflow in `.github/workflows/release.yml` builds this repository's runtime
-and updater and packages prepared dependencies. It does **not** read exefs/romfs, run `make gen`, generate prompts
-from a ROM, or upload ROM files. `UPSTREAM_VERSION` pins the reviewed upstream version (currently `0.11.3`);
-the workflow verifies that upstream tag exists and uses the same version for binaries, archive names and release.
-An upstream version must be merged and reviewed before changing that file.
+The independent `Independent release` workflow builds this repository's runtime and updater on GitHub-hosted
+Windows and Ubuntu runners. No self-hosted runner, local directory, ROM upload or repository secret is required.
+Windows installs the current MSYS2 UCRT64 toolchain; Linux builds in the current Arch Linux container, matching
+its release archive's target. All action dependencies use their current Node.js 24 releases.
 
-The workflow is manual (`workflow_dispatch`), with Windows/Linux/both and a `publish` checkbox. With `publish`
-off it only uploads the release archives as Actions artifacts. With it on, a separate GitHub-hosted job publishes
-them to this repository. Existing releases are not overwritten, and a version tag pointing at another commit is
-rejected. The runtime and updater are compiled here; original-project executables are not repackaged as this project.
+`UPSTREAM_VERSION` pins the reviewed upstream version (currently `0.11.3`). The workflow verifies that tag exists
+and uses the same version for binaries, archives and the optional release. Merge and review an upstream version
+before changing this file. Manually select Windows/Linux/both and enable `publish` to publish; otherwise the
+archives remain Actions artifacts. Existing releases and tags pointing at another commit are not overwritten.
 
-Build jobs use dedicated self-hosted x64 runners with the additional label `mhgu-release`.
-The workflow uses Node.js 24 actions (checkout 7.0.1, upload-artifact 7.0.2, download-artifact 8.0.2) and explicit
-Ubuntu 26.04 hosted jobs. Keep self-hosted Actions Runner current (2.338.2 at this update; Node.js 24 needs at least
-2.327.1). These action versions do not install or upgrade the runner application themselves.
+The stable Auto mod is checked into `extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto/romfs/` and is packed
+directly from that directory. Rebuild it locally with `tools/build_keyboard_mouse_assets.py` only when the icons,
+text or pack format change. Only these explicitly requested prompt resources are an exception to the raw-game-data
+exclusions; no exefs, base romfs, save or cache belongs there. `.gitattributes` preserves their bytes on checkout.
 
-Windows expects MSYS2
-UCRT64 at `C:\msys64` with the packages described above; Linux expects the toolchain described below. Release builds
-need Python and Pillow; the recompiler's extra Python packages are only needed when preparing a game library separately.
-This workflow does not register a runner or install a service. It has no pull-request
-trigger. Configure the runner process environment `MHGU_RELEASE_INPUTS` to a versioned dependency directory:
+`tools/fetch_gamelib.py` obtains the selected platform's game code library from the published
+[morerokk/MHGURecomp release](https://github.com/morerokk/MHGURecomp/releases), verifies the archive's size and
+GitHub-provided SHA-256, and extracts only `mhgugame.dll` or `.so`. Original-project executables are not packaged.
+The rebuilt runtime then checks the library's ABI and ID through `--check-gamelib`, without opening a ROM, window
+or save. Interface IDs canonicalize source line endings to match upstream's existing CRLF-built libraries on
+both hosts. A mismatch fails the release; the expected ID is never replaced with a value read from the library.
 
-```text
-release-inputs/0.11.3/
-  UPSTREAM_VERSION                 # contains 0.11.3
-  windows/mhgugame.dll              # prepared for the current runtime interface
-  linux/mhgugame.so                 # needed only for a Linux build
-  Keyboard_Mouse_Input_Auto/
-    romfs/keyboard_mouse_input.flag
-    romfs/keyboard_mouse_prompts.bin
-    romfs/nativeNX/...
-```
-
-These dependencies are prepared once outside the release pipeline. `make gen` and a game-library build need the
-owner's local dump; `tools/build_keyboard_mouse_assets.py` needs the owner's unmodified romfs. Their outputs are
-build inputs, not ROM directories. Keep generated Nintendo resources out of Git. When generator/interface sources
-change, rebuild the library separately: `--check-gamelib` verifies its ABI and ID after the runtime build, without
-opening a ROM, window or save. A mismatch fails the release instead of changing the expected ID to fit the library.
-The Auto mod is explicitly selected for packaging; arbitrary mods from the build directory are excluded.
-
-The same ROM-free build entry point can be run in the repository root:
+Release jobs never run `make gen`, read exefs/romfs or regenerate the mod. A developer with the normal build tools
+can run the same entry point in the repository root:
 
 ```bash
-python tools/release.py --inputs /path/to/release-inputs/0.11.3
+python tools/release.py
 ```
 
 `make dist VERSION=<the release's tag>` builds everything with that version and packs it for GitHub:
