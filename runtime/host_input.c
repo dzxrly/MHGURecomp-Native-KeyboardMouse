@@ -6,7 +6,7 @@
 //   stick click. While the game shows a text entry (names, chat) the keyboard types instead
 //   (runtime/textinput.c). F11 switches windowed <-> full screen, F12 saves a screenshot, Shift+F12 the next 8
 //   frames (exact rendered pixels, run\shots\), F10 dumps every render pass of the next 2 frames (debug, slow), F9 toggles how colour clears are done (debug).
-// InputMode=Keyboard_Mouse_Input: KeyboardLayout=Melee has LMB=X, RMB=A, R/Mouse5=R and wheel=L+Y/A (items).
+// InputMode=Keyboard_Mouse_Input: the equipped weapon selects the layout. Melee has LMB=X, RMB=A, R/Mouse5=R and wheel=L+Y/A (items).
 //   Ranged has LMB=A, RMB=R, R=X and wheel=L+X/B (ammo). Both: F/Mouse4=Y, C=X+A, Shift=R, Esc=Plus,
 //   Tab/MMB=ZL, 1/2/3=Up/Right/Down. Shift is ordinary run; F2 releases the captured mouse.
 // Gamepad (SDL): face buttons by position as on a Switch controller (the bottom one is B), or by their labels
@@ -33,6 +33,7 @@
 #include "textinput.h"
 #include "keyboard_mouse_input.h"
 #include "mouse_look.h"
+#include "native_mouse.h"
 
 #define B(x) (1ull << (x))
 
@@ -64,6 +65,7 @@ static bool mouse_captured;   // relative mode on now (grabbed, and no Forge men
 static bool mouse_no_capture; // relative mode refused (WSLg, some Wayland compositors): clicks are buttons, no mouse look
 static float mouse_dx, mouse_dy;  // counts moved since the last update
 static uint64_t mouse_buttons;
+static int mouse_bound[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 static KbmWheel ammo_wheel;
 static MouseLook mouse_look;
 // (tests: the control file's "mousemove <x> <y> <ms>", a mouse moving at that many counts a second, captured or not)
@@ -165,6 +167,21 @@ static void control_poll(void) {
             done = ftell(f);
             char cmd[32] = "", arg[256] = "", arg2[200] = "";
             if (sscanf(line, "%31s %255s %199s", cmd, arg, arg2) < 1) continue;
+            if (!strcmp(cmd, "stopinput")) {
+                nscript = 0; test_until = 0;
+                memset(keys, 0, sizeof keys); mouse_buttons = 0;
+                for (unsigned i = 0; i < 8; i++) mouse_bound[i] = -1;
+                kbm_wheel_reset(&ammo_wheel); mouse_look_reset(&mouse_look); native_mouse_reset();
+                LOG("[control] all scripted input stopped\n");
+                continue;
+            }
+            if (!strcmp(cmd, "sdlmouse")) {  // sdlmouse <SDL button number> <down|up>
+                SDL_Event e = {0};
+                e.button.type = !strcmp(arg2, "down") ? SDL_EVENT_MOUSE_BUTTON_DOWN : SDL_EVENT_MOUSE_BUTTON_UP;
+                e.button.button = (Uint8)atoi(arg); e.button.down = !strcmp(arg2, "down");
+                SDL_PushEvent(&e);
+                continue;
+            }
             if (!strcmp(cmd, "msaa")) { void vk_set_msaa(uint32_t); vk_set_msaa((uint32_t)atoi(arg)); continue; }
             if (!strcmp(cmd, "gpuprof")) { extern volatile int g_gpuprof_request; g_gpuprof_request = 1; continue; }
             if (!strcmp(cmd, "hudtrace")) { g_hudtrace_request = 1; continue; }
@@ -372,6 +389,10 @@ static void control_poll(void) {
                 }
                 continue;
             }
+            if (!strcmp(cmd, "nativedelta")) {  // exact raw counts for direct-angle diagnostics
+                native_mouse_add(atof(arg), atof(arg2));
+                continue;
+            }
             if (!strcmp(cmd, "mousemove")) {  // mousemove <x> <y> <ms>: mouse look at that speed (counts a second)
                 char arg3[16] = "";
                 sscanf(line, "%*s %*s %*s %15s", arg3);
@@ -485,7 +506,7 @@ void host_input_event(const SDL_Event *e) {
                 if (mouse_grab) LOG("[input] mouse released\n");
                 mouse_grab = false;
                 kbm_wheel_reset(&ammo_wheel);
-                mouse_look_reset(&mouse_look);
+                mouse_look_reset(&mouse_look); native_mouse_reset();
             } else if (e->key.scancode == SDL_SCANCODE_F12 && !(e->key.mod & SDL_KMOD_SHIFT))
                 snprintf(g_shot_request, sizeof g_shot_request, "shots/shot_%llu_%d.png", (unsigned long long)t, nshot++);
             else if (e->key.scancode == SDL_SCANCODE_F11) {
@@ -516,21 +537,26 @@ void host_input_event(const SDL_Event *e) {
             if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
                 uint64_t now = SDL_GetTicksNS();
                 uint64_t time = e->motion.timestamp && e->motion.timestamp <= now ? e->motion.timestamp : now;
-                mouse_look_add(&mouse_look, e->motion.xrel, e->motion.yrel, time);
+                if (native_mouse_enabled() && !native_mouse_uses_stick()) native_mouse_add(e->motion.xrel, e->motion.yrel);
+                else mouse_look_add(&mouse_look, e->motion.xrel, e->motion.yrel, time);
             }
         }
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN: case SDL_EVENT_MOUSE_BUTTON_UP: {
-        int btn = g_config.input_mode == INPUT_KEYBOARD_MOUSE ? kbm_mouse(e->button.button, g_config.keyboard_layout) :
+        int btn = g_config.input_mode == INPUT_KEYBOARD_MOUSE ? kbm_mouse(e->button.button, native_mouse_layout()) :
                   e->button.button == SDL_BUTTON_LEFT ? BTN_X : e->button.button == SDL_BUTTON_RIGHT ? BTN_A : -1;
+        if (e->button.down) btn = native_mouse_button(e->button.button, btn);
+        else if (e->button.button < 8 && mouse_bound[e->button.button] >= 0) btn = mouse_bound[e->button.button];
         if (btn < 0) break;
         if (!e->button.down) {
             mouse_buttons &= ~B(btn);
+            if (e->button.button < 8) mouse_bound[e->button.button] = -1;
         } else if (!mouse_captured && !mouse_no_capture) {  // (the click that captures the mouse is not a button press)
             if (!mouse_grab) LOG("[input] capturing the mouse\n");
             mouse_grab = true;
         } else {
             mouse_buttons |= B(btn);
+            if (e->button.button < 8) mouse_bound[e->button.button] = btn;
         }
         break;
     }
@@ -542,7 +568,7 @@ void host_input_event(const SDL_Event *e) {
         memset(keys, 0, sizeof keys);
         mouse_buttons = 0, mouse_grab = false;
         kbm_wheel_reset(&ammo_wheel);
-        mouse_look_reset(&mouse_look);
+        mouse_look_reset(&mouse_look); native_mouse_reset();
         config_window_focus(false);  // ([Audio] MuteInBackground)
         if (config_editable().mute_in_background) LOG("[input] window in the background: sound muted\n");
         break;
@@ -573,7 +599,7 @@ static void mouse_update(int *rx, int *ry) {
             mouse_grab = false, mouse_no_capture = true;
         }
         mouse_dx = mouse_dy = 0;
-        mouse_look_reset(&mouse_look);
+        mouse_look_reset(&mouse_look); native_mouse_reset();
     }
     static uint64_t last;
     static float vx, vy;  // the speed, smoothed: counts a second
@@ -581,6 +607,17 @@ static void mouse_update(int *rx, int *ry) {
     float dt = last ? (float)(now - last) * 1e-9f : 0.0f;
     last = now;
     if (dt > 0.1f) dt = 0.1f;
+    static bool previous_stick;
+    bool use_stick = native_mouse_uses_stick();
+    if (native_mouse_enabled() && use_stick != previous_stick) {
+        previous_stick = use_stick;
+        mouse_look_reset(&mouse_look); native_mouse_reset();
+    }
+    if (g_config.input_mode == INPUT_KEYBOARD_MOUSE && native_mouse_enabled() && !use_stick) {
+        if (now < test_until && dt > 0) native_mouse_add(test_vx * dt, test_vy * dt);
+        mouse_dx = mouse_dy = 0;
+        return;
+    }
     if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
         const MouseConversion *conversion = &g_config.mouse_conversion;
         static uint64_t present, presented_at;
@@ -597,8 +634,8 @@ static void mouse_update(int *rx, int *ry) {
         uint64_t mouse_now = SDL_GetTicksNS();
         if (now < test_until && dt > 0) mouse_look_add(&mouse_look, test_vx * dt, test_vy * dt, mouse_now);
         int x, y;
-        bool aiming = g_config.keyboard_layout == KEYBOARD_RANGED &&
-                      ((mouse_buttons & B(BTN_R)) || keys[SDL_SCANCODE_E]);
+        bool aiming = native_mouse_enabled() ? native_mouse_stick_aiming() :
+                      native_mouse_layout() == KEYBOARD_RANGED && ((mouse_buttons & B(BTN_R)) || keys[SDL_SCANCODE_E]);
         mouse_look_stick(&mouse_look, mouse_now, mouse_look_window(fmaxf(cap_seconds, frame_seconds), conversion),
                          config_live_mouse_sensitivity(), conversion, aiming, &x, &y);
         *rx += x; *ry += y;
@@ -642,11 +679,28 @@ static void rumble_update(void) {
     sent = v, sent_ns = now;
 }
 
+static int update_keyboard_layout(void) {
+    static int previous = -1;
+    int layout = native_mouse_layout();
+    if (g_config.input_mode != INPUT_KEYBOARD_MOUSE || layout == previous) return layout;
+    if (previous >= 0) {
+        memset(keys, 0, sizeof keys);
+        mouse_buttons = 0;
+        for (unsigned i = 0; i < 8; i++) mouse_bound[i] = -1;
+        kbm_wheel_reset(&ammo_wheel);
+        mouse_look_reset(&mouse_look); native_mouse_reset();
+        LOG("[input] switched to %s bindings; held input released\n", layout == KEYBOARD_MELEE ? "Melee" : "Ranged");
+    }
+    previous = layout;
+    return layout;
+}
+
 void host_input_update(void) {
+    int layout = update_keyboard_layout();
     if (nscript < 0) {
         script_parse();
         if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
-            LOG("[input] Keyboard_Mouse_Input: %s layout, F/Mouse4 sheathe, Shift ordinary run, C X+A\n", g_config.keyboard_layout == KEYBOARD_MELEE ? "Melee" : "Ranged");
+            LOG("[input] Keyboard_Mouse_Input: automatic weapon layout, F/Mouse4 sheathe, Shift ordinary run, C X+A\n");
             const MouseConversion *c = &g_config.mouse_conversion;
             LOG("[input] mouse conversion: MinWindowMs=%g FullStickSpeed=%g DeadzoneCompensation=%g AimDeadzoneCompensation=%g LowSpeedCutoff=%g FrameTimeSmoothing=%g (restart settings)\n",
                 c->min_window_ms, c->full_stick_speed, c->deadzone_compensation, c->aim_deadzone_compensation, c->low_speed_cutoff, c->frame_time_smoothing);
@@ -664,13 +718,13 @@ void host_input_update(void) {
         memset(keys, 0, sizeof keys);  // (keys held when the entry opened are typing now, or released)
         mouse_buttons = 0;
         kbm_wheel_reset(&ammo_wheel);
-        mouse_look_reset(&mouse_look);
+        mouse_look_reset(&mouse_look); native_mouse_reset();
     }
 
     if (g_config.input_mode == INPUT_KEYBOARD_MOUSE) {
         for (int i = 0; i < SDL_SCANCODE_COUNT; i++)
-            if (keys[i]) b |= kbm_key((SDL_Scancode)i, g_config.keyboard_layout);
-        b |= kbm_wheel_buttons(&ammo_wheel, plat_now_ns(), g_config.keyboard_layout);
+            if (keys[i]) b |= kbm_key((SDL_Scancode)i, layout);
+        b |= kbm_wheel_buttons(&ammo_wheel, plat_now_ns(), layout);
     } else {
         for (unsigned i = 0; i < sizeof key_buttons / sizeof *key_buttons; i++)
             if (keys[key_buttons[i].sc]) b |= B(key_buttons[i].btn);
@@ -782,7 +836,7 @@ void host_input_update(void) {
         memset(keys, 0, sizeof keys);  // (keys held as it opened went to the menu: nothing stays pressed)
         mouse_buttons = 0;
         kbm_wheel_reset(&ammo_wheel);
-        mouse_look_reset(&mouse_look);
+        mouse_look_reset(&mouse_look); native_mouse_reset();
     }
     if (menu) {  // Forge's menu has the controller (as in Forge: A activates, B cancels, stick and d-pad move)
         OverlayPad p = {b & B(BTN_A), b & B(BTN_B), b & B(BTN_X), b & B(BTN_Y), b & B(BTN_UP), b & B(BTN_DOWN),

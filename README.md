@@ -130,12 +130,15 @@ Click in the game window to capture the mouse for the camera; Escape lets it go 
 window). `MouseSensitivity` in the ini's `[Mouse]` section sets its speed; the game's own camera options (speed,
 inverted axes) apply to it too.
 
-The table above applies to `InputMode = Original`, the default. To use this fork's keyboard layouts, set
-`InputMode = Keyboard_Mouse_Input` under `[Controls]` and choose `KeyboardLayout = Melee` or `Ranged`, then restart.
+The table above applies to `InputMode = Original`, the default. For this fork's native keyboard/mouse input, set
+`InputMode = Keyboard_Mouse_Input` under `[Controls]` and restart once. The equipped weapon then selects the preset
+automatically: Bowguns/Bow use Ranged; other Hunter weapons and Prowler use Melee. One Auto prompt pack switches the
+in-game text and icons with it. No separate `KeyboardLayout` setting or restart is needed when changing weapons.
 Melee uses left/right click for attacks and R for guard; Ranged uses left click to fire, right click to aim and R
-to reload. Both use Shift to sprint, Space to evade or go back, Esc for the game menu and F2 to release the mouse.
-The [keyboard and mouse guide](extras/keyboard-mouse/README.en.md) covers the full bindings, prompt installation
-and `[MouseConversion]` settings.
+to reload. Bow follows its selected in-game control type. Both presets use Shift to sprint, Space to evade or go
+back, Esc for the game menu and F2 to release the mouse. In-game Camera/Reticle Speed options directly adjust mouse
+sensitivity. The [keyboard and mouse guide](extras/keyboard-mouse/README.en.md) covers all bindings, Auto prompt
+installation, Bow/Prowler controls and compatibility cameras.
 
 When the game asks for text (names, chat), the keyboard types: Enter confirms, Escape cancels, Ctrl+V pastes.
 

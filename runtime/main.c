@@ -6,6 +6,8 @@
 #include <sys/stat.h>
 
 #include "camera_jitter.h"
+#include "native_mouse.h"
+#include "hle/keyboard_mouse_prompts.h"
 #include "gamelib.h"
 #include "hle.h"
 #include "kernel.h"
@@ -56,6 +58,8 @@ static void boot(const char *root) {
     movelog_init();  // (debug, MHGU_LOG_MOVES: runtime/hle/movelog.c)
     quickhunt_init();  // (debug, MHGU_QUICKHUNT: runtime/hle/quickhunt.c)
     camjit_init();  // (FSR: the main camera and its jitter: runtime/hle/camera_jitter.c)
+    native_mouse_init();  // Switch GU keyboard/mouse angles and automatic weapon bindings
+    keyboard_mouse_prompts_init();
     emtrace_init();  // (debug, MHGU_EMTRACE: runtime/hle/emtrace.c)
     kotrace_init();  // (debug, MHGU_KOTRACE: runtime/hle/kotrace.c)
     cheats_init();  // (cheat codes from cheats/: runtime/cheats.c)

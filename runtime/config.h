@@ -12,7 +12,7 @@ enum { DISPLAY_WINDOWED, DISPLAY_FULLSCREEN, DISPLAY_BORDERLESS };
 enum { FACE_POSITION, FACE_LABEL };
 enum { COMBO_LENIENT, COMBO_STRICT };  // [Controls] ComboInputWindow (runtime/hle/combowin.c)
 enum { INPUT_ORIGINAL, INPUT_KEYBOARD_MOUSE };  // [Controls] InputMode (restart)
-enum { KEYBOARD_MELEE, KEYBOARD_RANGED };        // [Controls] KeyboardLayout (restart)
+enum { KEYBOARD_MELEE, KEYBOARD_RANGED };        // automatically selected from the equipped weapon
 enum { MENU_CONFIRM_ORIGINAL, MENU_CONFIRM_SOUTH, MENU_CONFIRM_EAST };
 
 // [Monster HP]: factors on the HP multiplier of Hub-type quests' large monsters
@@ -76,7 +76,6 @@ typedef struct {
     int mute_in_background;   // [Audio] MuteInBackground: no sound while the window is not focused (config_audio_gain)
     int combo_window;         // [Controls] ComboInputWindow: COMBO_*, how long a press waits for a second button
     int input_mode;           // INPUT_*: original controls/prompts or Keyboard_Mouse_Input
-    int keyboard_layout;      // KEYBOARD_*: melee or ranged bindings and matching prompt layer
     MouseConversion mouse_conversion;
     char ldn_server[256];     // [Multiplayer] Server: hub server for internet hubs (host[:port]); "" the default, "Off" none
     char ldn_key[64];         // [Multiplayer] Key: matchmaking key, hubs seen only by players with the same; "" public

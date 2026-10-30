@@ -11,8 +11,8 @@
 // Mods load in name order; a file in a later mod wins. mods/load_order.txt (one folder name per line, '#'
 // comments) picks and orders them instead; a folder whose name starts with '_' is skipped. A list the Mods tab of the
 // settings menu wrote also loads a folder it doesn't mention (a mod added since), after the listed ones.
-// A dedicated PC prompt mod places keyboard_mouse_input.flag (Melee or Ranged) inside its romfs/ root. Its layer
-// only loads for InputMode=Keyboard_Mouse_Input and the matching KeyboardLayout. Both settings need a restart.
+// A dedicated PC prompt mod places keyboard_mouse_input.flag (Auto) inside its romfs/ root. Its text and atlas
+// variants follow the current weapon's keyboard layout at runtime. Original input skips the entire layer.
 #pragma once
 #include <stdint.h>
 
@@ -22,6 +22,7 @@ struct Module;
 
 void mods_make_dir(void);  // creates an empty mods/ (standalone: shows players where mods go)
 int mods_romfs_layers(const char **out, int max);  // host folders to layer over the RomFS, in order
+const char *mods_keyboard_mouse_prompt_pack(void);  // selected Auto layer's private atlas pack, or NULL
 void mods_patch_module(struct Module *m, const uint8_t build_id[32]);  // exefs patches for a loaded module
 void forge_init(void);  // Forge plugins from the mods' RomFS (runtime/forge.c): before the game starts
 void hpscale_init(void);  // large monster HP by the number of hunters (runtime/hle/hpscale.c)

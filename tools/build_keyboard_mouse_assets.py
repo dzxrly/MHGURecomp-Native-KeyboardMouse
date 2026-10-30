@@ -1,4 +1,4 @@
-"""Build a Melee or Ranged Keyboard_Mouse_Input prompt mod from unmodified MHGU files.
+"""Build automatic Keyboard_Mouse_Input prompts from unmodified MHGU files.
 
 Only changed ARC entries are recompressed; all other compressed payloads remain exact.
 The texture encoder replaces only the BC3 blocks belonging to input glyphs.
@@ -59,7 +59,7 @@ WINDOW_INPUTS = [
 HUD_INPUTS = [
     (i * 32, 408, 32, 32, sprite) for i, sprite in enumerate([2, 1, 0, 8, 16, 17])
 ]
-HUD_INPUTS.append((184, 0, 64, 64, 28))
+# (184, 0, 64, 64) is the clock dial background, not a directional-input icon.
 # This second controller atlas is used by the item HUD, target selector and other reusable UI widgets.
 PANEL_INPUTS = [
     (4 + i * 32, 244, 32, 32, sprite)
@@ -75,6 +75,16 @@ UI_INPUTS = {
     "HD_lobby00_BM_NOMIP": LOBBY_INPUTS,
 }
 TEXTURES = {*UI_INPUTS, "HD_title00_BM_NOMIP", "button_festa_00_ID"}
+TEXTURE_KINDS = (
+    "button_festa_00_ID",
+    "HD_window_BM_MQ_NOMIP",
+    "HD_hud00_BM_NOMIP",
+    "HD_custom_pnl2_BM_NOMIP",
+    "HD_lobby00_BM_NOMIP",
+    "HD_title00_BM_NOMIP",
+)
+AUTO_TEXT_MARKER = "MHGU_PC_PROMPTS_V1"
+PROMPT_PACK_MAGIC = b"MHGUPC01"
 
 
 def gmd_sections(data):
@@ -93,6 +103,29 @@ def gmd_sections(data):
 
 
 def patch_gmd(data, filename, layout="Ranged"):
+    if layout == "Auto":
+        start, original = gmd_sections(data)
+        ranged, _ = patch_gmd(data, filename, "Ranged")
+        melee, _ = patch_gmd(data, filename, "Melee")
+        _, ranged_text = gmd_sections(ranged)
+        _, melee_text = gmd_sections(melee)
+        count = sum(
+            a != b or a != c for a, b, c in zip(original, ranged_text, melee_text)
+        )
+        if not count:
+            return data, 0
+        # The game reads text_size bytes but builds only count pointers. Keep the original
+        # count and label indices: extra strings are private to the runtime getter hook.
+        body = b"".join(
+            s.encode("utf-8") + b"\0"
+            for s in ranged_text + [AUTO_TEXT_MARKER] + melee_text
+        )
+        header = bytearray(data[:start])
+        struct.pack_into("<I", header, 32, len(body))
+        result = bytes(header) + body
+        if auto_gmd_sections(result) != (ranged_text, melee_text):
+            raise AssertionError("Automatic GMD serialization changed text order")
+        return result, count
     language = filename.rsplit("_", 1)[-1].removesuffix(".gmd")
     if language not in LANGUAGES:
         raise ValueError(f"Unknown text language: {filename}")
@@ -123,6 +156,63 @@ def patch_gmd(data, filename, layout="Ranged"):
     if any(TAGS.findall(a) != TAGS.findall(b) for a, b in zip(sections, verified)):
         raise AssertionError("GMD serialization changed control tags")
     return result, count
+
+
+def auto_gmd_sections(data):
+    """Validate the private dual text pool without changing the game's entry count."""
+    labels, count, label_size, text_size, name_size = struct.unpack_from(
+        "<5I", data, 20
+    )
+    start = 41 + name_size + labels * 20 + (1024 if labels else 0) + label_size
+    if data[:8] != b"GMD\0\x02\x03\x01\0" or start + text_size != len(data):
+        raise ValueError("Invalid automatic GMD header")
+    parts = data[start:].split(b"\0")
+    if (
+        len(parts) != 2 * count + 2
+        or parts[-1]
+        or parts[count] != AUTO_TEXT_MARKER.encode()
+    ):
+        raise ValueError("Invalid automatic GMD text pools")
+    ranged = [s.decode("utf-8") for s in parts[:count]]
+    melee = [s.decode("utf-8") for s in parts[count + 1 : -1]]
+    if any(TAGS.findall(a) != TAGS.findall(b) for a, b in zip(ranged, melee)):
+        raise ValueError("Automatic GMD profiles have different control tags")
+    return ranged, melee
+
+
+def texture_prompt_record(stem, ranged, melee):
+    """One exact baseline plus changed BC3 blocks, in the TEX's packaged layout."""
+    if ranged[:24] != melee[:24] or len(ranged) != len(melee):
+        raise ValueError("Prompt texture profiles have different storage layouts")
+    dimensions = struct.unpack_from("<I", ranged, 8)[0]
+    width, height = (dimensions >> 6) & 8191, (dimensions >> 19) & 8191
+    if (
+        stem not in TEXTURE_KINDS
+        or ranged[13] != 23
+        or len(ranged) != 24 + width * height
+    ):
+        raise ValueError("Unexpected automatic PC prompt texture")
+    patches = [
+        (offset, melee[24 + offset : 40 + offset])
+        for offset in range(0, len(ranged) - 24, 16)
+        if ranged[24 + offset : 40 + offset] != melee[24 + offset : 40 + offset]
+    ]
+    if not patches:
+        return b""
+    record = (
+        struct.pack(
+            "<5I",
+            TEXTURE_KINDS.index(stem),
+            width,
+            height,
+            len(ranged) - 24,
+            len(patches),
+        )
+        + ranged[24:]
+    )
+    return record + b"".join(
+        struct.pack("<I", offset) + block for offset, block in patches
+    )
 
 
 def tex_runs(width=256, height=256):
@@ -309,22 +399,39 @@ class TexturePatcher:
         self.output = output
         self.layout = layout
         self.cache = {}
+        self.prompt_records = {}
 
     def patch(self, name, before):
         stem = name.rsplit("\\", 1)[-1]
         key = (stem, before)
         if key not in self.cache:
             preview = self.output / f"{stem}-{len(self.cache)}.png"
-            if stem == "button_festa_00_ID":
-                after = patch_texture(before, preview, self.layout)
-            elif stem == "HD_title00_BM_NOMIP":
-                after = patch_title_texture(
-                    before, preview, name.split("\\", 1)[0], self.layout
-                )
+
+            def one(layout, image):
+                if stem == "button_festa_00_ID":
+                    return patch_texture(before, image, layout)
+                if stem == "HD_title00_BM_NOMIP":
+                    return patch_title_texture(
+                        before, image, name.split("\\", 1)[0], layout
+                    )
+                return patch_ui_texture(before, UI_INPUTS[stem], image, layout)
+
+            if self.layout == "Auto":
+                after = one("Ranged", preview)
+                melee = one("Melee", preview.with_stem(preview.stem + "-melee"))
+                record = texture_prompt_record(stem, after, melee)
+                if record:
+                    self.prompt_records.setdefault(record, None)
             else:
-                after = patch_ui_texture(before, UI_INPUTS[stem], preview, self.layout)
+                after = one(self.layout, preview)
             self.cache[key] = after
         return self.cache[key]
+
+    def write_prompt_pack(self, path):
+        records = list(self.prompt_records)
+        path.write_bytes(
+            PROMPT_PACK_MAGIC + struct.pack("<I", len(records)) + b"".join(records)
+        )
 
 
 def patch_arc(path, replacements, destination, variants, textures, relative):
@@ -398,7 +505,7 @@ def patch_arc(path, replacements, destination, variants, textures, relative):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("romfs", type=Path, help="Unmodified extracted game romfs")
-    parser.add_argument("--layout", choices=("Melee", "Ranged"), default="Ranged")
+    parser.add_argument("--layout", choices=("Auto", "Melee", "Ranged"), default="Auto")
     parser.add_argument(
         "output", type=Path, help="New mod directory (not an original game directory)"
     )
@@ -481,7 +588,8 @@ def main():
     manifest = {
         "input_mode": "Keyboard_Mouse_Input",
         "layout": args.layout,
-        "recomp_version": "0.10.8",
+        "prompt_format": "MHGUPC01" if args.layout == "Auto" else "single-profile",
+        "automatic_texture_variants": len(textures.prompt_records),
         "languages": languages,
         "text_files": len(counts),
         "text_entries": sum(counts.values()),
@@ -501,6 +609,8 @@ def main():
         args.layout + "\n",
         encoding="utf-8",
     )
+    if args.layout == "Auto":
+        textures.write_prompt_pack(output.parent / "keyboard_mouse_prompts.bin")
     print(
         json.dumps(
             {

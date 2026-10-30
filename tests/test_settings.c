@@ -36,11 +36,8 @@ int main(int argc, char **argv) {
     assert(config_parse(mode_setting, "Keyboard_Mouse_Input", &preset));
     assert(preset.input_mode == INPUT_KEYBOARD_MOUSE && config_valid(mode_setting, &preset));
     assert(!config_parse(mode_setting, "Unknown", &preset));
-    const ConfigSetting *layout_setting = config_setting("KeyboardLayout");
-    assert(preset.keyboard_layout == KEYBOARD_RANGED && layout_setting && layout_setting->restart);
-    assert(config_parse(layout_setting, "Melee", &preset) && preset.keyboard_layout == KEYBOARD_MELEE);
-    assert(config_parse(layout_setting, "Ranged", &preset) && preset.keyboard_layout == KEYBOARD_RANGED);
-    assert(!config_parse(layout_setting, "Unknown", &preset));
+    // Presets are selected from the actual equipped weapon, never from a separate INI choice.
+    assert(config_setting("KeyboardLayout") == NULL);
     const char *mouse_keys[] = {"MinWindowMs", "FullStickSpeed", "DeadzoneCompensation", "LowSpeedCutoff", "FrameTimeSmoothing", "AimDeadzoneCompensation"};
     const char *mouse_valid[] = {"12", "2000", "0.45", "0", "0.5", "0.55"};
     const char *mouse_invalid[] = {"51", "100001", "0.96", "0.11", "1.01", "0.96"};
@@ -73,18 +70,18 @@ int main(int argc, char **argv) {
     assert(g_config.width == 900 && fabsf(g_config.fov - 1.6f) < 0.001f);
     assert(c.hp.quests == 2 && c.language == 0 && c.button_icons == 0);
     assert(!config_restart_required(&c)); // Raw Auto/Desktop survives environment resolution.
-    Config prompts=c; prompts.input_mode=INPUT_KEYBOARD_MOUSE; prompts.keyboard_layout=KEYBOARD_MELEE;
+    Config prompts=c; prompts.input_mode=INPUT_KEYBOARD_MOUSE;
     prompts.mouse_conversion=(MouseConversion){12,2000,0.45f,0.001f,0.5f,0.55f};
     char prompt_error[256];
     assert(config_restart_required(&prompts) && config_save(&prompts,prompt_error,sizeof prompt_error));
-    char *prompt_text=read_file(path); assert(strstr(prompt_text,"InputMode = Keyboard_Mouse_Input") && strstr(prompt_text,"KeyboardLayout = Melee"));
+    char *prompt_text=read_file(path); assert(strstr(prompt_text,"InputMode = Keyboard_Mouse_Input") && !strstr(prompt_text,"KeyboardLayout ="));
     assert(strstr(prompt_text,"[MouseConversion]") && strstr(prompt_text,"MinWindowMs = 12") && strstr(prompt_text,"FullStickSpeed = 2000"));
     assert(strstr(prompt_text,"DeadzoneCompensation = 0.45") && strstr(prompt_text,"LowSpeedCutoff = 0.001") && strstr(prompt_text,"FrameTimeSmoothing = 0.5"));
     assert(strstr(prompt_text,"AimDeadzoneCompensation = 0.55"));
     free(prompt_text);
     assert(g_config.mouse_conversion.min_window_ms == 8 && g_config.mouse_conversion.full_stick_speed == 1500);
     assert(g_config.mouse_conversion.aim_deadzone_compensation == 0.5f && g_config.mouse_conversion.low_speed_cutoff == 0);
-    assert(g_config.input_mode == INPUT_ORIGINAL && g_config.keyboard_layout == KEYBOARD_RANGED); // Saving must not pretend the mounted RomFS changed live.
+    assert(g_config.input_mode == INPUT_ORIGINAL); // Saving must not pretend the mounted RomFS changed live.
     assert(config_save(&c,prompt_error,sizeof prompt_error) && !config_restart_required(&c));
     assert(fabsf(config_live_fov()-1.6f)<0.001f && fabsf(config_live_fps()-144.5f)<0.001f);
     Config volume_only=c; volume_only.volume=35;

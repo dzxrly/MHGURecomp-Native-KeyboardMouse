@@ -9,6 +9,7 @@
 
 #include "vk.h"
 #include "../astc.h"
+#include "../../hle/keyboard_mouse_prompts.h"
 
 // ================================================================== formats
 typedef struct { VkFormat vf; uint8_t expand_rgb, alpha_one; } VkFmt;
@@ -358,6 +359,7 @@ static TexBackend *tex_backend(NvnTexture *t) {
 
 void backend_texture_destroyed(NvnTexture *t) {
     vk_lock();
+    keyboard_mouse_prompts_texture_destroyed(t);
     TexBackend *b = t->backend;
     if (b) {
         destroy_image(b);
@@ -458,17 +460,19 @@ static uint64_t full_hash_budget, full_hash_budget_frame;
 static void upload_texture(NvnTexture *t, TexBackend *b) {
     if (!t->addr || t->target == 10) return;
     uint64_t frame = vk_frame_counter();
-    if (b->uploaded && b->checked_frame == frame + 1) return;
-    if (b->uploaded && !b->dynamic && ((frame + ((uintptr_t)b >> 6)) & 7)) return;  // static ones: every 8th frame
     const FormatInfo *fi = t->layout.fmt;
     if (!fi || !fi->bpb) return;
     VkFmt mf = fmt_of(t->format);
     uint64_t total = tegra_total_size(&t->layout);
+    const uint8_t *mem = (const uint8_t *)G2H((uint32_t)t->addr);
+    bool prompts_changed;
+    mem = keyboard_mouse_prompts_texture(t, mem, total, &prompts_changed);
+    if (b->uploaded && !prompts_changed && b->checked_frame == frame + 1) return;
+    if (b->uploaded && !b->dynamic && !prompts_changed && ((frame + ((uintptr_t)b >> 6)) & 7)) return;  // static: every 8th frame
     b->checked_frame = frame + 1;
     if (t->flags & 0x10) b->dynamic = true;
     if (full_hash_budget_frame != frame + 1) { full_hash_budget_frame = frame + 1; full_hash_budget = 4 << 20; }
-    const uint8_t *mem = (const uint8_t *)G2H((uint32_t)t->addr);
-    bool full = b->dynamic || !b->uploaded;
+    bool full = prompts_changed || b->dynamic || !b->uploaded;
     bool periodic = frame - b->full_frame >= 120 && full_hash_budget >= total;  // (safety net: a full hash now and then)
     if (!full && periodic) { full = true; full_hash_budget -= total; }
     // page write tracking: texture memory the CPU hasn't written since the last check is not hashed at all
@@ -476,7 +480,7 @@ static void upload_texture(NvnTexture *t, TexBackend *b) {
     int ch = vk_pages_changed(t->addr, total, b->wgen, &now);
     if (ch >= 0) {
         b->wgen = now;
-        if (!ch && b->uploaded && !periodic) return;
+        if (!ch && b->uploaded && !periodic && !prompts_changed) return;
     }
     if (!full) {
         uint64_t sh = fnv_sample(mem, total);

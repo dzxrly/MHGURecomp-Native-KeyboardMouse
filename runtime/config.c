@@ -17,7 +17,7 @@
 #include "config.h"
 #include "rt.h"
 
-#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, KEYBOARD_RANGED, MOUSE_CONVERSION_DEFAULTS, "", ""
+#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", ""
 Config g_config = {CONFIG_DEFAULT_VALUES};
 Config config_defaults(void) { Config c = {CONFIG_DEFAULT_VALUES}; return c; }
 uint32_t g_render_size[2] = {1920, 1080};
@@ -131,10 +131,8 @@ static const char DEFAULT_INI[] =
     "; Original, Keyboard_Mouse_Input\n"
     "InputMode = Original\n"
     "\n"
-    "; Keyboard_Mouse_Input layout (restart), including matching locally generated PC icon/text resources.\n"
-    "; Melee: LMB X, RMB A, R guard/special. Ranged: LMB fire, RMB aim, R reload.\n"
-    "; Melee, Ranged. Default: Ranged. Shift is ordinary sprinting in both layouts.\n"
-    "KeyboardLayout = Ranged\n"
+    "; Keyboard/mouse bindings and prompts follow the equipped weapon automatically.\n"
+    "; Bowguns/Bow use Ranged; other weapons and Prowler use Melee.\n"
     "\n"
     "; Confirm button in the settings menu (F1, or Minus + Plus on a controller). The game's own menus are unchanged.\n"
     "; Original, South (bottom button), East (right button)\n"
@@ -158,7 +156,8 @@ static const char DEFAULT_INI[] =
     "MouseSensitivity = 1.0\n"
     "\n"
     "[MouseConversion]\n"
-    "; Keyboard_Mouse_Input only. These settings require a restart.\n"
+    "; Keyboard_Mouse_Input compatibility cameras only (village, Ballista, Prowler special aim).\n"
+    "; Direct quest/gun/Bow/Binocular angles do not use these parameters. Restart after edits.\n"
     "; [Mouse] MouseSensitivity multiplies input speed in both layouts.\n"
     "; Minimum averaging window in milliseconds (1-50, default 8). Larger is smoother but stops later.\n"
     "; The actual window spans whole frame intervals; slower frames can make it longer, up to 100 ms.\n"
@@ -399,7 +398,6 @@ const ConfigSetting g_settings[] = {
     ON_OFF("Controls", "BackgroundInput", background_input, false),
     {"Controls", "ComboInputWindow", SET_CHOICE, F(combo_window), 0, 0, 0, "Lenient,Strict", NULL, false, ERR_MISC},
     {"Controls", "InputMode", SET_CHOICE, F(input_mode), 0, 0, 0, "Original,Keyboard_Mouse_Input", NULL, true, ERR_MISC},
-    {"Controls", "KeyboardLayout", SET_CHOICE, F(keyboard_layout), 0, 0, 0, "Melee,Ranged", NULL, true, ERR_MISC},
     {"Mouse", "MouseSensitivity", SET_FLOAT, F(mouse_sensitivity), 0, 0.1f, 10.0f, NULL, NULL, false, ERR_VIEW},
     {"MouseConversion", "MinWindowMs", SET_FLOAT, F(mouse_conversion.min_window_ms), 0, 1.0f, 50.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
     {"MouseConversion", "FullStickSpeed", SET_FLOAT, F(mouse_conversion.full_stick_speed), 0, 100.0f, 100000.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},

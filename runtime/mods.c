@@ -24,6 +24,9 @@ void mods_make_dir(void) {
 #define MAX_MODS 256
 static char *g_names[MAX_MODS];
 static int g_nmods = -1;
+static char g_prompt_pack[1200];
+
+const char *mods_keyboard_mouse_prompt_pack(void) { return g_prompt_pack[0] ? g_prompt_pack : NULL; }
 
 static void list_mods(void) {
     if (g_nmods >= 0) return;
@@ -55,15 +58,15 @@ int mods_romfs_layers(const char **out, int max) {
             char layout[32] = "";
             int read = fscanf(flag, "%31s", layout);
             fclose(flag);
-            if (read != 1 || (strcmp(layout, "Melee") && strcmp(layout, "Ranged"))) {
-                LOG("[mods] %s: invalid PC input layout marker; prompt layer skipped\n", g_names[i]);
+            if (read != 1 || strcmp(layout, "Auto")) {
+                LOG("[mods] %s: legacy or invalid PC prompt layer skipped; generate the Auto prompt layer\n", g_names[i]);
                 continue;
             }
-            int wanted = !strcmp(layout, "Melee") ? KEYBOARD_MELEE : KEYBOARD_RANGED;
-            if (g_config.input_mode != INPUT_KEYBOARD_MOUSE || g_config.keyboard_layout != wanted) {
-                LOG("[mods] %s: %s PC prompts skipped (InputMode/KeyboardLayout; restart to change)\n", g_names[i], layout);
+            if (g_config.input_mode != INPUT_KEYBOARD_MOUSE) {
+                LOG("[mods] %s: PC prompts skipped (InputMode=Original)\n", g_names[i]);
                 continue;
             }
+            snprintf(g_prompt_pack, sizeof g_prompt_pack, "%s/keyboard_mouse_prompts.bin", path);
         }
         out[k++] = strdup(path);
         LOG("[mods] %s: romfs %s\n", g_names[i], path);
