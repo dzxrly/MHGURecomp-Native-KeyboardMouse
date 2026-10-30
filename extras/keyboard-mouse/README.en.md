@@ -1,7 +1,5 @@
 # Keyboard and mouse controls
 
-> `InputMode` selects the original controls (`Original`) or this fork's controls (`Keyboard_Mouse_Input`). `KeyboardLayout` selects `Melee` or `Ranged`. “Game button” refers to a Switch button sent to MHGU. LMB/RMB/MMB mean left/right/middle mouse button. `romfs` is the game's resource directory.
-
 [中文](README.md)
 
 Choose between Melee and Ranged bindings, with PC button prompts and control text in all seven game languages: Simplified Chinese, Traditional Chinese, English, French, German, Italian and Spanish.
@@ -54,27 +52,27 @@ Prompts cover the button font, title screens, menu paging, combat HUD, target se
 
 | Input | Melee | Ranged |
 | --- | --- | --- |
-| WASD | Left stick: movement | Same |
+| WASD | Left stick: movement | Left stick: movement |
 | Mouse motion | Right stick: camera | Right stick: camera/aim |
 | LMB | X: primary attack/draw | A: fire, confirm/interact |
 | RMB | A: secondary attack, confirm/interact | R: aim |
 | R | R: guard/weapon special action | X: reload/draw |
 | Mouse5 | R: guard/weapon special action | Unbound |
-| F / Mouse4 | Y: sheathe/use item | Same |
-| E | Y: sheathe/use item | R: same as RMB |
-| Left Shift | R: ordinary sprint | Same |
-| Space | B: evade, cancel/back | Same |
+| F / Mouse4 | Y: sheathe/use item | Y: sheathe/use item |
+| E | Y: sheathe/use item | R: aim |
+| Left Shift | R: ordinary sprint | R: ordinary sprint |
+| Space | B: evade, cancel/back | B: evade, cancel/back |
 | C | X+A: combined attack | X+A: siege mode/combined action |
 | Wheel up/down | L+Y / L+A: select items | L+X / L+B: select ammo/coatings |
-| Q | L: item selector/camera functions | Same |
-| Esc / Enter / keypad Enter | Plus: game menu | Same |
-| Backspace | Minus: minus-button menu | Same |
-| Tab / MMB | ZL: target selection with control type 1 | Same |
-| T | ZR | Same |
-| 1 / 2 / 3 | D-pad up/right/down: Arts with control type 1 | Same |
-| Arrow keys | D-pad | Same |
-| Ctrl / Alt | Left/right stick click | Same |
-| F1 / F2 | PC settings / release mouse | Same |
+| Q | L: item selector/camera functions | L: item selector/camera functions |
+| Esc / Enter / keypad Enter | Plus: game menu | Plus: game menu |
+| Backspace | Minus: minus-button menu | Minus: minus-button menu |
+| Tab / MMB | ZL: target selection with control type 1 | ZL: target selection with control type 1 |
+| T | ZR | ZR |
+| 1 / 2 / 3 | D-pad up/right/down: Arts with control type 1 | D-pad up/right/down: Arts with control type 1 |
+| Arrow keys | D-pad | D-pad |
+| Ctrl / Alt | Left/right stick click | Left/right stick click |
+| F1 / F2 | PC settings / release mouse | PC settings / release mouse |
 
 Confirm/interact is RMB in Melee and LMB in Ranged. Both use Space to go back. During text entry, Enter confirms and Esc cancels. After releasing the mouse with F2, click the game window to capture it again.
 
