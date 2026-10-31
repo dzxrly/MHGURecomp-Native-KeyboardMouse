@@ -27,7 +27,7 @@ try {
     if ($expectedHash -notmatch '^[0-9a-f]{64}$') { throw 'Invalid archive checksum.' }
     & gh release create $version $Archive "$Archive.sha256" --repo $repository --verify-tag --title $title --notes-file $NotesFile --draft
     if ($LASTEXITCODE -ne 0) { throw 'Draft release/upload failed.' }
-    $release = & gh api "repos/$repository/releases/tags/$version" | ConvertFrom-Json
+    $release = & gh release view $version --repo $repository --json assets | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0) { throw 'Cannot verify the uploaded draft.' }
     $asset = @($release.assets | Where-Object { $_.name -eq [IO.Path]::GetFileName($Archive) })
     if ($asset.Count -ne 1 -or $asset[0].size -ne (Get-Item -LiteralPath $Archive).Length -or $asset[0].digest -ne "sha256:$expectedHash") {
