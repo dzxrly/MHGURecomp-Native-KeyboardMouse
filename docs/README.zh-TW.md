@@ -29,11 +29,11 @@ Windows-MHGURecomp/
 
 ## 圖形與神經渲染
 
-所有圖形選項集中於 **F1 → Graphics** 和 INI 的 **[Graphics]**，音效位於 Audio。選擇 Save 儲存；帶星號的設定需要重新啟動。
+所有圖形選項集中於 INI 的 **[Graphics]**；除僅限離線設定的 `NRRuntime` 外，也可在 **F1 → Graphics** 中調整。音效位於 Audio。選擇 Save 儲存；帶星號的設定需要重新啟動。
 
 啟用 **Temporal upscaling / AA** 後，在 FSR 3.1、FSR 4、DLSS SR／DLAA 中選擇一種。DLSS 模式依序為 **超級效能 → 效能 → 平衡 → 品質 → DLAA**；`UpscaleQuality = DLAA` 對應原生解析度反鋸齒。內部尺寸由 SDK 查詢；NVIDIA App 覆寫設定可能改變實際尺寸與模型，以 F1 和日誌為準。時間超解析度生效時接管 MSAA／FXAA。FSR 4 需要相容的建置和 AMD 驅動，不可用時回退 FSR 3.1；DLSS 不可用會明確顯示狀態。
 
-NR 為獨立開關，也可不啟用超解析度而單獨使用。預設執行庫為 **Official（RTX 50）**；RTX 40 須手動選擇 **Community SM89（RTX 40）**，失敗不會自動切換。發行包提供 NGX 介面與官方 SR 執行庫；**NR 模型 DLL 需自行提供**，詳見[執行庫設定與來源](../third_party/ngx/README.md)。目錄如下：
+NR 為獨立開關，也可不啟用超解析度而單獨使用。同一個 ZIP 已包含 NGX 介面、官方 SR、官方 NR 和社群 SM89 NR 執行庫。**執行庫僅透過 INI 離線選擇**：關閉遊戲後，將 `[Graphics]` 下的 `NRRuntime` 設為 `Official`（預設，RTX 50）或 `SM89`（社群 RTX 40）。F1 不提供這個選項，失敗也不會自動切換。詳見[執行庫設定與來源](../third_party/ngx/README.md)。目錄如下：
 
 ```text
 dlss/nr/official/nvngx_dlssnr.dll
@@ -141,7 +141,7 @@ F1 開啟 PC 設定；Alt+Enter／F11 切換全螢幕，F12 擷取畫面，F7 �
 
 ## 更新與問題排查
 
-從本倉庫下載新版，或使用附帶更新器。更新會替換程式和附帶 Auto 提示資源，保留遊戲資料、設定、存檔與其他模組；另行安裝的 NR 執行庫保留於對應目錄。
+從本倉庫下載新版，或使用附帶更新器。更新會替換程式、隨包 DLSS 執行庫和 Auto 提示資源，保留遊戲資料、設定、存檔與其他模組。
 
 - **遊戲版本不符**：使用完整且已合併更新的 Switch 1.4.0 檔案，基礎資源保持不變。
 - **仍顯示手把提示**：選擇 `InputMode = Keyboard_Mouse_Input`，啟用附帶 Auto 模組並重新啟動。

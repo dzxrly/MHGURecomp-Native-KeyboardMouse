@@ -10,11 +10,11 @@ The public headers and `LICENSE.txt` are from [NVIDIA/DLSS](https://github.com/N
 ./tools/build_ngx.ps1 -VulkanInclude 'C:/path/to/Vulkan-Headers/include'
 ```
 
-The build script downloads the pinned public static SDK library when missing and writes `build/mhgu-nvngx.dll`. The Windows release includes that adapter and the unmodified official SR runtime. The host reports unavailability if a selected component is missing.
+The build script downloads the pinned public static SDK library when missing and writes `build/mhgu-nvngx.dll`. The Windows release includes that adapter, the unmodified official SR and NR runtimes, and the pinned community SM89 NR runtime. The host reports unavailability if a selected component is missing.
 
-## NR runtime installation
+## Bundled runtimes
 
-NR model DLLs are user-supplied. Place the selected file relative to `mhgurecomp.exe`:
+Extract the complete Windows release. It includes all runtime files at the following paths relative to `mhgurecomp.exe`:
 
 ```text
 mhgurecomp.exe
@@ -24,10 +24,10 @@ dlss/nr/official/nvngx_dlssnr.dll
 dlss/nr/sm89/nvngx_dlssnr.dll
 ```
 
-- **Official:** NVIDIA-signed NR 310.9.16.0 is provided in NVIDIA's `rtx-remix-ngx_sdk_dlnr@2` dependency package, referenced by the [RTX Remix dependency manifest](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/packman-external.xml). Use it in the `official` directory and select `NRRuntime = Official`.
-- **SM89:** the tested compatibility runtime is the SF 310.9.16 build from [HoYoShadeHub-DLSSNR-Runtimes](https://github.com/thx114/HoYoShadeHub-DLSSNR-Runtimes/releases/tag/nr-310.9.16), asset `nvngx_dlssnr_310.9.16-SF.zip`. Put its model DLL in `sm89` and explicitly select `NRRuntime = SM89`. Its DLL matches [OpenNR](https://github.com/clshortfuse/openNR)'s compatibility output `CDFA6C1EC784867182164C7836F324F087B5C9F374D0C9FE46F54999FEABF3ED`.
+- **Official:** the bundled, unmodified NVIDIA-signed NR 310.9.16.0 comes from NVIDIA's `rtx-remix-ngx_sdk_dlnr@2` dependency package, referenced by the [RTX Remix dependency manifest](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/packman-external.xml). Select `NRRuntime = Official` to use it.
+- **SM89:** the bundled compatibility runtime is the SF 310.9.16 build from [HoYoShadeHub-DLSSNR-Runtimes](https://github.com/thx114/HoYoShadeHub-DLSSNR-Runtimes/releases/tag/nr-310.9.16), asset `nvngx_dlssnr_310.9.16-SF.zip`. Explicitly select `NRRuntime = SM89` to use it. This is a community-modified binary, distinct from the official runtime; it matches [OpenNR](https://github.com/clshortfuse/openNR)'s compatibility output `CDFA6C1EC784867182164C7836F324F087B5C9F374D0C9FE46F54999FEABF3ED`.
 
-NR defaults off. Official is the default runtime choice; missing files and failures never substitute SM89 automatically. Restart after changing NR settings. Keep runtime binaries out of Git and outside the public package's NR payload.
+Both NR runtimes are included in the same ZIP. NR defaults off, and **runtime selection is INI-only**: close the game, then set `[Graphics] NRRuntime = Official` (default) or `NRRuntime = SM89`. F1 has no runtime selector; its Reset/Save actions preserve this offline setting. Missing files and failures never substitute SM89 automatically. Restart after changing NR settings. The updater refreshes bundled runtime files together with the program while preserving the INI selection. Keep runtime binaries out of Git; provide all four files in the clean Windows build folder before packing a release. The NVIDIA license and these origin notes accompany the binaries in the distribution.
 
 ## Dispatch and controls
 

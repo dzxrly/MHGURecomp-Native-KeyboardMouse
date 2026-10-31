@@ -93,6 +93,7 @@ static const char DEFAULT_INI[] =
     "NeuralRendering = Off\n"
     "\n"
     "; Official: NVIDIA RTX 50 runtime; SM89: user-selected community RTX 40 runtime\n"
+    "; INI-only: close the game before changing this option; no F1 selector\n"
     "; Never switches runtime automatically; restart required\n"
     "; Default: Official\n"
     "NRRuntime = Official\n"

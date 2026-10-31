@@ -29,11 +29,11 @@ Keep all program dependencies from the archive. Start `mhgurecomp.exe`; the firs
 
 ## Graphics and neural rendering
 
-All graphics settings are under **F1 → Graphics** and the INI's **[Graphics]** section. Save changes; an asterisk marks a restart requirement. Audio has its own page.
+Graphics settings are in the INI's **[Graphics]** section. F1's **Graphics** page exposes the controls except the INI-only `NRRuntime` selection. Save changes; an asterisk marks a restart requirement. Audio has its own page.
 
 Enable **Temporal upscaling / AA**, then choose exactly one of FSR 3.1, FSR 4 or DLSS SR / DLAA. DLSS offers **Ultra Performance → Performance → Balanced → Quality → DLAA**. `UpscaleQuality = DLAA` selects native-resolution anti-aliasing. Render sizes come from the SDK; NVIDIA App overrides can affect the actual size/model, which the menu and log report. Active temporal upscaling takes over MSAA/FXAA. FSR 4 needs a compatible build/AMD driver and falls back to FSR 3.1 if unavailable. DLSS failure is reported explicitly.
 
-NR is a separate switch and also works with temporal upscaling off. Its default runtime is **Official (RTX 50)**. RTX 40 users must explicitly select **Community SM89 (RTX 40)**; failures never switch runtimes automatically. The release includes the NGX adapter and official SR runtime. **NR model DLLs are supplied separately**; see [runtime setup and sources](third_party/ngx/README.md).
+NR is a separate switch and also works with temporal upscaling off. The same ZIP includes the NGX adapter, official SR runtime, official NR runtime and community SM89 NR runtime. **Runtime selection is INI-only:** close the game and set `NRRuntime` under `[Graphics]` to `Official` (the default, RTX 50) or `SM89` (community RTX 40). F1 does not expose this selection, and failures never switch runtimes automatically. See [runtime configuration and sources](third_party/ngx/README.md).
 
 ```text
 dlss/nr/official/nvngx_dlssnr.dll
@@ -141,7 +141,7 @@ Put each mod in its own `mods/` directory. Enable/order it in **F1 → Mods**, t
 
 ## Updates and troubleshooting
 
-Download releases from this repository or use its included updater. Updates replace program files and the bundled Auto prompt resources while preserving game data, settings, saves and other mods. Separately installed NR runtimes remain in their selected directories.
+Download releases from this repository or use its included updater. Updates replace program files, bundled DLSS runtimes and Auto prompt resources while preserving game data, settings, saves and other mods.
 
 - **Game-version warning:** use a complete Switch 1.4.0 dump with its update merged; leave its base files unchanged.
 - **Controller prompts remain:** select `InputMode = Keyboard_Mouse_Input`, enable the bundled Auto mod and restart.

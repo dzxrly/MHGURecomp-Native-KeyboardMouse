@@ -578,7 +578,6 @@ void reset_section() {
         c.fsr_animsurf = f.fsr_animsurf;
         c.dlss_nr = f.dlss_nr;
         c.nr_intensity = f.nr_intensity;
-        c.nr_runtime = f.nr_runtime;
         c.nr_style = f.nr_style;
         c.nr_structure = f.nr_structure;
         c.nr_tone = f.nr_tone;
@@ -915,8 +914,6 @@ std::vector<Row> main_rows() {
         }
         add_bool(r, "nr", "DLSS 5 Neural Rendering", &c.dlss_nr, ini("NeuralRendering"));
         if (c.dlss_nr) {
-            add_choice(r, "nr.runtime", "NR runtime", c.nr_runtime, {"Official (RTX 50)", "Community SM89 (RTX 40)"},
-                [](int v) { s.draft.nr_runtime = v; }, ini("NRRuntime"));
             number(r, "nr.intensity", tr("NR intensity"), &c.nr_intensity, lo("NRIntensity"), hi("NRIntensity"), .05f, ini("NRIntensity"));
             add_choice(r, "nr.style", "NR style", c.nr_style, {tr("Standard"), tr("Natural"), tr("Cinematic")},
                 [](int v) { s.draft.nr_style = v; }, ini("NRStyle"));

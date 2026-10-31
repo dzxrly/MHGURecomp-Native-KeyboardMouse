@@ -4,7 +4,7 @@ usage: python tools/dist.py <build dir> <out dir> <windows|linux> <version> [--b
 
 Windows: <out>/MHGURecomp-Enhancement-win_x86-64.zip; Linux: <out>/ArchLinux-MHGURecomp.<version>.tar.gz (the programs
 keep their executable permission). Inside, Windows-MHGURecomp/ or ArchLinux-MHGURecomp/ holds what a player copies: the game, its code
-library, the updater, the DLLs (Windows), pipelines.list, licenses/, bonus/system (--bonus: the donor save of the free downloads) and
+library, the updater, the DLLs (Windows, including SR and both NR runtimes), pipelines.list, licenses/, bonus/system (--bonus: the donor save of the free downloads) and
 the empty data/, mods/ and cheats/ folders, with a note in data/ of what goes there. Nothing else of the build folder:
 not its game files, mods, settings, caches or log. The updater (updater/updater.c) installs the same archive, leaving
 data/, other mods, cheats/ and bonus/ alone; it may update the bundled Auto prompt resources. Prints the archive's size and SHA-256: GitHub shows that digest for the upload.
@@ -22,6 +22,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+DLSS_RUNTIMES = (
+    "mhgu-nvngx.dll",
+    "nvngx_dlss.dll",
+    "dlss/nr/official/nvngx_dlssnr.dll",
+    "dlss/nr/sm89/nvngx_dlssnr.dll",
+)
+
 DATA_NOTE = (
     "Put your own dump of Monster Hunter Generations Ultimate 1.4.0 here: the exefs and romfs folders\n"
     "(data/exefs/main, data/romfs/...).\n"
@@ -35,13 +42,15 @@ def files(build, platform):
         extra = sorted(
             n
             for n in os.listdir(build)
-            if n.lower().endswith(".dll") and n not in programs
+            if n.lower().endswith(".dll")
+            and n not in programs
+            and n not in DLSS_RUNTIMES
         )
     else:
         programs = ["mhgurecomp", "mhgugame.so", "mhgurecomp-updater"]
         extra = []
     out = []
-    for n in programs + extra:
+    for n in programs + extra + (list(DLSS_RUNTIMES) if platform == "windows" else []):
         p = os.path.join(build, n)
         if not os.path.isfile(p):
             sys.exit(f"dist: {p} is missing (make first)")

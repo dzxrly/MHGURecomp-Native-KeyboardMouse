@@ -35,6 +35,17 @@ class ReleasePackagingTest(unittest.TestCase):
             version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
             for name in ("mhgurecomp-updater.exe", "mhgurecomp-updater"):
                 (build / name).write_bytes(f"MHGURecomp-updater/{version}\0".encode())
+            runtimes = (
+                "mhgu-nvngx.dll",
+                "nvngx_dlss.dll",
+                "dlss/nr/official/nvngx_dlssnr.dll",
+                "dlss/nr/sm89/nvngx_dlssnr.dll",
+            )
+            for name in runtimes:
+                path = build / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(name.encode())
+            (build / "dlss/nr/private-cache").write_bytes(b"must never ship")
             (build / "licenses").mkdir()
             (build / "licenses/test.txt").write_text("license")
             (build / "data").mkdir()
@@ -74,6 +85,10 @@ class ReleasePackagingTest(unittest.TestCase):
                             stream.read("Windows-MHGURecomp/release-info.json")
                         )
                         self.assertIn("Windows-MHGURecomp/docs/README.zh-CN.md", names)
+                        for name in runtimes:
+                            archived = "Windows-MHGURecomp/" + name
+                            self.assertEqual(names.count(archived), 1)
+                            self.assertEqual(stream.read(archived), name.encode())
                 else:
                     with tarfile.open(archive) as stream:
                         names = stream.getnames()
@@ -103,6 +118,13 @@ class ReleasePackagingTest(unittest.TestCase):
             (romfs / "unrelated-save").write_bytes(b"private")
             with self.assertRaises(ValueError):
                 dist.prompt_files(mod)
+            for name in runtimes:
+                path = build / name
+                content = path.read_bytes()
+                path.unlink()
+                with self.subTest(missing_runtime=name), self.assertRaises(SystemExit):
+                    dist.files(str(build), "windows")
+                path.write_bytes(content)
 
 
 if __name__ == "__main__":

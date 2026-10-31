@@ -86,7 +86,7 @@ typedef struct {
     int smooth_gradients;     // [Graphics] SmoothGradients: the game's RGBA8 render targets as RGBA16 (nvn/vulkan/textures.c)
     int dlss_nr;              // [Graphics] NeuralRendering: independent, HUD-free DLSS 5 NR
     float nr_intensity;       // [Graphics] NRIntensity: 0..2
-    int nr_runtime;           // NR_RUNTIME_*: Official (RTX 50), or explicitly chosen community SM89
+    int nr_runtime;           // INI-only NR_RUNTIME_*: Official (RTX 50), or explicit community SM89
     int nr_style;             // 0 Standard, 1 Natural, 2 Cinematic
     float nr_structure;       // local structure strength, 0..2
     float nr_tone;            // local tone strength, 0..2

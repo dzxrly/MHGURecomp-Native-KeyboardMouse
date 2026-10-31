@@ -550,9 +550,7 @@ int main() {
     graphics_row("nr");
     confirm();
     down();
-    selected("nr.runtime");
-    press(ImGuiKey_GamepadDpadRight); // Community runtime requires an explicit choice.
-    press(ImGuiKey_GamepadDpadLeft);  // Official remains the saved default.
+    selected("nr.intensity"); // Runtime selection is INI-only, with no F1 row.
     graphics_row("nr.style");
     press(ImGuiKey_GamepadDpadRight);
     down();selected("nr.structure");press(ImGuiKey_GamepadDpadRight);
@@ -628,6 +626,28 @@ int main() {
     opened = false;
     frame();
     assert(!settings_panel_dirty());
+    Config offline = config_editable();
+    offline.nr_runtime = NR_RUNTIME_SM89;
+    offline.dlss_nr = 1;
+    config_store_loaded(&offline);
+    opened = true;
+    idle();
+    graphics_row("nr");
+    down();
+    selected("nr.intensity");
+    press(ImGuiKey_End);
+    selected("reset");
+    confirm();
+    selected("dialog.cancel");
+    down();
+    confirm();
+    press(ImGuiKey_End);
+    press(ImGuiKey_GamepadDpadUp);
+    selected("save");
+    confirm();
+    assert(config_editable().nr_runtime == NR_RUNTIME_SM89); // F1 Reset/Save preserves the offline selection.
+    opened = false;
+    frame();
     ImGui::DestroyContext();
     remove("obj/settings-test/panel-settings.ini");
     puts("settings panel: inline numbers, explicit Save/Reset, Back guide, dirty discard, focus and layout "

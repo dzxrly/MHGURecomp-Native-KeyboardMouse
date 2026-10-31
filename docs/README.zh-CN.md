@@ -29,11 +29,11 @@ Windows-MHGURecomp/
 
 ## 图形与神经渲染
 
-所有图形选项集中在 **F1 → Graphics** 和 INI 的 **[Graphics]** 下，音频位于 Audio。选择 Save 保存；带星号的设置需要重启。
+所有图形选项集中在 INI 的 **[Graphics]** 下；除仅限离线配置的 `NRRuntime` 外，也可在 **F1 → Graphics** 中调整。音频位于 Audio。选择 Save 保存；带星号的设置需要重启。
 
 开启 **Temporal upscaling / AA**，在 FSR 3.1、FSR 4、DLSS SR／DLAA 中选择一种。DLSS 档位依次为 **超级性能 → 性能 → 平衡 → 质量 → DLAA**；`UpscaleQuality = DLAA` 对应原生分辨率抗锯齿。内部尺寸由 SDK 查询；NVIDIA App 覆盖设置可能改变实际尺寸与模型，以 F1 和日志为准。时间超分生效时接管 MSAA／FXAA。FSR 4 需要兼容的构建和 AMD 驱动，不可用时回退 FSR 3.1；DLSS 不可用会明确显示状态。
 
-NR 独立开关，也可不开超分单独使用。默认库为 **Official（RTX 50）**；RTX 40 须手动选择 **Community SM89（RTX 40）**，失败不会自动换库。发行包提供 NGX 适配层与官方 SR 运行库；**NR 模型 DLL 需自行提供**，详见[运行库配置与来源](../third_party/ngx/README.md)。目录为：
+NR 独立开关，也可不开超分单独使用。同一个 ZIP 已包含 NGX 适配层、官方 SR、官方 NR 和社区 SM89 NR 运行库。**运行库仅通过 INI 离线选择**：关闭游戏后，将 `[Graphics]` 下的 `NRRuntime` 设为 `Official`（默认，RTX 50）或 `SM89`（社区 RTX 40）。F1 不提供这一选择项，失败也不会自动换库。详见[运行库配置与来源](../third_party/ngx/README.md)。目录为：
 
 ```text
 dlss/nr/official/nvngx_dlssnr.dll
@@ -141,7 +141,7 @@ F1 打开 PC 设置；Alt+Enter／F11 切换全屏，F12 截图，F7 在可用�
 
 ## 更新与问题排查
 
-从本仓库下载新版，或使用附带更新器。更新会替换程序和附带 Auto 提示资源，保留游戏数据、配置、存档和其他模组；另行安装的 NR 库保留在对应目录。
+从本仓库下载新版，或使用附带更新器。更新会替换程序、随包 DLSS 运行库和 Auto 提示资源，保留游戏数据、配置、存档和其他模组。
 
 - **游戏版本不符**：使用完整且已合并更新的 Switch 1.4.0 文件，基础资源保持不变。
 - **仍显示手柄提示**：选择 `InputMode = Keyboard_Mouse_Input`，启用附带 Auto 模组并重启。

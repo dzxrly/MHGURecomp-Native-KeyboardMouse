@@ -105,18 +105,18 @@ Titles contain no prefix, suffix or descriptive words. The startup log reports b
 Releases are built locally for Windows. Publication consumes a complete, checked archive; it does not run game-code generation or create prompt resources from a dump.
 
 1. Update `VERSION` and review `UPSTREAM_VERSION`.
-2. Build the host, updater and optional NGX adapter. Supply a matching prepared game library; check it with `--check-gamelib`.
-3. Use a clean release folder containing the programs, actual dependency DLLs, `pipelines.list`, licenses, the NGX adapter and the unmodified official SR runtime. NR model DLLs are user-supplied and not included in the public archive.
+2. Build the host, updater and NGX adapter. Supply a matching prepared game library; check it with `--check-gamelib`.
+3. Use a clean release folder containing the programs, actual dependency DLLs, `pipelines.list`, licenses and all four files listed in [NGX runtime layout](../third_party/ngx/README.md#bundled-runtimes). The packer requires the NGX adapter, official SR runtime, official NR runtime and pinned community SM89 NR runtime; it stops if any is missing and includes only the two declared NR paths.
 4. Run the focused checks below and pack the folder. The checked-in Auto prompt pack is the release input; `BONUS` is empty unless a donor has explicitly been approved for distribution.
 
 ```sh
-python tools/dist.py build-release dist windows 0.1.0 \
+python tools/dist.py build-release dist windows "$(cat VERSION)" \
   --keyboard-mouse-mod extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto
 ```
 
 The packer adds the three user guides, this developer guide, runtime setup notes, legal notices, version files and `release-info.json`. It excludes the build's game data, settings, saves, unrelated mods, caches and logs. It writes one `.sha256` alongside the archive. Verify archive entries and CRCs before upload.
 
-Commit the prepared source, create the numeric version tag at that commit and push the branch/tag to `origin`. Supply a release-note file to the publisher:
+Commit the prepared source, create the numeric version tag at that commit and push the branch/tag to `origin`. Write the release notes in English and supply the file to the publisher:
 
 ```powershell
 ./tools/release.ps1
@@ -125,7 +125,7 @@ Commit the prepared source, create the numeric version tag at that commit and pu
 
 Without `-Publish`, it shows the resolved title and archive. Publication requires a clean worktree and a version tag at HEAD. It uploads a draft, checks the uploaded ZIP's size and GitHub SHA-256 against the prepared checksum, then publishes it as Latest with the exact numeric title. It uses the repository selected by `origin` and the user's authenticated GitHub CLI.
 
-The updater queries this repository and compares enhanced-edition tags. It preserves game data, saves, configuration and other mods; the bundled Auto prompt `romfs/` is release-owned. Files it replaces are backed up under `update/backup/`. Installing a release must not write to `%APPDATA%` saves.
+The updater queries this repository and compares enhanced-edition tags. It preserves game data, saves, configuration and other mods; the bundled Auto prompt `romfs/` and DLSS runtime paths are release-owned. Files it replaces are backed up under `update/backup/`. Installing a release must not write to `%APPDATA%` saves.
 
 ## Runtime architecture
 
@@ -141,7 +141,7 @@ Executable patches, subsdk modules, RomFS replacement, merged ARC resources and 
 
 ### Configuration and frame flow
 
-All graphical settings are in `[Graphics]`, mirrored by F1's Graphics page. Audio is separate. `TemporalUpscaling` is the master temporal reconstruction switch; `Upscaler` chooses one of FSR3, FSR4 and DLSS. `NeuralRendering` is independent. Existing accepted key aliases remain parser details; examples use the canonical schema.
+All graphical settings are in `[Graphics]`. F1's Graphics page exposes the graphical controls except `NRRuntime`, which is an offline INI-only setting. Audio is separate. `TemporalUpscaling` is the master temporal reconstruction switch; `Upscaler` chooses one of FSR3, FSR4 and DLSS. `NeuralRendering` is independent. Existing accepted key aliases remain parser details; examples use the canonical schema.
 
 The renderer separates the scene from the HUD. Shared preparation supplies standard-Z R32F depth and unjittered camera/object motion in render pixels. Temporal reconstruction uses jitter while a valid scene is active. NR alone does not add projection jitter. Scene changes, camera cuts and gaps reset temporal history. MSAA is disabled while temporal input preparation is active; FXAA is disabled when temporal reconstruction owns anti-aliasing.
 
@@ -177,7 +177,7 @@ NRAutoMask = On
 NRLayers = 1
 ```
 
-Official is the default RTX 50 runtime path. SM89 is an explicit community RTX 40 selection; neither GPU detection nor failure switches runtime. The original FP16 model is selected for the pinned compatibility runtime. Official uses public SDK dispatch. SM89 directly invokes the native Vulkan snippet through the adapter, retaining the caller-module name and return address the snippet checks. The host executable is not renamed and the driver is not modified.
+Official is the default RTX 50 runtime path. Both runtime files ship in one ZIP. Players select SM89 explicitly by editing `[Graphics] NRRuntime` with the game closed; F1 has no runtime selector and its Reset/Save actions preserve the value. Neither GPU detection nor failure switches runtime. The original FP16 model is selected for the pinned compatibility runtime. Official uses public SDK dispatch. SM89 directly invokes the native Vulkan snippet through the adapter, retaining the caller-module name and return address the snippet checks. The host executable is not renamed and the driver is not modified.
 
 NR receives an opaque SDR scene, depth and motion, and runs before the HUD. Detailed strengths/style/mask controls are passed at creation and evaluation. Auto Mask defaults on and Skin structure defaults to zero. Zero requests no skin-structure enhancement, rather than protection from all neural changes. Each setting's range and restart requirement are defined by `g_settings` and exposed as INI comments/F1 help.
 
@@ -269,4 +269,4 @@ The server pairs compatible protocol versions and matchmaking-key hashes, then r
 
 ## Licenses
 
-Retain the [project license](../LICENSE), [third-party notices](../THIRD_PARTY_NOTICES), dependency license files and source-offer records in the distribution. Vendored dependency provenance/license records describe their sources and must remain intact. NGX components retain NVIDIA's separate terms; AMD driver binaries and NR model DLLs are not public release payloads. The project license does not cover Nintendo/Capcom game data or generated game code.
+Retain the [project license](../LICENSE), [third-party notices](../THIRD_PARTY_NOTICES), dependency license files and source-offer records in the distribution. Vendored dependency provenance/license records describe their sources and must remain intact. NGX components and NR model binaries retain NVIDIA's separate terms and source notices; the community SM89 binary is identified separately from the unmodified official runtime. AMD driver binaries are not distributed. The project license does not cover Nintendo/Capcom game data or generated game code.
