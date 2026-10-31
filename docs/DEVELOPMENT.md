@@ -183,10 +183,10 @@ NR receives an opaque SDR scene, depth and motion, and runs before the HUD. Deta
 
 Effect layers use the residual-transfer approach documented by [DLSSNR-Cost-Scaler](https://github.com/xenmods/DLSSNR-Cost-Scaler/blob/main/shaders.hlsl).
 
-> In the following formula, $B$ is the opaque SDR input, $N$ is one NR result, $O$ is the final scene and $L$ is an integer effect-layer count from 1 to 3. `clamp` limits each channel to 0–1.
+> In the following formula, $B$ is the opaque SDR input, $N$ is one NR result, $O$ is the final scene and $L$ is an integer effect-layer count from 1 to 3. The minimum and maximum apply per channel, limiting the output to 0–1.
 
 $$
-O = \operatorname{clamp}\bigl(B + L(N-B),\,0,\,1\bigr).
+O = \min(1, \max(0, B + L(N-B))).
 $$
 
 Layer 1 uses the direct result blit. Layers 2/3 add one small compute composition over the existing images. All settings still issue one model evaluation per scene frame, with no additional model/history allocation. The amplified scene is not fed back into NR history. This approximates effect strength; it is not sequential neural inference.
