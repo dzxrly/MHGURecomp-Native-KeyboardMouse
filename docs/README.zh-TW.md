@@ -149,10 +149,10 @@ F1 選單提示會跟隨最近使用的鍵鼠或手把切換。方向鍵或 Tab�
 
 從**本倉庫**下載新版，更新程式檔案及附帶的 Auto 提示 mod，保留遊戲資料、設定、其他模組和存檔。附帶的更新器也只檢查本倉庫。
 
-- **提示遊戲版本不符：**重新匯出已合併更新的完整 Switch 1.4.0 遊戲檔案。保持原檔案不變，修改透過 mod 安裝。
-- **仍顯示手把提示：**檢查 `InputMode`、在 F1 啟用附帶的 Auto mod，然後重新啟動。弓專屬提示和部分手冊插圖仍待完善。
-- **高幀率卡頓：**先嘗試 60 FPS 並開啟 VSync。
-- **其他問題：**在 [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues) 提供程式版本、硬體、重現步驟和 `log.txt`；再次啟動前先複製記錄。
+- **提示遊戲版本不符**：重新匯出已合併更新的完整 Switch 1.4.0 遊戲檔案。保持原檔案不變，修改透過 mod 安裝。
+- **仍顯示手把提示**：檢查 `InputMode`、在 F1 啟用附帶的 Auto mod，然後重新啟動。弓專屬提示和部分手冊插圖仍待完善。
+- **高幀率卡頓**：先嘗試 60 FPS 並開啟 VSync。
+- **其他問題**：在 [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues) 提供程式版本、硬體、重現步驟和 `log.txt`；再次啟動前先複製記錄。
 
 [開發文件](DEVELOPMENT.md#development)集中說明原始碼建置、發布、實作與測試，與本使用指南分開維護。
 
