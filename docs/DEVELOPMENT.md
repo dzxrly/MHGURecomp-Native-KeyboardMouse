@@ -199,6 +199,8 @@ Layer 1 uses the direct result blit. Layers 2/3 add one small compute compositio
 
 Relative mouse counts expire after 100 ms and are consumed during valid game input stages. Menus, focus, capture and original action gates discard blocked motion. Ordinary camera changes occur before recenter, pitch and terrain logic. Bowgun/Bow aiming updates authoritative aim before camera synchronization; original aiming delays, recovery, pitch bounds and action constraints remain active. Ordinary movement with a ranged weapon leaves mouse look available unless the game's aim checks are actually active.
 
+While moving in a following Quick Aim camera, horizontal mouse input starts from the camera's current target yaw. The original movement code also writes the player's aim yaw; reusing that movement direction for each mouse update would feed it back into the camera and cause repeated large turns. Scope input and Bow's independent Quick Aim Camera Type 2 retain their original reference directions.
+
 Bow mouse buttons follow the selected Bow control type and R/ZR swap. Village cameras, fixed Ballista and Prowler special aiming use the stick-compatible path. Their turn limits remain in effect.
 
 `MouseSensitivity` is 0.1–10. Direct input uses relative counts, with no extra acceleration curve. Camera Speed and Reticle Speed apply independently: Slow 0.5×, Default 1×, Fast 1.5×. At sensitivity 1, 1,000 horizontal counts correspond to approximately 20°/40°/60°. Camera, Quick Aim and Scope inversion remain independent.
@@ -251,6 +253,8 @@ Current validation scope:
 | NR layers | 600 successful three-layer scene frames each recorded one NR call; sampled interval p99 about 17.6 ms and maximum about 19.7 ms at a 60 FPS cap |
 
 These are exercised states, not all moves/styles/ammo combinations. Selected FPS settings do not prove every delivered frame rate or physical polling rate. Guard-pose tests do not establish damage blocking. Bow-specific prompts/handbook art, actual Prowler support-move activation, variable scope zoom, broad multiplayer contexts, RTX 20/30/50 and long-session NR quality remain open validation areas.
+
+The moving Quick Aim regression was reproduced in a borderless window and checked with 48 automated in-game angle scenarios at a 60 FPS cap: all three ranged classes across six movement directions with stationary or moving mouse input, vertical/diagonal input, Bow's second control type and independent camera, and the installed program in windowed mode with Quick Aim Camera Type 5. Scope shots and arrows from both Bow control types were also exercised. The angle checks sampled 8,663 frames; measured horizontal turns matched accepted mouse counts to within one game angle unit (360/65,536 degrees).
 
 ## Hub server
 

@@ -39,6 +39,7 @@ static uint64_t pending_at, frame_at;
 static bool frame_allowed;
 static int bow_buttons;  // low bits: 1 Type1 / 2 Type2; bit 2: game's R/ZR swap
 static unsigned reset_generation, seen_generation;
+static uint32_t quest_camera_address;  // game thread: most recent local quest camera
 // Game-thread state, cleared at each local input update. No raw counts are consumed twice.
 static uint32_t aim_player;
 static bool aim_pitch_changed, aim_yaw_changed;
@@ -257,6 +258,15 @@ static void aim(Cpu *c) {
         double scale = mouse_scale(true);
         unsigned flip = inversion(angular || (bowgun && LD8(player + 0x2716)) ? 0x66 : 0x68);
         int yaw = angle_delta(flip & 2 ? dx : -dx, scale, &yaw_fraction);
+        // Walking can replace 14a0 with camera-relative movement yaw (47f678).
+        // Feeding that yaw back into a following Quick Aim camera adds the
+        // movement direction again on every mouse sample. Anchor mouse turns
+        // to the camera instead; keep scope and Bow's independent Type 2 offset.
+        uint32_t cam = quest_camera_address;
+        if (ranged && dx != 0 && LD16(player + 0x1410) && !LD8(player + 0x2716) &&
+            cam && LD32(cam) == VT_CAMERA && LD32(cam + 0x85c) == player &&
+            !(LD32(cam + 0xa9c) == 1 && LD32(cam + 0xaa4) == 1))
+            c->r[2] = LD16(cam + 0x9ec) ^ 0x8000;
         c->r[2] = (uint16_t)(c->r[2] + yaw);
         if (!angular) aim_yaw_delta += yaw;
         if (angular) {
@@ -375,15 +385,27 @@ static void log_camera_mode(Cpu *c, uint32_t cam) {
 
 static void quest_camera(Cpu *c) {
     uint32_t cam = c->r[0];
+    quest_camera_address = cam;
     fnhook_call_original(c, FN_QUEST_CAMERA);
     bool compatibility = (LD8(cam + 0xa98) && LD32(cam + 0xa9c) >= 2) ||
                          (LD8(cam + 0xacc) && LD8(cam + 0xac8) >= 2);
     __atomic_store_n(&use_stick, compatibility, __ATOMIC_RELEASE);
     __atomic_store_n(&stick_aiming, compatibility, __ATOMIC_RELEASE);
-    if (trace) log_camera_mode(c, cam);
+    if (trace) {
+        log_camera_mode(c, cam);
+        uint32_t player = LD32(cam + 0x85c);
+        if (player && native_mouse_layout() == KEYBOARD_RANGED &&
+            (LD8(cam + 0xa98) || LD8(cam + 0xacc)))
+            LOG("[native-mouse] aim-state frame %llu yaw %u body %u target %u current %u left %u/%u aim %u/%u scope %u/%u action %04x:%u\n",
+                (unsigned long long)g_present_count, LD32(player + 0x14a0), LD32(player + 0xfec),
+                LD16(cam + 0x9ec), LD16(cam + 0x9dc), LD16(player + 0x140c), LD16(player + 0x1410),
+                LD8(cam + 0xa98), LD32(cam + 0xa9c), LD8(cam + 0xacc), LD8(cam + 0xac8),
+                LD16(player + 0x2506), LD16(player + 0x250a));
+    }
 }
 
 static void village_camera(Cpu *c) {
+    quest_camera_address = 0;
     uint32_t cam = c->r[0];
     fnhook_call_original(c, FN_VILLAGE_CAMERA);
     if (LD32(cam + 0x85c)) update_layout(c);
