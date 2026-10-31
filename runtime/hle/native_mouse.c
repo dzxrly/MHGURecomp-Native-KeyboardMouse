@@ -226,12 +226,30 @@ static float pitch_limit(Cpu *c, uint32_t player, bool negative) {
     return result;
 }
 
+static bool ranged_aim_active(Cpu *c, uint32_t player) {
+    if (LD8(player + 0x2716)) return true;  // scope
+    // Match the Quick Aim camera's original checks at 226e94. The aim setter
+    // also runs while walking with a drawn bowgun, even without aiming; those
+    // calls must leave raw counts for the ordinary camera.
+    Cpu saved = *c;
+    c->r[0] = player;
+    guest_call(c, LD32(LD32(player) + 0x1c4));
+    bool active = c->r[0] != 0;
+    if (!active) {
+        c->r[0] = player; c->r[1] = 0x1c;
+        guest_call(c, 0x485e2cu);
+        active = c->r[0] != 0;
+    }
+    *c = saved;
+    return active;
+}
+
 static void aim(Cpu *c) {
     uint32_t player = c->r[0], mode = c->r[1];
     uint32_t vt = LD32(player);
     bool bowgun = mode == 0 && (vt == VT_HBG || vt == VT_LBG);
     bool bow = mode == 3 && vt == VT_BOW;
-    bool ranged = (bowgun || bow) && c->r[3] == 1 && (LD8(player + 0x13cc) & 1);
+    bool ranged = (bowgun || bow) && c->r[3] == 1 && (LD8(player + 0x13cc) & 1) && ranged_aim_active(c, player);
     bool angular = mode == 1 && c->r[3] == 1 && (LD8(player + 0x13cc) & 1);
     double dx = 0, dy = 0;
     int angular_pitch = 0;

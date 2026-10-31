@@ -232,6 +232,8 @@ Relative mouse counts are staged for the local game input update and expire afte
 
 Bowgun/Bow aiming changes the player’s authoritative aim before camera synchronization. Original motion checks, aiming-entry delays, per-weapon pitch bounds and projectile setup remain in effect. Bow mouse buttons follow its configured control type and R/ZR swap. Keyboard buttons continue to invoke the original game actions.
 
+The ranged aim setter also runs during ordinary movement with a drawn weapon. It consumes mouse counts only while the original scope or Quick Aim checks are active; otherwise, the counts remain available to the ordinary camera. This keeps movement and mouse look independent.
+
 Village cameras, fixed Ballista and Prowler special aiming retain the stick path. These use the existing configurable sampler and deadzone compensation; direct-angle paths do not.
 
 `Original` maps WASD to movement, mouse to the camera, left/right mouse to X/A, Space/R to B/Y, Q/E to L/R, Tab/T to ZL/ZR, and Enter/Backspace to Plus/Minus. Esc releases the mouse in that mode. In keyboard/mouse mode, mouse-button releases target the action originally pressed, including across Bow menu/control-state changes.
@@ -322,12 +324,14 @@ Use isolated configuration and save directories. Copy the player's save into the
 
 ### Recorded native-input coverage
 
-The following records summarize Windows play checks through 0.11.3, including the 2026-10-31 follow-up. They are a partial record of exercised behavior. A shared Melee/Ranged preset does not establish that every move, style, ammo type or multiplayer context has been tested.
+The following records summarize Windows play checks through 0.11.7.1, including the 2026-10-31 movement-camera regression checks. They are a partial record of exercised behavior. A shared Melee/Ranged preset does not establish that every move, style, ammo type or multiplayer context has been tested.
 
 | Area                                | Recorded checks                                                                                               |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Bowguns and Bow                     | Direct aim and projectile direction, both Bow control types, camera options and automatic equipment switching |
-| Prowler                             | Boomerang precision aim and guard                                                                             |
+| All 14 Hunter weapon classes        | Sheathed standing, drawn standing and all four movement directions; accepted mouse counts changed the actual camera angles in all 84 checks |
+| Ranged movement-camera regression   | All three ranged classes also passed the six movement-camera states at Standard Camera Speed; bowgun Quick Aim/scope and shots, both Bow control types and arrows |
+| Prowler                             | Standing and four-way movement camera checks at Standard Camera Speed; charged-boomerang precision aim and exit, plus earlier guard checks |
 | Insect Glaive / Ballista            | Glaive aim and Kinsect launch; fixed Ballista compatibility aiming                                            |
 | Long Sword / Lance / Charge Blade   | Long Sword movement/draw direction, Lance guard/thrust, Charge Blade guard                                    |
 | Great Sword                         | Draw, attack and guard via actual mouse buttons; charge levels and full move chains remain unverified         |
