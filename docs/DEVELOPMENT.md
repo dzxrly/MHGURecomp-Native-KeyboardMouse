@@ -141,7 +141,7 @@ Executable patches, subsdk modules, RomFS replacement, merged ARC resources and 
 
 ### Configuration and frame flow
 
-All graphical settings are in `[Graphics]`. F1's Graphics page exposes the graphical controls except `NRRuntime`, which is an offline INI-only setting. Audio is separate. `TemporalUpscaling` is the master temporal reconstruction switch; `Upscaler` chooses one of FSR3, FSR4 and DLSS. `NeuralRendering` is independent. Existing accepted key aliases remain parser details; examples use the canonical schema.
+All graphical settings are in `[Graphics]`. F1's Graphics page exposes the graphical controls except `NRRuntime`, which is an offline INI-only setting. Audio is separate. The unified anti-aliasing/upscaling selector maps to the existing `MSAA`, `FXAA`, `TemporalUpscaling` and `Upscaler` keys and displays only applicable parameters. `NeuralRendering` is independent. Existing accepted key aliases remain parser details; examples use the canonical schema.
 
 The renderer separates the scene from the HUD. Shared preparation supplies standard-Z R32F depth and unjittered camera/object motion in render pixels. Temporal reconstruction uses jitter while a valid scene is active. NR alone does not add projection jitter. Scene changes, camera cuts and gaps reset temporal history. MSAA is disabled while temporal input preparation is active; FXAA is disabled when temporal reconstruction owns anti-aliasing.
 
@@ -155,9 +155,9 @@ FSR 3.1 uses the vendored FidelityFX Vulkan implementation, runtime-compiled sha
 
 `ngx.c` controls resources and NGX state; `ngx_sdk.cpp` isolates the official SDK's Microsoft C++ ABI behind a C interface compiled into `mhgu-nvngx.dll`. It reuses the existing Vulkan instance, device and command buffers.
 
-The five selectable qualities map to the NVIDIA performance-quality enums: Ultra Performance, Performance, Balanced, Quality and DLAA. The SDK chooses render dimensions before the guest caches them. NVIDIA App overrides may change the selected model/dimensions. F1 shows actual backend and dimensions, not only the requested provider. DLSS failure is explicit and never silently invokes FSR.
+The five selectable qualities map to the NVIDIA performance-quality enums: Ultra Performance, Performance, Balanced, Quality and DLAA. The SDK chooses host render dimensions. Guest dimensions stay fixed for the process; host screen targets, viewport/scissor and fragment coordinates adapt to live size changes. NVIDIA App overrides may change the selected model/dimensions. F1 shows actual backend and dimensions, not only the requested provider. DLSS failure is explicit and never silently invokes FSR.
 
-Creation uploads retire before the first evaluation, using a GPU event instead of a per-frame CPU device-idle wait. Contexts and their fixed-size resources live for the process; quality and resolution changes require restarting.
+Creation uploads retire before the first evaluation, using a GPU event instead of a per-frame CPU device-idle wait. Successful Save publishes a graphics snapshot to the render thread. Changes to providers, quality or dimensions retire GPU work and recreate affected resources; strength/style edits update evaluation parameters and reset history where needed. Display changes apply on the window thread. Only the offline NR runtime selection requires restarting.
 
 ### DLSS 5 NR
 
@@ -195,7 +195,7 @@ Layer 1 uses the direct result blit. Layers 2/3 add one small compute compositio
 
 ## Native input
 
-`InputMode = Keyboard_Mouse_Input` activates the native hooks. The local character's actual equipment selects Ranged for Light Bowgun, Heavy Bowgun and Bow, and Melee for other Hunter weapons/Prowler. Changing equipment releases held inputs and queued wheel steps. Controllers remain available.
+On Windows, startup offers Controller or Keyboard/Mouse before creating the game window. Start saves `InputMode` and the inverse of the "Don't ask again" checkbox as `[Controls] AskInputOnStartup`; Cancel does not start the game. Automated control/hidden runs skip this chooser. `InputMode = Keyboard_Mouse_Input` activates the native hooks. The local character's actual equipment selects Ranged for Light Bowgun, Heavy Bowgun and Bow, and Melee for other Hunter weapons/Prowler. Changing equipment releases held inputs and queued wheel steps. Controllers remain available.
 
 Relative mouse counts expire after 100 ms and are consumed during valid game input stages. Menus, focus, capture and original action gates discard blocked motion. Ordinary camera changes occur before recenter, pitch and terrain logic. Bowgun/Bow aiming updates authoritative aim before camera synchronization; original aiming delays, recovery, pitch bounds and action constraints remain active. Ordinary movement with a ranged weapon leaves mouse look available unless the game's aim checks are actually active.
 

@@ -1727,7 +1727,8 @@ static void glsl_rewrite(Ctx *c, Str *o, const char *src) {
             while (id_char(*me)) me++;
             char mem[32];
             snprintf(mem, sizeof mem, "%.*s", (int)(me - m), m);
-            if (!strcmp(mem, "pos")) sp(o, c->stage == STAGE_FRAGMENT ? "gl_FragCoord" : "gl_Position");
+            if (!strcmp(mem, "pos")) sp(o, c->stage == STAGE_FRAGMENT ?
+                "(gl_FragCoord * vec4(host_raster.fragment_scale, 1.0, 1.0))" : "gl_Position");
             else if (!strcmp(mem, "psize")) sp(o, "gl_PointSize");
             else sp(o, "%s", mem);  // a<i> (vertex input), v<i> (varying)
             p = me;
@@ -1820,6 +1821,8 @@ static ShaderInfo *glsl_finish(Ctx *c, bool any_branch, bool dbg) {
     int set = stage == STAGE_FRAGMENT ? 1 : 0;
     Str s = {0};
     sp(&s, "%s", glsl_prelude);
+    if (stage == STAGE_FRAGMENT)
+        sp(&s, "layout(push_constant) uniform HostRaster { vec2 fragment_scale; } host_raster;\n");
     for (int i = 0; i < 18; i++) {
         if (!(info->cbuf_mask & (1u << i))) continue;
         uint32_t n = info->cbuf_size[i] / 16;

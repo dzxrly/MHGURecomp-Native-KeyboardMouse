@@ -93,6 +93,7 @@ typedef struct {
     float nr_skin;            // skin structure strength, 0..2; zero by default
     int nr_auto_mask;         // the runtime's automatic skin mask, on by default
     int nr_layers;            // 1..3 copies of one inference's residual, never extra model evaluations
+    int ask_input;            // [Controls] AskInputOnStartup: show the input picker before loading the game
 } Config;
 // The hub server used when ini Server is empty (runtime/net/ldn.c, server/): the project's public one (an Oracle
 // Cloud VM; a DuckDNS name, so it can move without a release). "" = no default.
@@ -174,6 +175,13 @@ float config_audio_gain(void);  // atomic, safe on audio threads; 0 while muted 
 void config_window_focus(bool focused);  // the window got / lost the focus (runtime/host_input.c)
 int config_language(void);     // last saved UI language, atomic across host threads
 bool config_confirm_exit(void); // atomic, safe on the host main thread
+
+// Saved graphics are published together. Consumers keep their own revision;
+// window operations stay on the host thread, GPU operations under vk_lock.
+bool config_graphics_snapshot(Config *out, uint64_t *revision);
+void config_graphics_resolve(Config *c, uint32_t render[2], uint32_t output[2], float *aspect, float *anchor);
+int config_live_prewarm(void);
+void config_graphics_dimensions(uint32_t render[2], uint32_t output[2], bool write);
 
 #ifdef __cplusplus
 }

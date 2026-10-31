@@ -35,6 +35,7 @@ bool vk_fsr4_device_exts(const VkExtensionProperties *ep, uint32_t n, const char
 bool vk_fsr4_device_features(VkPhysicalDeviceVulkan11Features *f11, VkPhysicalDeviceVulkan12Features *f12, VkPhysicalDeviceFeatures *f) { (void)f11, (void)f12, (void)f; return false; }
 bool vk_fsr4_init(void) { LOG("[fsr4] FSR 4 needs AMD's Windows driver: FSR 3.1 is used\n"); return false; }
 bool vk_fsr4_ready(void) { return false; }
+void vk_fsr4_reset(void) {}
 const char *vk_fsr4_name(void) { return "FSR 4"; }
 bool vk_fsr4_dispatch(const Fsr4Dispatch *d) { (void)d; return false; }
 
@@ -138,20 +139,23 @@ bool vk_fsr4_device_features(VkPhysicalDeviceVulkan11Features *f11, VkPhysicalDe
         extensions_ok = false;  // (the extensions stay enabled: harmless without their features)
         return false;
     }
-    en_cm.cooperativeMatrix = en_cm.cooperativeMatrixRobustBufferAccess = VK_TRUE;
+    en_cm.cooperativeMatrix = VK_TRUE;
+    en_cm.cooperativeMatrixRobustBufferAccess = cm.cooperativeMatrixRobustBufferAccess;
     en_f8.shaderFloat8 = en_f8.shaderFloat8CooperativeMatrix = VK_TRUE;
     en_s2.synchronization2 = VK_TRUE;
     en_sg.subgroupSizeControl = en_sg.computeFullSubgroups = VK_TRUE;
     f12->shaderFloat16 = f12->shaderInt8 = f12->bufferDeviceAddress = f12->vulkanMemoryModel = VK_TRUE;
     f12->vulkanMemoryModelDeviceScope = h12.vulkanMemoryModelDeviceScope;
     f12->shaderSubgroupExtendedTypes = h12.shaderSubgroupExtendedTypes;
-    f12->uniformAndStorageBuffer8BitAccess = f12->storageBuffer8BitAccess = VK_TRUE;
+    f12->uniformAndStorageBuffer8BitAccess = h12.uniformAndStorageBuffer8BitAccess;
+    f12->storageBuffer8BitAccess = h12.storageBuffer8BitAccess;
     f12->descriptorIndexing = h12.descriptorIndexing;
     f12->runtimeDescriptorArray = h12.runtimeDescriptorArray;
     f12->descriptorBindingPartiallyBound = h12.descriptorBindingPartiallyBound;
     f12->shaderSampledImageArrayNonUniformIndexing = h12.shaderSampledImageArrayNonUniformIndexing;
     f12->shaderStorageImageArrayNonUniformIndexing = h12.shaderStorageImageArrayNonUniformIndexing;
-    f11->storageBuffer16BitAccess = f11->uniformAndStorageBuffer16BitAccess = VK_TRUE;
+    f11->storageBuffer16BitAccess = h11.storageBuffer16BitAccess;
+    f11->uniformAndStorageBuffer16BitAccess = h11.uniformAndStorageBuffer16BitAccess;
     f11->variablePointers = h11.variablePointers;
     f11->variablePointersStorageBuffer = h11.variablePointersStorageBuffer;
     f->shaderInt16 = VK_TRUE;
@@ -420,6 +424,10 @@ bool vk_fsr4_init(void) {
 }
 
 bool vk_fsr4_ready(void) { return loaded && !failed; }
+void vk_fsr4_reset(void) {
+    if (ctx) { f_destroy(&ctx, NULL); ctx = NULL; }
+    failed = false;
+}
 const char *vk_fsr4_name(void) { return prov_name[0] ? prov_name : "FSR 4"; }
 
 // ================================================================== context and dispatch

@@ -10,6 +10,58 @@
 
 #include "../platform.h"
 
+typedef struct { int mode; bool ask; } InputChoice;
+static INT_PTR CALLBACK input_dialog(HWND window, UINT message, WPARAM w, LPARAM l) {
+    if (message == WM_INITDIALOG) {
+        InputChoice *choice = (InputChoice *)l;
+        SetWindowLongPtrW(window, DWLP_USER, l);
+        CheckRadioButton(window, 101, 102, choice->mode == 1 ? 102 : 101);
+        return TRUE;
+    }
+    if (message == WM_COMMAND && (LOWORD(w) == IDOK || LOWORD(w) == IDCANCEL)) {
+        if (LOWORD(w) == IDOK) {
+            InputChoice *choice = (InputChoice *)GetWindowLongPtrW(window, DWLP_USER);
+            choice->mode = IsDlgButtonChecked(window, 102) == BST_CHECKED ? 1 : 0;
+            choice->ask = IsDlgButtonChecked(window, 103) != BST_CHECKED;
+        }
+        EndDialog(window, LOWORD(w)); return TRUE;
+    }
+    if (message == WM_CLOSE) { EndDialog(window, IDCANCEL); return TRUE; }
+    return FALSE;
+}
+static WORD *dialog_text(WORD *p, const wchar_t *text) {
+    do { *p++ = *text; } while (*text++);
+    return p;
+}
+static WORD *dialog_control(WORD *p, DWORD style, short x, short y, short width, short height, WORD id,
+                            WORD kind, const wchar_t *title) {
+    p = (WORD *)(((uintptr_t)p + 3) & ~(uintptr_t)3);
+    DLGITEMTEMPLATE *item = (DLGITEMTEMPLATE *)p;
+    *item = (DLGITEMTEMPLATE){.style = WS_CHILD | WS_VISIBLE | style, .x=x, .y=y, .cx=width, .cy=height, .id=id};
+    p = (WORD *)(item + 1); *p++ = 0xffff; *p++ = kind;
+    p = dialog_text(p, title); *p++ = 0; return p;
+}
+bool plat_choose_input(int *mode, bool *ask_again) {
+    union { DWORD aligned; WORD data[2048]; } storage = {0};
+    DLGTEMPLATE *dialog = (DLGTEMPLATE *)storage.data;
+    *dialog = (DLGTEMPLATE){.style=WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME | DS_SETFONT | DS_CENTER,
+                           .cdit=6, .cx=282, .cy=154};
+    WORD *p = (WORD *)(dialog + 1); *p++ = 0; *p++ = 0;
+    p = dialog_text(p, L"MHGURecomp - Input / 选择输入方式"); *p++ = 10;
+    p = dialog_text(p, L"Segoe UI");
+    p = dialog_control(p, SS_LEFT, 14, 12, 252, 24, 104, 0x82, L"Choose controls for this session / 选择本次输入方式");
+    p = dialog_control(p, BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 18, 43, 245, 16, 101, 0x80, L"Controller / 手柄（原版输入）");
+    p = dialog_control(p, BS_AUTORADIOBUTTON | WS_TABSTOP, 18, 67, 245, 16, 102, 0x80, L"Keyboard and mouse / 原生键鼠");
+    p = dialog_control(p, BS_AUTOCHECKBOX | WS_TABSTOP | WS_GROUP, 18, 96, 245, 16, 103, 0x80, L"Don't ask again / 不再询问");
+    p = dialog_control(p, BS_DEFPUSHBUTTON | WS_TABSTOP | WS_GROUP, 128, 126, 64, 18, IDOK, 0x80, L"Start / 启动");
+    dialog_control(p, BS_PUSHBUTTON | WS_TABSTOP, 202, 126, 64, 18, IDCANCEL, 0x80, L"Cancel / 取消");
+    InputChoice choice = {*mode, true};
+    INT_PTR result = DialogBoxIndirectParamW(GetModuleHandleW(NULL), dialog, NULL, input_dialog, (LPARAM)&choice);
+    if (result == -1) { plat_error_box("Cannot open the input selection dialog."); return false; }
+    if (result != IDOK) return false;
+    *mode = choice.mode; *ask_again = choice.ask; return true;
+}
+
 // ---- guest address space
 // The 4 GB window is reserved up front; pages are committed on their first touch by the exception handler below
 // (64 KB at a time), so only memory the game uses is backed.

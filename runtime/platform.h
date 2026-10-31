@@ -53,6 +53,7 @@ bool plat_user_dir(char *buf, size_t size);
 // the system's own listing, not a stat per file: ~80 ms for the game's 35531 on Windows).
 int plat_count_files(const char *dir);
 void plat_error_box(const char *msg);
+bool plat_choose_input(int *mode, bool *ask_again); // false: user cancelled; no settings are written
 void plat_fatal_notice(void);
 
 // ---- diagnostics

@@ -29,9 +29,9 @@ Windows-MHGURecomp/
 
 ## 圖形與神經渲染
 
-所有圖形選項集中於 INI 的 **[Graphics]**；除僅限離線設定的 `NRRuntime` 外，也可在 **F1 → Graphics** 中調整。音效位於 Audio。選擇 Save 儲存；帶星號的設定需要重新啟動。
+所有圖形選項集中於 INI 的 **[Graphics]**；除僅限離線設定的 `NRRuntime` 外，也可在 **F1 → Graphics** 中調整。音效位於 Audio。選擇 Save 後，顯示模式、解析度、超解析後端及 NR 參數等圖形設定於目前遊戲中生效；重建資源時畫面可能短暫停頓。
 
-啟用 **Temporal upscaling / AA** 後，在 FSR 3.1、FSR 4、DLSS SR／DLAA 中選擇一種。DLSS 模式依序為 **超級效能 → 效能 → 平衡 → 品質 → DLAA**；`UpscaleQuality = DLAA` 對應原生解析度反鋸齒。內部尺寸由 SDK 查詢；NVIDIA App 覆寫設定可能改變實際尺寸與模型，以 F1 和日誌為準。時間超解析度生效時接管 MSAA／FXAA。FSR 4 需要相容的建置和 AMD 驅動，不可用時回退 FSR 3.1；DLSS 不可用會明確顯示狀態。
+在 **Anti-aliasing / upscaling** 中統一選擇關閉、FXAA、MSAA、MSAA + FXAA、FSR 3.1、FSR 4 或 DLSS SR／DLAA。選單依所選方式顯示對應參數，包括 MSAA 取樣數、FXAA 模式或超解析度品質等；啟用 NR 時不提供 MSAA 選項。DLSS 模式依序為 **超級效能 → 效能 → 平衡 → 品質 → DLAA**；`UpscaleQuality = DLAA` 對應原生解析度反鋸齒。內部尺寸由 SDK 查詢；NVIDIA App 覆寫設定可能改變實際尺寸與模型，以 F1 和日誌為準。FSR 4 需要相容的建置和 AMD 驅動，不可用時回退 FSR 3.1；DLSS 不可用會明確顯示狀態。
 
 NR 為獨立開關，也可不啟用超解析度而單獨使用。同一個 ZIP 已包含 NGX 介面、官方 SR、官方 NR 和社群 SM89 NR 執行庫。**執行庫僅透過 INI 離線選擇**：關閉遊戲後，將 `[Graphics]` 下的 `NRRuntime` 設為 `Official`（預設，RTX 50）或 `SM89`（社群 RTX 40）。F1 不提供這個選項，失敗也不會自動切換。詳見[執行庫設定與來源](../third_party/ngx/README.md)。目錄如下：
 
@@ -50,13 +50,13 @@ dlss/nr/sm89/nvngx_dlssnr.dll
 | 自動皮膚遮罩 | `NRAutoMask` | **On** | On／Off |
 | 效果層數 | `NRLayers` | 1 | **1～3** |
 
-每個場景畫面只執行一次 NR。二、三層放大結果相對原圖的差值，在 HUD 繪製前合成，不額外執行模型。Skin 0 要求停用皮膚結構增強，其他模型變化仍可能存在。F1 和 INI 均有詳細說明，NR 參數儲存後須重新啟動。RTX 4080 已進行基礎 NR 和 SR＋NR 測試；本專案尚未在 RTX 50 或其他系列顯示卡上驗證。
+每個場景畫面只執行一次 NR。二、三層放大結果相對原圖的差值，在 HUD 繪製前合成，不額外執行模型。Skin 0 要求停用皮膚結構增強，其他模型變化仍可能存在。F1 和 INI 均有詳細說明，NR 參數於選擇 Save 後即時生效。RTX 4080 已進行基礎 NR 和 SR＋NR 測試；本專案尚未在 RTX 50 或其他系列顯示卡上驗證。
 
 ## 鍵鼠設定
 
 ### 啟用與基礎設定
 
-結束程式後修改 `mhgurecomp.ini`，然後重新啟動：
+啟動時選擇手把或鍵鼠，選擇會儲存至 `mhgurecomp.ini`。勾選「不再詢問」後，後續啟動直接使用已儲存的選擇；將 INI 中的 `AskInputOnStartup` 改回 `On` 可恢復詢問。鍵鼠對應的設定為：
 
 ```ini
 [Controls]

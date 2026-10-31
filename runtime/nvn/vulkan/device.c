@@ -18,6 +18,7 @@
 #include "fsr.h"
 #include "fsr4.h"
 #include "ngx.h"
+#include "graphics.h"
 #include "vk.h"
 
 VkG g_vk;
@@ -89,9 +90,11 @@ static void create_instance(void) {
     bool validate = getenv("MHGU_VK_VALIDATION") != NULL;
     if (validate) ext[n_ext++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
     const char *layers[] = {"VK_LAYER_KHRONOS_validation"};
+    uint32_t instance_version = VK_API_VERSION_1_2;
+    vkEnumerateInstanceVersion(&instance_version);
     VkApplicationInfo app = {.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .pApplicationName = "MHGURecomp",
                              .pEngineName = "MHGURecomp",
-                             .apiVersion = g_config.fsr && g_config.fsr_upscaler == FSR_UP_4 ? VK_API_VERSION_1_3 : VK_API_VERSION_1_2};  // (FSR 4's shaders use SPIR-V 1.6)
+                             .apiVersion = instance_version >= VK_API_VERSION_1_3 ? VK_API_VERSION_1_3 : VK_API_VERSION_1_2};
     VkInstanceCreateInfo ci = {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pApplicationInfo = &app,
                                .enabledExtensionCount = n_ext, .ppEnabledExtensionNames = ext,
                                .enabledLayerCount = validate ? 1 : 0, .ppEnabledLayerNames = layers};
@@ -174,9 +177,8 @@ static void create_device(void) {
     if (g_vk.stencil_export) ext[n_ext++] = VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME;
     no_exclusive = surface_caps2 && has_ext(ep, ne, "VK_EXT_full_screen_exclusive") && !getenv("MHGU_VK_EXCLUSIVE");
     if (no_exclusive) ext[n_ext++] = "VK_EXT_full_screen_exclusive";
-    bool fsr4 = g_config.fsr && g_config.fsr_upscaler == FSR_UP_4 && vk_fsr4_device_exts(ep, ne, ext, &n_ext);  // FSR 4: its extensions
-    bool ngx = (g_config.dlss_nr || (g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)) &&
-        vk_ngx_device_exts(ep, ne, ext, &n_ext, sizeof ext / sizeof *ext);
+    bool fsr4 = g_vk.props.apiVersion >= VK_API_VERSION_1_3 && vk_fsr4_device_exts(ep, ne, ext, &n_ext);
+    bool ngx = vk_ngx_device_exts(ep, ne, ext, &n_ext, sizeof ext / sizeof *ext);
     free(ep);
 
     // optional features: whatever the GPU has of what the backend can use
@@ -228,7 +230,7 @@ static void create_device(void) {
     b->robustBufferAccess = h->robustBufferAccess;  // guest shaders index cbufs freely: keep OOB reads harmless
     b->shaderClipDistance = h->shaderClipDistance;
     b->multiViewport = h->multiViewport;
-    if (config_temporal()) {  // Shared input preparation and optional FSR fallback.
+    {  // Enable supported preparation features for later in-game backend changes.
         b->shaderStorageImageWriteWithoutFormat = g_vk.fsr_storage_wo_format = h->shaderStorageImageWriteWithoutFormat;
         b->shaderStorageImageReadWithoutFormat = h->shaderStorageImageReadWithoutFormat;
         f12.shaderFloat16 = b->shaderInt16 = g_vk.fsr_fp16 = f12_have.shaderFloat16 && h->shaderInt16;  // (both, or neither)
@@ -317,7 +319,7 @@ void vk_cycle_msaa(void) {
 
 // MHGU_CONTROL "msaa <n>": as many samples as the GPU allows up to n (test runs).
 void vk_set_msaa(uint32_t n) {
-    if (g_fsr_on) { LOG("[vk] MSAA stays off while FSR is on\n"); return; }
+    if (g_fsr_on && n > 1) { LOG("[vk] MSAA stays off while temporal processing is on\n"); return; }
     uint32_t s = 1;
     for (uint32_t c = 2; c <= 8; c *= 2) if (c <= n && (g_vk.msaa_counts & c)) s = c;
     g_vk.msaa = s;
@@ -453,7 +455,7 @@ static bool frame_begin(void) {
     // scene. Existing attachment caches defer old image destruction safely.
     int msaa = config_live_msaa();
     if (configured_msaa < 0) configured_msaa = g_config.msaa;
-    if (msaa != configured_msaa) { vk_set_msaa((uint32_t)msaa); configured_msaa = msaa; }
+    if (msaa != configured_msaa && (!g_fsr_on || msaa == 1)) { vk_set_msaa((uint32_t)msaa); configured_msaa = msaa; }
     if (!g_vk.swapchain || (uint32_t)w != g_vk.sc_extent.width || (uint32_t)h != g_vk.sc_extent.height ||
         config_live_vsync() != swapchain_vsync) recreate_swapchain();
     if (!g_vk.swapchain) return false;
@@ -583,8 +585,8 @@ void backend_present(NvnTexture *t) {
     vk_ms_resolve(b);
     if (frame_begin()) {
         // the game's image, as large as fits with its aspect ratio, centred
-        double ww = g_vk.sc_extent.width, wh = g_vk.sc_extent.height, s = fmin(ww / t->width, wh / t->height);
-        double vw = t->width * s, vh = t->height * s;
+        double ww = g_vk.sc_extent.width, wh = g_vk.sc_extent.height, s = fmin(ww / b->width, wh / b->height);
+        double vw = b->width * s, vh = b->height * s;
         vk_present_draw(vk_cmd(), b, (float)((ww - vw) / 2), (float)((wh - vh) / 2), (float)vw, (float)vh);
         OverlayTarget ot = {g_vk.inst, g_vk.phys, g_vk.dev, g_vk.qfam, g_vk.queue, g_vk.pcache, sc_pass,
                             g_vk.sc_extent.width, g_vk.sc_extent.height};
@@ -609,6 +611,7 @@ void backend_present(NvnTexture *t) {
     }
     g_frames++;
     g_present_count = g_frames;
+    vk_graphics_apply();
     {   // (debug) MHGU_CONTROL "dump": the next whole frame's passes (exec.c dump_pass)
         extern volatile int g_dump_active, g_dump_request;
         extern int g_dump_no, g_dump_frame;
@@ -665,6 +668,7 @@ void backend_init(void) {
     static bool done;
     if (done) return;
     done = true;
+    vk_graphics_init();
     if (!ui_window()) FATAL("no window\n");
     create_instance();
     if (!SDL_Vulkan_CreateSurface(ui_window(), g_vk.inst, NULL, &g_vk.surface)) FATAL("SDL_Vulkan_CreateSurface: %s\n", SDL_GetError());
@@ -673,6 +677,9 @@ void backend_init(void) {
     vk_exec_init();
     vk_shaders_init();
     vk_fsr_init();  // ([Upscaler] FSR: fsr.c)
+    // The guest caches this once at boot. Subsequent size changes are host-side.
+    memcpy(g_render_size, g_graphics_render, sizeof g_render_size);
+    config_graphics_dimensions(g_graphics_render, g_graphics_output, true);
     create_swapchain();
     atexit(exit_handler);
 }

@@ -17,7 +17,7 @@
 #include "config.h"
 #include "rt.h"
 
-#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", "", "/", FXAA_ORIGINAL, 0, 0, 0.5f, NR_RUNTIME_OFFICIAL, 0, 1.0f, 0.0f, 0.0f, 1, 1
+#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", "", "/", FXAA_ORIGINAL, 0, 0, 0.5f, NR_RUNTIME_OFFICIAL, 0, 1.0f, 0.0f, 0.0f, 1, 1, 1
 Config g_config = {CONFIG_DEFAULT_VALUES};
 Config config_defaults(void) { Config c = {CONFIG_DEFAULT_VALUES}; return c; }
 uint32_t g_render_size[2] = {1920, 1080};
@@ -99,39 +99,39 @@ static const char DEFAULT_INI[] =
     "NRRuntime = Official\n"
     "\n"
     "; Overall strength requested from the NR model; separate from effect layers\n"
-    "; Between 0 and 2; restart required\n"
+    "; Between 0 and 2; Save applies immediately\n"
     "; Default: 0.5\n"
     "NRIntensity = 0.5\n"
     "\n"
     "; Model style: Standard (0), Natural (1), Cinematic (2)\n"
-    "; Changes the runtime's style input; restart required\n"
+    "; Changes the runtime's style input; Save applies immediately\n"
     "; Default: Standard\n"
     "NRStyle = Standard\n"
     "\n"
     "; Local structure and fine-detail strength requested from the model\n"
-    "; Between 0 and 2; restart required\n"
+    "; Between 0 and 2; Save applies immediately\n"
     "; Default: 1\n"
     "NRLocalStructure = 1\n"
     "\n"
     "; Local tone and lighting-change strength requested from the model\n"
-    "; Between 0 and 2; restart required\n"
+    "; Between 0 and 2; Save applies immediately\n"
     "; Default: 0\n"
     "NRLocalTone = 0\n"
     "\n"
     "; Structure strength in skin regions identified by Auto Mask\n"
     "; 0 requests no skin-structure enhancement; other NR changes can remain\n"
-    "; Between 0 and 2; restart required\n"
+    "; Between 0 and 2; Save applies immediately\n"
     "; Default: 0\n"
     "NRSkinStructure = 0\n"
     "\n"
     "; Use the NR runtime's automatic skin mask for Skin structure\n"
-    "; On or Off; restart required\n"
+    "; On or Off; Save applies immediately\n"
     "; Default: On\n"
     "NRAutoMask = On\n"
     "\n"
     "; Effect layers: base + layers * (one NR result - base), clamped to SDR\n"
     "; One model evaluation per scene frame at every setting; not repeated inference\n"
-    "; Between 1 and 3; restart required\n"
+    "; Between 1 and 3; Save applies immediately\n"
     "; Default: 1\n"
     "NRLayers = 1\n"
     "\n"
@@ -188,6 +188,9 @@ static const char DEFAULT_INI[] =
     "; Input and prompt mode (restart). Original keeps upstream keyboard bindings and controller icons.\n"
     "; Original, Keyboard_Mouse_Input\n"
     "InputMode = Original\n"
+    "; Ask which input mode to use before loading the game. Off reuses InputMode.\n"
+    "; On, Off; Default: On\n"
+    "AskInputOnStartup = On\n"
     "\n"
     "; Keyboard/mouse bindings and prompts follow the equipped weapon automatically.\n"
     "; Bowguns/Bow use Ranged; other weapons and Prowler use Melee.\n"
@@ -435,44 +438,45 @@ static bool parse_aspect(const char *v, float *out) {
 static const int anchor_values[] = {UI_CENTER, UI_21_9, UI_32_9, UI_EDGES}, msaa_values[] = {1, 2, 4, 8};
 const ConfigSetting g_settings[] = {
     {"Graphics", "Mode", SET_CHOICE, F(display_mode), 0, 0, 0,
-     "Windowed|window,Fullscreen|exclusive|exclusivefullscreen,Borderless|borderless*", NULL, true, ERR_SIZE},
-    {"Graphics", "Resolution", SET_SIZE, F(width), F(height), 0, 0, "Desktop|auto", NULL, true, ERR_SIZE},
-    {"Graphics", "RenderResolution", SET_SIZE, F(render_w), F(render_h), 0, 0, "Auto", NULL, true, ERR_SIZE},
-    {"Graphics", "AspectRatio", SET_ASPECT, F(aspect_ratio), 0, 0.5f, 10.0f, NULL, NULL, true, ERR_ASPECT},
+     "Windowed|window,Fullscreen|exclusive|exclusivefullscreen,Borderless|borderless*", NULL, false, ERR_SIZE},
+    {"Graphics", "Resolution", SET_SIZE, F(width), F(height), 0, 0, "Desktop|auto", NULL, false, ERR_SIZE},
+    {"Graphics", "RenderResolution", SET_SIZE, F(render_w), F(render_h), 0, 0, "Auto", NULL, false, ERR_SIZE},
+    {"Graphics", "AspectRatio", SET_ASPECT, F(aspect_ratio), 0, 0.5f, 10.0f, NULL, NULL, false, ERR_ASPECT},
     {"Graphics", "FOV", SET_FLOAT, F(fov), 0, 0.5f, 2.0f, NULL, NULL, false, ERR_VIEW},
-    {"Graphics", "UIAnchor", SET_CHOICE, F(ui_anchor), 0, 0, 0, "Center|1|16:9,21:9|2,32:9|3,Edges", anchor_values, true,
+    {"Graphics", "UIAnchor", SET_CHOICE, F(ui_anchor), 0, 0, 0, "Center|1|16:9,21:9|2,32:9|3,Edges", anchor_values, false,
      ERR_MISC},
     {"Graphics", "MSAA", SET_CHOICE, F(msaa), 0, 0, 0, "Off|none|0|1|1x,2x|2,4x|4,8x|8", msaa_values, false, ERR_MISC},
     ON_OFF("Graphics", "FXAA", fxaa, false),
     {"Graphics", "FXAAMode", SET_CHOICE, F(fxaa_mode), 0, 0, 0, "Original,3_11", NULL, false, ERR_MISC},
-    ON_OFF("Graphics", "TemporalUpscaling|FSR", fsr, true),
-    {"Graphics", "Upscaler", SET_CHOICE, F(fsr_upscaler), 0, 0, 0, "FSR3|fsr3.1|3,FSR4|4,DLSS|DLSSSR", NULL, true, ERR_FSR},
+    ON_OFF("Graphics", "TemporalUpscaling|FSR", fsr, false),
+    {"Graphics", "Upscaler", SET_CHOICE, F(fsr_upscaler), 0, 0, 0, "FSR3|fsr3.1|3,FSR4|4,DLSS|DLSSSR", NULL, false, ERR_FSR},
     {"Graphics", "UpscaleQuality|FSRQuality", SET_CHOICE, F(fsr_quality), 0, 0, 0,
-     "NativeAA|DLAA|native|aa,Quality,Balanced,Performance,UltraPerformance|ultraperf", NULL, true, ERR_FSR},
-    {"Graphics", "Sharpness", SET_FLOAT, F(fsr_sharpness), 0, 0.0f, 1.0f, NULL, NULL, true, ERR_FSR},
-    ON_OFF("Graphics", "ObjectMotion", fsr_objmotion, true),
-    {"Graphics", "Reactive", SET_FLOAT, F(fsr_reactive), 0, 0.0f, 1.0f, NULL, NULL, true, ERR_FSR},
-    ON_OFF("Graphics", "AnimSurf", fsr_animsurf, true),
-    ON_OFF("Graphics", "NeuralRendering", dlss_nr, true),
-    {"Graphics", "NRIntensity", SET_FLOAT, F(nr_intensity), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
+     "NativeAA|DLAA|native|aa,Quality,Balanced,Performance,UltraPerformance|ultraperf", NULL, false, ERR_FSR},
+    {"Graphics", "Sharpness", SET_FLOAT, F(fsr_sharpness), 0, 0.0f, 1.0f, NULL, NULL, false, ERR_FSR},
+    ON_OFF("Graphics", "ObjectMotion", fsr_objmotion, false),
+    {"Graphics", "Reactive", SET_FLOAT, F(fsr_reactive), 0, 0.0f, 1.0f, NULL, NULL, false, ERR_FSR},
+    ON_OFF("Graphics", "AnimSurf", fsr_animsurf, false),
+    ON_OFF("Graphics", "NeuralRendering", dlss_nr, false),
+    {"Graphics", "NRIntensity", SET_FLOAT, F(nr_intensity), 0, 0.0f, 2.0f, NULL, NULL, false, ERR_NR},
     {"Graphics", "NRRuntime", SET_CHOICE, F(nr_runtime), 0, 0, 0, "Official,SM89", NULL, true, ERR_NR},
-    {"Graphics", "NRStyle", SET_CHOICE, F(nr_style), 0, 0, 0, "Standard|0,Natural|1,Cinematic|2", NULL, true, ERR_NR},
-    {"Graphics", "NRLocalStructure", SET_FLOAT, F(nr_structure), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
-    {"Graphics", "NRLocalTone", SET_FLOAT, F(nr_tone), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
-    {"Graphics", "NRSkinStructure", SET_FLOAT, F(nr_skin), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
-    ON_OFF("Graphics", "NRAutoMask", nr_auto_mask, true),
-    {"Graphics", "NRLayers", SET_INT, F(nr_layers), 0, 1, 3, NULL, NULL, true, ERR_NR},
+    {"Graphics", "NRStyle", SET_CHOICE, F(nr_style), 0, 0, 0, "Standard|0,Natural|1,Cinematic|2", NULL, false, ERR_NR},
+    {"Graphics", "NRLocalStructure", SET_FLOAT, F(nr_structure), 0, 0.0f, 2.0f, NULL, NULL, false, ERR_NR},
+    {"Graphics", "NRLocalTone", SET_FLOAT, F(nr_tone), 0, 0.0f, 2.0f, NULL, NULL, false, ERR_NR},
+    {"Graphics", "NRSkinStructure", SET_FLOAT, F(nr_skin), 0, 0.0f, 2.0f, NULL, NULL, false, ERR_NR},
+    ON_OFF("Graphics", "NRAutoMask", nr_auto_mask, false),
+    {"Graphics", "NRLayers", SET_INT, F(nr_layers), 0, 1, 3, NULL, NULL, false, ERR_NR},
     {"Graphics", "DrawDistance", SET_FLOAT, F(draw_distance), 0, 0.0f, 10.0f, NULL, NULL, false, ERR_DRAW},
     ON_OFF("Graphics", "SmoothGradients", smooth_gradients, false),
     {"Graphics", "FPS|FrameRate", SET_INT, F(fps), 0, 30, 240, NULL, NULL, false, ERR_MISC},
     ON_OFF("Graphics", "VSync", vsync, false),
-    ON_OFF("Graphics", "ShaderPrewarm", shader_prewarm, true),
+    ON_OFF("Graphics", "ShaderPrewarm", shader_prewarm, false),
     {"Controls", "FaceButtons", SET_CHOICE, F(face_buttons), 0, 0, 0, "Position|positional|nintendo,Label|labels|xbox",
      NULL, false, ERR_MISC},
     {"Controls", "MenuConfirm", SET_CHOICE, F(menu_confirm), 0, 0, 0, "Original,South,East", NULL, false, ERR_CONFIRM},
     ON_OFF("Controls", "BackgroundInput", background_input, false),
     {"Controls", "ComboInputWindow", SET_CHOICE, F(combo_window), 0, 0, 0, "Lenient,Strict", NULL, false, ERR_MISC},
     {"Controls", "InputMode", SET_CHOICE, F(input_mode), 0, 0, 0, "Original,Keyboard_Mouse_Input", NULL, true, ERR_MISC},
+    ON_OFF("Controls", "AskInputOnStartup", ask_input, false),
     {"Controls", "ChatKey", SET_TEXT, F(chat_key), sizeof g_config.chat_key, 0, 0, NULL, NULL, false, ERR_MISC},
     {"Mouse", "MouseSensitivity", SET_FLOAT, F(mouse_sensitivity), 0, 0.1f, 10.0f, NULL, NULL, false, ERR_VIEW},
     {"MouseConversion", "MinWindowMs", SET_FLOAT, F(mouse_conversion.min_window_ms), 0, 1.0f, 50.0f, NULL, NULL, true, ERR_MOUSE_CONVERSION},
@@ -816,6 +820,28 @@ static void append_missing_sections(const char *path, const char *seen) {
         LOG("[config] added the [%s] section to %s\n", name, path);
     }
     if (o) fclose(o);
+}
+
+void config_graphics_resolve(Config *c, uint32_t render[2], uint32_t output[2], float *aspect, float *anchor) {
+    int dw = desktop_w ? desktop_w : 1920, dh = desktop_h ? desktop_h : 1080;
+    if (!c->width) c->width = dw, c->height = dh;
+    int tw = c->width, th = c->height;
+    if (c->display_mode == DISPLAY_BORDERLESS) tw = tw < dw ? tw : dw, th = th < dh ? th : dh;
+    *aspect = c->aspect_ratio > 0 ? c->aspect_ratio : (float)tw / th;
+    if (*aspect < 1.595f) *aspect = 1.6f;
+    if (fabsf(*aspect - 16.0f / 9.0f) < .01f) *aspect = 16.0f / 9.0f;
+    int w, h;
+    if (!c->render_w && (c->fsr || c->dlss_nr) && c->display_mode == DISPLAY_BORDERLESS)
+        fit_aspect(dw, dh, *aspect, &w, &h);
+    else fit_aspect(c->render_w ? c->render_w : tw, c->render_h ? c->render_h : th, *aspect, &w, &h);
+    output[0] = w; output[1] = h;
+    static const float ratio[] = {1, 1.5f, 1.7f, 2, 3};
+    float r = c->fsr ? ratio[c->fsr_quality] : 1;
+    if (r != 1) fit_aspect((int)(w / r + .5f), (int)(h / r + .5f), *aspect, &w, &h);
+    render[0] = c->render_w = w; render[1] = c->render_h = h;
+    float ui = c->ui_anchor == UI_EDGES ? *aspect : c->ui_anchor == UI_32_9 ? 32.0f / 9.0f :
+               c->ui_anchor == UI_21_9 ? 21.0f / 9.0f : 16.0f / 9.0f;
+    *anchor = ui < *aspect ? ui : *aspect;
 }
 
 void config_load(void) {

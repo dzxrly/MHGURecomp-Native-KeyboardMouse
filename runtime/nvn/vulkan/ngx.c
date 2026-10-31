@@ -4,6 +4,7 @@
 #include <string.h>
 #include "../../rt.h"
 #include "ngx.h"
+#include "graphics.h"
 
 #ifndef _WIN32
 bool vk_ngx_device_exts(const VkExtensionProperties *a, uint32_t n, const char **e, uint32_t *ne, uint32_t cap) {
@@ -18,9 +19,11 @@ bool vk_ngx_sr(const NgxFrame *f) { return false; }
 bool vk_ngx_nr(const NgxFrame *f) { return false; }
 bool vk_ngx_sr_ready(void) { return false; }
 bool vk_ngx_nr_ready(void) { return false; }
+void vk_ngx_reset(void) {}
 #else
 #include <windows.h>
 #include <nvsdk_ngx_vk.h>
+#include "graphics.h"
 
 // The official SDK adapter also keeps NVIDIA's parameter vtables in the Microsoft ABI.
 static void (*mhgu_ngx_set_ui)(NVSDK_NGX_Parameter *, const char *, unsigned int);
@@ -56,6 +59,7 @@ static NrInit init_nr;
 static Create create_nr;
 static Evaluate evaluate_nr;
 static Release release_feature;
+static Release release_nr;
 static Destroy destroy_parameters;
 static NVSDK_NGX_Parameter *caps;
 static bool attempted, initialised, extensions_ok;
@@ -114,6 +118,7 @@ static bool load_core(void) {
     IMPORT(create_nr, "mhgu_ngx_nr_create");
     IMPORT(evaluate_nr, "mhgu_ngx_nr_evaluate");
     IMPORT(release_feature, "mhgu_ngx_release");
+    IMPORT(release_nr, "mhgu_ngx_nr_release");
     IMPORT(destroy_parameters, "mhgu_ngx_destroy");
     IMPORT(mhgu_ngx_set_ui, "mhgu_ngx_set_ui");
     IMPORT(mhgu_ngx_set_i, "mhgu_ngx_set_i");
@@ -161,9 +166,9 @@ bool vk_ngx_init(void) {
         return initialised;
     attempted = true;
     // Any early failure must remain visible in F1, rather than waiting forever.
-    if (g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)
+    if (g_graphics.fsr && g_graphics.fsr_upscaler == FSR_UP_DLSS)
         config_graphics_report(false, GFX_UNAVAILABLE);
-    if (g_config.dlss_nr)
+    if (g_graphics.dlss_nr)
         config_graphics_report(true, GFX_UNAVAILABLE);
     if (!extensions_ok || !load_core()) {
         return false;
@@ -178,7 +183,7 @@ bool vk_ngx_init(void) {
     } else if (len >= sizeof runtime_dir / sizeof *runtime_dir)
         return false;
     if (swprintf(nr_dir, sizeof nr_dir / sizeof *nr_dir, L"%ls\\dlss\\nr\\%ls", runtime_dir,
-                 g_config.nr_runtime == NR_RUNTIME_SM89 ? L"sm89" : L"official") < 0)
+                 g_graphics.nr_runtime == NR_RUNTIME_SM89 ? L"sm89" : L"official") < 0)
         return false;
     static const wchar_t *paths[2];
     paths[0] = nr_dir;
@@ -209,15 +214,15 @@ bool vk_ngx_init(void) {
     sr.failed = !available;
     if (sr.failed) {
         LOG("[ngx] DLSS SR not available on this driver/device/runtime combination\n");
-        if (g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)
+        if (g_graphics.fsr && g_graphics.fsr_upscaler == FSR_UP_DLSS)
             config_graphics_report(false, GFX_UNAVAILABLE);
     }
     LOG("[ngx] initialised on the existing Vulkan device; SR available %u; NR requested %d\n", available,
-        g_config.dlss_nr);
+        g_graphics.dlss_nr);
     initialised = true;
-    if (!sr.failed && g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)
+    if (!sr.failed && g_graphics.fsr && g_graphics.fsr_upscaler == FSR_UP_DLSS)
         config_graphics_report(false, GFX_WAITING);
-    if (g_config.dlss_nr) {
+    {
         wchar_t dll[32768];
         if (swprintf(dll, sizeof dll / sizeof *dll, L"%ls\\nvngx_dlssnr.dll", nr_dir) < 0 ||
             GetFileAttributesW(dll) == INVALID_FILE_ATTRIBUTES) {
@@ -225,12 +230,12 @@ bool vk_ngx_init(void) {
             config_graphics_report(true, GFX_UNAVAILABLE);
             LOG("[ngx] selected NR runtime is missing: dlss/nr/%s/nvngx_dlssnr.dll; NR disabled, no runtime "
                 "substitution\n",
-                g_config.nr_runtime == NR_RUNTIME_SM89 ? "sm89" : "official");
+                g_graphics.nr_runtime == NR_RUNTIME_SM89 ? "sm89" : "official");
         } else {
             config_graphics_report(true, GFX_WAITING);
             LOG("[ngx] selected NR runtime: %s (explicit selection; no automatic switch)\n",
-                g_config.nr_runtime == NR_RUNTIME_SM89 ? "community SM89 / RTX 40" : "official / RTX 50");
-            if (g_config.nr_runtime == NR_RUNTIME_SM89) {
+                g_graphics.nr_runtime == NR_RUNTIME_SM89 ? "community SM89 / RTX 40" : "official / RTX 50");
+            if (g_graphics.nr_runtime == NR_RUNTIME_SM89) {
                 r = init_nr(dll, runtime_dir, g_vk.inst, g_vk.phys, g_vk.dev, vkGetInstanceProcAddr,
                             vkGetDeviceProcAddr, caps);
                 nr_direct = r == NVSDK_NGX_Result_Success;
@@ -287,12 +292,12 @@ static NVSDK_NGX_Resource_VK resource(NgxImage i) {
 }
 
 static void nr_controls(NVSDK_NGX_Parameter *p) {
-    FLT(p, "DLSSNR.Intensity", g_config.nr_intensity);
-    UI(p, "DLSSNR.Style", g_config.nr_style);
-    FLT(p, "DLSSNR.LocalStructureStrength", g_config.nr_structure);
-    FLT(p, "DLSSNR.LocalToneStrength", g_config.nr_tone);
-    FLT(p, "DLSSNR.SkinStructureStrength", g_config.nr_skin);
-    UI(p, "DLSSNR.UseAutoMask", g_config.nr_auto_mask);
+    FLT(p, "DLSSNR.Intensity", g_graphics.nr_intensity);
+    UI(p, "DLSSNR.Style", g_graphics.nr_style);
+    FLT(p, "DLSSNR.LocalStructureStrength", g_graphics.nr_structure);
+    FLT(p, "DLSSNR.LocalToneStrength", g_graphics.nr_tone);
+    FLT(p, "DLSSNR.SkinStructureStrength", g_graphics.nr_skin);
+    UI(p, "DLSSNR.UseAutoMask", g_graphics.nr_auto_mask);
 }
 
 static bool model_ready(Model *m, const NgxFrame *f, bool neural) {
@@ -325,7 +330,7 @@ static bool model_ready(Model *m, const NgxFrame *f, bool neural) {
         UI(p, "Height", f->color.height);
         UI(p, "OutWidth", f->output.width);
         UI(p, "OutHeight", f->output.height);
-        INT(p, "PerfQualityValue", quality_mode(g_config.fsr_quality));
+        INT(p, "PerfQualityValue", quality_mode(g_graphics.fsr_quality));
         INT(p, "DLSS.Feature.Create.Flags",
             NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_AutoExposure);
         UI(p, "DLSS.Enable.Output.Subrects", 0);
@@ -346,8 +351,8 @@ static bool model_ready(Model *m, const NgxFrame *f, bool neural) {
     if (neural)
         LOG("[ngx] NR controls: intensity %.2f, style %d, structure %.2f, tone %.2f, skin %.2f, auto mask %s; "
             "effect layers %d, one model evaluation per scene frame\n",
-            g_config.nr_intensity, g_config.nr_style, g_config.nr_structure, g_config.nr_tone, g_config.nr_skin,
-            g_config.nr_auto_mask ? "on" : "off", g_config.nr_layers);
+            g_graphics.nr_intensity, g_graphics.nr_style, g_graphics.nr_structure, g_graphics.nr_tone, g_graphics.nr_skin,
+            g_graphics.nr_auto_mask ? "on" : "off", g_graphics.nr_layers);
     return false;
 fail:
     m->failed = true;
@@ -433,6 +438,20 @@ static bool run(const NgxFrame *f, bool neural) {
 }
 
 bool vk_ngx_sr(const NgxFrame *f) { return run(f, false); }
+void vk_ngx_reset(void) {
+    Model *models[] = {&sr, &nr};
+    for (int i = 0; i < 2; i++) {
+        Model *m = models[i];
+        if (m->handle) {
+            NVSDK_NGX_Result result = (i && nr_direct ? release_nr : release_feature)(m->handle);
+            if (result != NVSDK_NGX_Result_Success) FATAL("NGX feature release failed: %#x\n", result);
+        }
+        if (m->p) destroy_parameters(m->p);
+        if (m->ready) vkDestroyEvent(g_vk.dev, m->ready, NULL);
+        bool failed = m->failed && !m->handle;
+        *m = (Model){.failed = failed};
+    }
+}
 bool vk_ngx_nr(const NgxFrame *f) { return run(f, true); }
 bool vk_ngx_sr_ready(void) { return initialised && !sr.failed; }
 bool vk_ngx_nr_ready(void) { return initialised && !nr.failed; }

@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "vk.h"
+#include "graphics.h"
 #include "../astc.h"
 #include "../../hle/keyboard_mouse_prompts.h"
 
@@ -224,6 +225,7 @@ void vk_defer_buffer(VkBuffer b, VmaAllocation mem) { defer((Dead){.buf = b, .me
 static void create_image(NvnTexture *t, TexBackend *b) {
     VkFmt mf = fmt_of(t->format);
     uint32_t tw = t->width ? t->width : 1, th = t->height ? t->height : 1;
+    if (b->gpu_owned) vk_graphics_target_size(t, &tw, &th);
     VkImageType type = VK_IMAGE_TYPE_2D;
     uint32_t layers = 1, depth = 1;
     switch (t->target) {
@@ -573,6 +575,8 @@ static void upload_texture(NvnTexture *t, TexBackend *b) {
 
 TexBackend *vk_tex(NvnTexture *t, bool for_render) {
     TexBackend *b = tex_backend(t);
+    if (for_render) b->gpu_owned = true;
+    if (b->gpu_owned) vk_rt_resize(t);
     if (b->pending_rgba) upload_pending(b);
     if (for_render) b->gpu_owned = true;
     else if (!b->gpu_owned) {
@@ -582,6 +586,18 @@ TexBackend *vk_tex(NvnTexture *t, bool for_render) {
         stat_upload_ns += plat_now_ns() - t0;
     }
     return b;
+}
+
+void vk_rt_resize(NvnTexture *t) {
+    TexBackend *b = tex_backend(t);
+    if (!b->gpu_owned) return;
+    uint32_t w = t->width, h = t->height;
+    vk_graphics_target_size(t, &w, &h);
+    if (w == b->width && h == b->height) return;
+    vk_ms_resolve(b);
+    destroy_image(b);
+    create_image(t, b);
+    b->uploaded = true;
 }
 
 // (exec.c begin_pass, outside a render pass, before t is rendered to) An RGBA8 2D target re-made wide or back to
@@ -615,7 +631,7 @@ void vk_rt_widen(NvnTexture *t, bool on) {
     if (nlog++ < 40) LOG("[vk] render target %ux%u (%u levels) %s\n", b->width, b->height, b->levels, b->wide ? "wide" : "RGBA8");
 }
 
-void renderer_mark_gpu_owned(NvnTexture *t) { tex_backend(t)->gpu_owned = true; }
+void renderer_mark_gpu_owned(NvnTexture *t) { tex_backend(t)->gpu_owned = true; vk_rt_resize(t); }
 void renderer_mark_dynamic(NvnTexture *t) { tex_backend(t)->dynamic = true; }
 void backend_pool_written(uint64_t addr, uint64_t size) { (void)addr; (void)size; }
 
@@ -791,8 +807,10 @@ static VkCompareOp compare_op(uint32_t f) {
     }
 }
 
+typedef struct CachedSampler { VkSampler sampler; float lod_bias; struct CachedSampler *next; } CachedSampler;
 VkSampler vk_sampler(NvnSamplerDesc *d) {
-    if (d->backend) return (VkSampler)d->backend;
+    for (CachedSampler *cached = d->backend; cached; cached = cached->next)
+        if (cached->lod_bias == g_fsr_lod_bias) return cached->sampler;
     VkSamplerCreateInfo si = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     si.magFilter = d->mag_filter == 1 ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
     uint32_t mf = d->min_filter;
@@ -842,7 +860,10 @@ VkSampler vk_sampler(NvnSamplerDesc *d) {
     if (getenv("MHGU_SAMPLER_LOG"))
         LOG("[sampler] min %u mag %u wrap %u,%u,%u lod %g..%g bias %g aniso %g compare %u\n", mf, d->mag_filter, d->wrap[0],
             d->wrap[1], d->wrap[2], d->lod_min, d->lod_max, d->lod_bias, d->max_aniso, d->compare_mode);
-    d->backend = (void *)s;
+    CachedSampler *cached = malloc(sizeof *cached);
+    if (!cached) FATAL("cannot cache a sampler\n");
+    *cached = (CachedSampler){s, g_fsr_lod_bias, d->backend};
+    d->backend = cached;
     return s;
 }
 

@@ -29,6 +29,7 @@ bool vk_fsr4_device_features(VkPhysicalDeviceVulkan11Features *f11, VkPhysicalDe
 
 bool vk_fsr4_init(void);    // fsr.c vk_fsr_init, device exists: load the driver provider, check the device. false: FSR 3.1
 bool vk_fsr4_ready(void);   // FSR 4 loaded and has not failed (yet)
+void vk_fsr4_reset(void);   // GPU idle: release size-dependent context
 const char *vk_fsr4_name(void);  // "FSR 4.1.2"
 // Create (first time) the context for these sizes and record the upscale into d->cb. false: it failed, FSR 4 is off
 // from now on (logged) and the caller falls back to FSR 3.1.

@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
     ui_init();
     // DLSS must choose its input size before the guest caches render dimensions.
     // Initialise the same backend here; nvnDeviceInitialize's later call is idempotent.
-    if (g_config.dlss_nr || (g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)) {
+    {
         extern void backend_init(void);
         backend_init();
     }

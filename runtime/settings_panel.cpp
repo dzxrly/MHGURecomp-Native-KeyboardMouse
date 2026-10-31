@@ -226,6 +226,7 @@ bool equal(const Config &a, const Config &b) {
     SAME(nr_skin);
     SAME(nr_auto_mask);
     SAME(nr_layers);
+    SAME(ask_input);
     SAME(vsync);
     SAME(shader_prewarm);
     SAME(draw_distance);
@@ -797,6 +798,55 @@ void mods_rows(std::vector<Row> &r) {
         mods.scan.reset();
     });
 }
+void antialiasing_rows(std::vector<Row> &r) {
+    enum Method { Off, Fxaa, Msaa, MsaaFxaa, Fsr3, Fsr4, Dlss };
+    Config &c = s.draft;
+    bool msaa = c.msaa > 1 && !c.dlss_nr;
+    int current = c.fsr ? Fsr3 + c.fsr_upscaler : msaa ? (c.fxaa ? MsaaFxaa : Msaa) : c.fxaa ? Fxaa : Off;
+    std::vector<int> methods = {Off, Fxaa};
+    std::vector<std::string> names = {tr("Off"), "FXAA"};
+    if (!c.dlss_nr) {
+        methods.insert(methods.end(), {Msaa, MsaaFxaa});
+        names.insert(names.end(), {"MSAA", tr("MSAA + FXAA")});
+    }
+    methods.insert(methods.end(), {Fsr3, Fsr4, Dlss});
+    names.insert(names.end(), {"FSR 3.1", "FSR 4", "DLSS SR / DLAA"});
+    int selected = (int)(std::find(methods.begin(), methods.end(), current) - methods.begin());
+    add_choice(r, "aa.method", "Anti-aliasing / upscaling", selected, names, [methods](int v) {
+        Config &c = s.draft;
+        int method = methods[v];
+        c.fsr = method >= Fsr3;
+        if (c.fsr) {
+            c.fsr_upscaler = method - Fsr3;
+        } else {
+            c.fxaa = method == Fxaa || method == MsaaFxaa;
+            c.msaa = method == Msaa || method == MsaaFxaa ? (c.msaa > 1 ? c.msaa : 4) : 1;
+        }
+    });
+    r.back().help = tr("Choose anti-aliasing or temporal upscaling. Save applies the selection immediately. MSAA is unavailable while Neural Rendering is on.");
+    if (msaa && !c.fsr)
+        add_choice(r, "msaa", "MSAA samples", c.msaa == 8 ? 2 : c.msaa == 4 ? 1 : 0,
+                   {"2x", "4x", "8x"}, [](int v) { s.draft.msaa = 2 << v; }, ini("MSAA"));
+    if (c.fxaa && !c.fsr)
+        add_choice(r, "fxaamode", "FXAA mode", c.fxaa_mode, {tr("Original"), "3.11"},
+                   [](int v) { s.draft.fxaa_mode = v; }, ini("FXAAMode"));
+    if (c.fsr) {
+        if (c.fsr_upscaler == FSR_UP_DLSS)
+            add_choice(r, "fsr.quality", "Upscaling quality", FSR_ULTRA_PERFORMANCE - c.fsr_quality,
+                       {tr("Ultra performance"), tr("Performance"), tr("Balanced"), tr("Quality"), "DLAA"},
+                       [](int v) { s.draft.fsr_quality = FSR_ULTRA_PERFORMANCE - v; }, ini("UpscaleQuality"));
+        else {
+            add_choice(r, "fsr.quality", "Upscaling quality", c.fsr_quality,
+                       {tr("Native AA"), tr("Quality"), tr("Balanced"), tr("Performance"), tr("Ultra performance")},
+                       [](int v) { s.draft.fsr_quality = v; }, ini("UpscaleQuality"));
+            number(r, "fsr.sharpness", tr("Sharpness"), &c.fsr_sharpness, lo("Sharpness"), hi("Sharpness"), .05f, ini("Sharpness"));
+            number(r, "fsr.reactive", tr("Reactive mask"), &c.fsr_reactive, lo("Reactive"), hi("Reactive"), .05f, ini("Reactive"));
+        }
+        add_bool(r, "fsr.surfaces", "Animated surfaces", &c.fsr_animsurf, ini("AnimSurf"));
+    }
+    if (c.fsr || c.dlss_nr)
+        add_bool(r, "fsr.motion", "Object motion", &c.fsr_objmotion, ini("ObjectMotion"));
+}
 std::vector<Row> main_rows() {
     std::vector<Row> r;
     Config &c = s.draft;
@@ -856,62 +906,12 @@ std::vector<Row> main_rows() {
         }
         add_bool(r, "vsync", "VSync", &c.vsync, ini("VSync"));
         add_bool(r, "prewarm", "Shader prewarm", &c.shader_prewarm, ini("ShaderPrewarm"));
-        add_choice(r, "msaa", "MSAA",
-                   c.msaa == 8   ? 3
-                   : c.msaa == 4 ? 2
-                   : c.msaa == 2 ? 1
-                                 : 0,
-                   {tr("Off"), "2x", "4x", "8x"}, [](int v) { c.msaa = 1 << v; }, ini("MSAA"));
-        if (config_temporal()) {
-            r.back().cold = true;
-            if (c.fsr || c.dlss_nr) {
-                r.back().enabled = false;
-                r.back().value = tr("Off (upscaler)");
-            }
-        }
-        add_bool(r, "fxaa", "FXAA", &c.fxaa, ini("FXAA"));
-        if (g_config.fsr) {
-            r.back().cold = true;
-            if (c.fsr) {
-                r.back().enabled = false;
-                r.back().value = tr("Off (upscaler)");
-            }
-        }
-        add_choice(r, "fxaamode", "FXAA mode", c.fxaa_mode, {tr("Original"), "3.11"}, [](int v) { c.fxaa_mode = v; },
-                   ini("FXAAMode"));
-        if (g_config.fsr) {
-            r.back().cold = true;
-            if (c.fsr) {
-                r.back().enabled = false;
-                r.back().value = tr("Off (upscaler)");
-            }
-        }
+        antialiasing_rows(r);
         number(r, "drawdist", tr("Draw distance"), &c.draw_distance, lo("DrawDistance"), hi("DrawDistance"), .25f,
                ini("DrawDistance"));
         if (c.draw_distance == 0)
             r.back().value = tr("No limit");
         add_bool(r, "smooth", "Smooth gradients", &c.smooth_gradients, ini("SmoothGradients"));
-        add_bool(r, "fsr", "Temporal upscaling / AA", &c.fsr, ini("TemporalUpscaling"));
-        if (c.fsr) {
-            add_choice(
-                r, "fsr.provider", "Upscaler", c.fsr_upscaler, {"FSR 3.1", "FSR 4", "DLSS SR / DLAA"},
-                [](int v) { s.draft.fsr_upscaler = v; }, ini("Upscaler"));
-            if (c.fsr_upscaler == FSR_UP_DLSS) {
-                add_choice(
-                    r, "fsr.quality", "Upscaling quality", FSR_ULTRA_PERFORMANCE - c.fsr_quality,
-                    {tr("Ultra performance"), tr("Performance"), tr("Balanced"), tr("Quality"), "DLAA"},
-                    [](int v) { s.draft.fsr_quality = FSR_ULTRA_PERFORMANCE - v; }, ini("UpscaleQuality"));
-            } else {
-                add_choice(
-                    r, "fsr.quality", "Upscaling quality", c.fsr_quality,
-                    {tr("Native AA"), tr("Quality"), tr("Balanced"), tr("Performance"), tr("Ultra performance")},
-                    [](int v) { s.draft.fsr_quality = v; }, ini("UpscaleQuality"));
-            }
-            number(r, "fsr.sharpness", tr("Sharpness"), &c.fsr_sharpness, lo("Sharpness"), hi("Sharpness"), .05f, ini("Sharpness"));
-            add_bool(r, "fsr.motion", "Object motion", &c.fsr_objmotion, ini("ObjectMotion"));
-            number(r, "fsr.reactive", tr("Reactive mask"), &c.fsr_reactive, lo("Reactive"), hi("Reactive"), .05f, ini("Reactive"));
-            add_bool(r, "fsr.surfaces", "Animated surfaces", &c.fsr_animsurf, ini("AnimSurf"));
-        }
         add_bool(r, "nr", "DLSS 5 Neural Rendering", &c.dlss_nr, ini("NeuralRendering"));
         if (c.dlss_nr) {
             number(r, "nr.intensity", tr("NR intensity"), &c.nr_intensity, lo("NRIntensity"), hi("NRIntensity"), .05f, ini("NRIntensity"));
@@ -931,8 +931,8 @@ std::vector<Row> main_rows() {
             active.id="nr.active"; active.title=tr("Active neural rendering");
             active.value=tr(config_graphics_status(true)); r.push_back(active);
             char dimensions[100];
-            snprintf(dimensions, sizeof dimensions, "%u x %u -> %u x %u", g_render_size[0], g_render_size[1],
-                g_fsr_output[0] ? g_fsr_output[0] : g_render_size[0], g_fsr_output[1] ? g_fsr_output[1] : g_render_size[1]);
+            uint32_t render[2], output[2]; config_graphics_dimensions(render, output, false);
+            snprintf(dimensions, sizeof dimensions, "%u x %u -> %u x %u", render[0], render[1], output[0], output[1]);
             active.id="gfx.dimensions"; active.title=tr("Active render / output size"); active.value=dimensions;
             r.push_back(active);
         }

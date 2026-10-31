@@ -48,6 +48,7 @@ using NrEvaluate = NVSDK_NGX_Result (*)(VkCommandBuffer, const NVSDK_NGX_Handle 
 static HMODULE nr_module;
 static NrCreate nr_create;
 static NrEvaluate nr_evaluate;
+static NVSDK_NGX_Result (*nr_release)(NVSDK_NGX_Handle *);
 
 API NVSDK_NGX_Result mhgu_ngx_nr_init(const wchar_t *path, const wchar_t *data, VkInstance instance,
                                       VkPhysicalDevice physical, VkDevice device, PFN_vkGetInstanceProcAddr gipa,
@@ -58,7 +59,8 @@ API NVSDK_NGX_Result mhgu_ngx_nr_init(const wchar_t *path, const wchar_t *data, 
     auto init = (NrInit)GetProcAddress(nr_module, "NVSDK_NGX_VULKAN_Init_Ext2");
     nr_create = (NrCreate)GetProcAddress(nr_module, "NVSDK_NGX_VULKAN_CreateFeature1");
     nr_evaluate = (NrEvaluate)GetProcAddress(nr_module, "NVSDK_NGX_VULKAN_EvaluateFeature");
-    if (!init || !nr_create || !nr_evaluate)
+    nr_release = (decltype(nr_release))GetProcAddress(nr_module, "NVSDK_NGX_VULKAN_ReleaseFeature");
+    if (!init || !nr_create || !nr_evaluate || !nr_release)
         return NVSDK_NGX_Result_FAIL_FeatureNotFound;
     volatile auto result = init(0, data, instance, physical, device, gipa, gdpa, NVSDK_NGX_Version_API, caps);
     return result;
@@ -71,5 +73,9 @@ API NVSDK_NGX_Result mhgu_ngx_nr_create(VkDevice d, VkCommandBuffer cb, NVSDK_NG
 API NVSDK_NGX_Result mhgu_ngx_nr_evaluate(VkCommandBuffer cb, const NVSDK_NGX_Handle *h, const NVSDK_NGX_Parameter *p,
                                           void *callback) {
     volatile auto result = nr_evaluate(cb, h, p, callback);
+    return result;
+}
+API NVSDK_NGX_Result mhgu_ngx_nr_release(NVSDK_NGX_Handle *h) {
+    volatile auto result = nr_release(h);
     return result;
 }

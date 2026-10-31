@@ -52,6 +52,7 @@ SDL_Window *ui_window(void) { return window; }
 // The window's size when windowed: the settings' size (or the last windowed size), no larger than the desktop's free
 // area with the window frame.
 static int win_w, win_h;
+static Config window_settings;
 static void fit_desktop(int *w, int *h) {
     SDL_Rect r;
     if (!SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &r)) return;
@@ -71,15 +72,15 @@ static void fit_desktop(int *w, int *h) {
 static void set_fullscreen(bool on) {
     bool was = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
     if (on && !was) SDL_GetWindowSize(window, &win_w, &win_h);
-    if (on && g_config.display_mode == DISPLAY_FULLSCREEN) {
+    if (on && window_settings.display_mode == DISPLAY_FULLSCREEN) {
         SDL_DisplayMode m;
         SDL_DisplayID d = SDL_GetDisplayForWindow(window);
-        if (SDL_GetClosestFullscreenDisplayMode(d, g_config.width, g_config.height, 0.0f, false, &m)) {
+        if (SDL_GetClosestFullscreenDisplayMode(d, window_settings.width, window_settings.height, 0.0f, false, &m)) {
             SDL_SetWindowFullscreenMode(window, &m);
             LOG("[ui] fullscreen %dx%d @ %.0f Hz\n", m.w, m.h, m.refresh_rate);
         } else {
             SDL_SetWindowFullscreenMode(window, NULL);
-            LOG("[ui] no fullscreen mode near %dx%d (%s): borderless instead\n", g_config.width, g_config.height,
+            LOG("[ui] no fullscreen mode near %dx%d (%s): borderless instead\n", window_settings.width, window_settings.height,
                 SDL_GetError());
         }
     } else if (on) {
@@ -98,11 +99,23 @@ static void set_fullscreen(bool on) {
 void ui_init(void) {
     if (!SDL_Init(SDL_INIT_VIDEO)) FATAL("SDL_Init: %s\n", SDL_GetError());
     config_load();
+    if (g_config.ask_input && !getenv("MHGU_HIDDEN") && !getenv("MHGU_CONTROL")) {
+        Config choice = config_editable();
+        bool ask = true;
+        if (!plat_choose_input(&choice.input_mode, &ask)) exit(0);
+        choice.ask_input = ask;
+        char error[512];
+        if (!config_save(&choice, error, sizeof error)) { plat_error_box(error); exit(1); }
+        g_config.input_mode = choice.input_mode;
+        g_config.ask_input = choice.ask_input;
+        config_runtime_init(&g_config);
+    }
     // Initial background input policy. SDL documents this hint as changeable at runtime.
     // Subsequent saved changes are consumed by the host thread in ui_run().
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, g_config.background_input ? "1" : "0");
     if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) FATAL("SDL_InitSubSystem: %s\n", SDL_GetError());
     win_w = g_config.width, win_h = g_config.height;
+    window_settings = g_config;
     fit_desktop(&win_w, &win_h);
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #ifndef MHGU_NULL_BACKEND
@@ -121,7 +134,22 @@ void ui_toggle_fullscreen(void) {
 
 int ui_run(void) {
     int background = config_live_background_input();
+    uint64_t graphics_revision = 0;
     for (;;) {
+        Config wanted;
+        if (config_graphics_snapshot(&wanted, &graphics_revision)) {
+            uint32_t render[2], output[2]; float aspect, anchor;
+            config_graphics_resolve(&wanted, render, output, &aspect, &anchor);
+            if (wanted.display_mode != window_settings.display_mode || wanted.width != window_settings.width || wanted.height != window_settings.height) {
+                if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) set_fullscreen(false);
+                window_settings = wanted;
+                win_w = wanted.width; win_h = wanted.height;
+                fit_desktop(&win_w, &win_h);
+                SDL_SetWindowSize(window, win_w, win_h);
+                if (wanted.display_mode != DISPLAY_WINDOWED) set_fullscreen(true);
+                LOG("[graphics] window applied: mode %d, %dx%d\n", wanted.display_mode, wanted.width, wanted.height);
+            }
+        }
         int wanted_background = config_live_background_input();
         if (wanted_background != background) {
             SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, wanted_background ? "1" : "0");

@@ -21,6 +21,7 @@
 
 #include "../../kernel.h"
 #include "fsr.h"
+#include "graphics.h"
 #include "shaders.h"
 #include "vk.h"
 
@@ -1229,7 +1230,8 @@ static void begin_pass(void) {
         NvnTexture *t = st.rt.color[i];
         pass_color[i] = VK_FORMAT_UNDEFINED;
         if (!t) continue;
-        vk_rt_widen(t, vk_wide_rt_on() && !vk_fsr_input(t));  // (the game's own target: FSR 3 / 4 take no RGBA16 UNORM)
+        renderer_mark_gpu_owned(t);
+        vk_rt_widen(t, vk_wide_rt_on() && !vk_fsr_input(t));
         if (g_fsr_on) {  // FSR: from the start of the HUD on, an output-size stand-in (fsr.c)
             NvnTexture *s = vk_fsr_map(t, false);
             if (s != t) pass_sx = (float)s->width / (float)t->width, pass_sy = (float)s->height / (float)t->height, t = s;
@@ -1237,6 +1239,8 @@ static void begin_pass(void) {
         renderer_mark_gpu_owned(t);
         VkImageView v = vk_view(t, &st.rt.cview[i], st.rt.has_cview[i], true, TEXTYPE_2D);
         TexBackend *b = t->backend;
+        pass_sx = (float)b->width / st.rt.color[i]->width;
+        pass_sy = (float)b->height / st.rt.color[i]->height;
         if (!v) continue;
         pass_color[i] = st.rt.has_cview[i] && (st.rt.cview[i].setmask & 4) && vk_format(t->format) == b->format
                       ? vk_format(st.rt.cview[i].format) : b->format;
@@ -1251,11 +1255,12 @@ static void begin_pass(void) {
         pass_samples = b->samples;
     }
     pass_depth = VK_FORMAT_UNDEFINED;
-    NvnTexture *dt = st.rt.depth && pass_sx != 1.0f ? vk_fsr_map(st.rt.depth, true) : st.rt.depth;  // (FSR: as above)
+    NvnTexture *dt = g_fsr_on ? vk_fsr_map(st.rt.depth, true) : st.rt.depth;
     if (dt) {
         renderer_mark_gpu_owned(dt);
         VkImageView v = vk_view(dt, &st.rt.dview, st.rt.has_dview, true, TEXTYPE_2D);
         TexBackend *b = dt->backend;
+        if (!pass_ncolor) pass_sx = (float)b->width / dt->width, pass_sy = (float)b->height / dt->height;
         if (v && renderer_format_is_depth(dt->format) && b->aspect != VK_IMAGE_ASPECT_COLOR_BIT) {
             pass_depth = b->format;
             att[nviews] = b, att_fmt[nviews] = b->format, att_index[nviews] = -1;
@@ -1280,9 +1285,9 @@ static void begin_pass(void) {
     ui_menu_pass = false;
     ui_nrecent = 0;
     pass_msaa = false;
-    if (ms_ok && pass_depth != VK_FORMAT_UNDEFINED && minw == g_render_size[0] && minh == g_render_size[1]) {
+    if (ms_ok && pass_depth != VK_FORMAT_UNDEFINED && minw == g_graphics_render[0] && minh == g_graphics_render[1]) {
         bool stencil = pass_depth == VK_FORMAT_D24_UNORM_S8_UINT || pass_depth == VK_FORMAT_D32_SFLOAT_S8_UINT;
-        uint32_t cleared = leading_clears(minw, minh, stencil);
+        uint32_t cleared = leading_clears((uint32_t)lroundf(minw / pass_sx), (uint32_t)lroundf(minh / pass_sy), stencil);
         bool ok = true;
         for (uint32_t k = 0; k < nviews && ok; k++) {
             TexBackend *b = att[k];
@@ -1347,7 +1352,7 @@ static void pass_size(int *w, int *h) {
     for (int i = 0; i < st.rt.ncolor && !*w; i++)
         if (st.rt.color[i]) { *w = (int)st.rt.color[i]->width; *h = (int)st.rt.color[i]->height; }
     if (!*w && st.rt.depth) { *w = (int)st.rt.depth->width; *h = (int)st.rt.depth->height; }
-    if (pass_sx != 1.0f) *w = (int)(*w * pass_sx + 0.5f), *h = (int)(*h * pass_sy + 0.5f);  // (FSR: output-size stand-ins)
+    if (pass_sx != 1.0f || pass_sy != 1.0f) *w = (int)(*w * pass_sx + 0.5f), *h = (int)(*h * pass_sy + 0.5f);  // (FSR: output-size stand-ins)
 }
 
 volatile int g_shadow_scissor_mode;  // (debug, F8 in host_input.c) depth-only passes: 0 as set, 1 none, 2 mirrored in the viewport
@@ -1441,7 +1446,7 @@ static VkRect2D scissor_rect(void) {
     }
     if (!st.rt.ncolor && g_shadow_scissor_mode == 1) { x = (int)st.viewport[0][0]; y = (int)st.viewport[0][1]; sw = (int)st.viewport[0][2]; sh = (int)st.viewport[0][3]; }
     if (!st.rt.ncolor && g_shadow_scissor_mode == 2) y = 2 * (int)st.viewport[0][1] + (int)st.viewport[0][3] - y - sh;
-    if (pass_sx != 1.0f) {  // FSR: the guest's rectangle (render size) on the output-size stand-in
+    if (pass_sx != 1.0f || pass_sy != 1.0f) {  // FSR: the guest's rectangle (render size) on the output-size stand-in
         double x1 = floor(x * (double)pass_sx), y1 = floor(y * (double)pass_sy);
         double x2 = ceil(((double)x + sw) * pass_sx), y2 = ceil(((double)y + sh) * pass_sy);
         x = (int)x1, y = (int)y1;
@@ -1764,8 +1769,10 @@ static void prewarm_pipelines(Prog *p);
 static VkPipelineLayout make_layout(Prog *p, int nsets, VkShaderStageFlags s0, VkShaderStageFlags s1) {
     p->set_layout[0] = vk_set_layout(p->binds, p->nbinds, 0, s0);
     if (nsets > 1) p->set_layout[1] = vk_set_layout(p->binds, p->nbinds, 1, s1);
+    VkPushConstantRange raster = {VK_SHADER_STAGE_FRAGMENT_BIT, 0, 2 * sizeof(float)};
     VkPipelineLayoutCreateInfo ci = {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, .setLayoutCount = (uint32_t)nsets,
-                                     .pSetLayouts = p->set_layout};
+                                     .pSetLayouts = p->set_layout, .pushConstantRangeCount = nsets > 1 ? 1u : 0u,
+                                     .pPushConstantRanges = &raster};
     VkPipelineLayout l;
     VK_CHECK(vkCreatePipelineLayout(g_vk.dev, &ci, NULL, &l));
     return l;
@@ -1812,7 +1819,7 @@ static void compile_program(void *arg) {
     free(sv);
     free(sf);
     p->layout = make_layout(p, 2, VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT);
-    if (g_fsr_objvel) p->fsrcap = vk_fsr_capprog_new(p->vi->msl);  // (FSR: its vertex shader's source, for the capture)
+    p->fsrcap = vk_fsr_capprog_new(p->vi->msl); // retain capture source for later live enable
     free(p->vi->msl);  // (not needed any more: the source of every program ever seen would add up)
     free(p->fi->msl);
     p->vi->msl = p->fi->msl = NULL;
@@ -2108,7 +2115,9 @@ static void prog_want(Prog *p) {
 // draw needing one it has not reached yet is skipped, as before, never waited for past the budget). Variants with
 // other keys (integer vertex inputs: skinned models; alpha-tested materials) are still made on first use.
 // MHGU_NO_PREWARM=1: off.
-typedef struct { uint64_t code[2], cmax[2]; } PrewarmReq;
+typedef struct PrewarmReq { uint64_t code[2], cmax[2]; struct PrewarmReq *next; } PrewarmReq;
+static PrewarmReq *prewarm_pending;
+static pthread_mutex_t prewarm_lock = PTHREAD_MUTEX_INITIALIZER;
 static void plist_seen(const uint64_t code[2], const uint64_t cmax[2], const uint64_t chash[2]);  // (pipelines.list)
 static uint64_t pw_t0;
 static _Atomic uint64_t pw_total_new, pw_total_known;
@@ -2143,6 +2152,12 @@ static void prewarm_compile(void *arg) {
 // (translate thread, low list)
 static void prewarm_translate(void *arg) {
     PrewarmReq *r = arg;
+    if (!config_live_prewarm()) {
+        pthread_mutex_lock(&prewarm_lock);
+        r->next = prewarm_pending; prewarm_pending = r;
+        pthread_mutex_unlock(&prewarm_lock);
+        prewarm_done(); return;
+    }
     pthread_mutex_lock(&progcache_lock);
     while (!progcache_ready) pthread_cond_wait(&progcache_cond, &progcache_lock);
     pthread_mutex_unlock(&progcache_lock);
@@ -2180,16 +2195,31 @@ static void prewarm_translate(void *arg) {
 
 // (game thread) nvnProgramSetShaders
 void backend_program_created(const NvnProgram *np) {
-    static int on = -1;
-    if (on < 0) on = g_config.shader_prewarm && !getenv("MHGU_NO_PREWARM") && !sync_shaders();
-    if (!on || !(np->stage_mask & 1) || !(np->stage_mask & 2)) return;
+    if (getenv("MHGU_NO_PREWARM") || sync_shaders() || !(np->stage_mask & 1) || !(np->stage_mask & 2)) return;
     PrewarmReq *r = malloc(sizeof *r);
     for (int i = 0; i < 2; i++) {
         r->code[i] = np->stages[i].code_addr;
         r->cmax[i] = np->stages[i].const_offset ? np->stages[i].const_offset : 0x10000;
     }
+    if (!config_live_prewarm()) {
+        pthread_mutex_lock(&prewarm_lock);
+        r->next = prewarm_pending; prewarm_pending = r;
+        pthread_mutex_unlock(&prewarm_lock); return;
+    }
     if (atomic_fetch_add(&stat_pw_left, 1) == 0 && !pw_t0) pw_t0 = plat_now_ns();
     enqueue(&translate_q, 1, true, prewarm_translate, r);
+}
+
+void vk_prewarm_apply(void) {
+    if (!config_live_prewarm()) return;
+    pthread_mutex_lock(&prewarm_lock);
+    PrewarmReq *list = prewarm_pending; prewarm_pending = NULL;
+    pthread_mutex_unlock(&prewarm_lock);
+    while (list) {
+        PrewarmReq *r = list; list = list->next;
+        if (atomic_fetch_add(&stat_pw_left, 1) == 0 && !pw_t0) pw_t0 = plat_now_ns();
+        enqueue(&translate_q, 1, true, prewarm_translate, r);
+    }
 }
 
 static struct { uint64_t key; Prog *prog; } prog_tab[PROG_TAB];
@@ -3482,6 +3512,8 @@ static void draw(CmdRec *r, bool indexed) {
     VkDescriptorSet sets[2] = {stage_set(pr->nbinds, pr->binds, pr->set_layout[0], 0, 0, pr->vi, 0, 0, 0),
                                stage_set(pr->nbinds, pr->binds, pr->set_layout[1], 1, 1, pr->fi, 0, 0, 0)};
     vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pr->layout, 0, 2, sets, 0, NULL);
+    float fragment_scale[2] = {1.0f / pass_sx, 1.0f / pass_sy};
+    vkCmdPushConstants(cb, pr->layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof fragment_scale, fragment_scale);
     if (ui_relax_scissor || ui_scissor_v >= 0) {  // (set while the constants above were built: for this draw only; the
         apply_scissor(cb);                         // next draw and any clear before it get the game's scissor again)
         ui_relax_scissor = false, ui_scissor_v = -1;
@@ -3670,6 +3702,29 @@ static void draw(CmdRec *r, bool indexed) {
 }
 
 // ================================================================== texture copies
+// CPU transfers keep the guest's original byte layout even when the render
+// target has been resized on the host. A temporary guest-size image bridges it.
+static void transfer_blit(TexBackend *src, TexBackend *dst) {
+    VkCommandBuffer cb = vk_cmd(); vk_full_barrier(cb);
+    for (uint32_t aspect = 1; aspect <= VK_IMAGE_ASPECT_STENCIL_BIT; aspect <<= 1) {
+        if (!(src->aspect & dst->aspect & aspect)) continue;
+        VkImageBlit region = {.srcSubresource={aspect,0,0,1}, .srcOffsets={{0,0,0},{src->width,src->height,1}},
+                              .dstSubresource={aspect,0,0,1}, .dstOffsets={{0,0,0},{dst->width,dst->height,1}}};
+        vkCmdBlitImage(cb,src->image,VK_IMAGE_LAYOUT_GENERAL,dst->image,VK_IMAGE_LAYOUT_GENERAL,1,&region,VK_FILTER_NEAREST);
+    }
+    vk_full_barrier(cb);
+}
+static TexBackend *transfer_guest_image(NvnTexture *t, TexBackend *host) {
+    if (host->width == t->width && host->height == t->height) return NULL;
+    NvnTexture guest = *t; guest.addr = 0; guest.pool = NULL; guest.backend = NULL;
+    TexBackend *copy = vk_tex(&guest, true);
+    transfer_blit(host, copy);
+    return copy;
+}
+static void transfer_guest_done(TexBackend *copy) {
+    if (!copy) return;
+    vk_views_forget(copy); vk_defer_image(copy->image, copy->mem); free(copy);
+}
 static void copy_region_dims(NvnTexture *t, const TexRef *ref, const FormatInfo **fi, int32_t rg[6], int *level,
                              uint64_t *row, uint64_t *img) {
     *fi = nvn_format_info(t->format);
@@ -3710,9 +3765,11 @@ static void copy_buffer_to_texture(uint64_t src, const TexRef *dst) {
     if (b->aspect == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT) || b->astc_bw) return;
     bool array = b->layers > 1 && b->depth == 1;
     uint32_t hb = ((uint32_t)rg[4] + fi->bh - 1) / fi->bh, wb = ((uint32_t)rg[3] + fi->bw - 1) / fi->bw;
-    uint32_t out_bpb = b->wide ? 8 : fi->bpb == 3 ? 4 : fi->bpb;  // (wide: RGBA8 texels widened to RGBA16)
     uint32_t nz = (uint32_t)rg[5];
     if (!guest_range_ok(src, img * nz)) return;
+    TexBackend *host = b, *guest = transfer_guest_image(t, b);
+    if (guest) b = guest;
+    uint32_t out_bpb = b->wide ? 8 : fi->bpb == 3 ? 4 : fi->bpb;
     VkCommandBuffer cb = vk_cmd();
     vk_full_barrier(cb);
     uint64_t out_row = (uint64_t)wb * out_bpb;
@@ -3731,6 +3788,7 @@ static void copy_buffer_to_texture(uint64_t src, const TexRef *dst) {
                            .imageOffset = {rg[0], rg[1], array ? 0 : rg[2]},
                            .imageExtent = {(uint32_t)rg[3], (uint32_t)rg[4], array ? 1 : nz}};
     vkCmdCopyBufferToImage(cb, s.buf, b->image, VK_IMAGE_LAYOUT_GENERAL, 1, &c);
+    if (guest) { transfer_blit(guest, host); transfer_guest_done(guest); }
 }
 
 static void copy_texture_to_buffer(const TexRef *src, uint64_t dst) {
@@ -3750,6 +3808,8 @@ static void copy_texture_to_buffer(const TexRef *src, uint64_t dst) {
     uint32_t nz = (uint32_t)rg[5];
     uint64_t total = img * nz;
     if (!guest_range_ok(dst, total)) return;
+    TexBackend *guest = transfer_guest_image(t, b);
+    if (guest) b = guest;
     VkCommandBuffer cb = vk_cmd();
     vk_full_barrier(cb);
     VkSpan out = vk_readback(b->wide ? total * 2 : total);  // (wide: RGBA16 read back, narrowed to the guest's RGBA8)
@@ -3766,6 +3826,7 @@ static void copy_texture_to_buffer(const TexRef *src, uint64_t dst) {
         uint8_t *d = (uint8_t *)G2H((uint32_t)dst);
         for (uint64_t i = 0; i < total; i++) d[i] = (uint8_t)((((const uint16_t *)out.ptr)[i] + 128) / 257);
     } else memcpy(G2H((uint32_t)dst), out.ptr, total);
+    transfer_guest_done(guest);
 }
 
 static void copy_texture(const TexRef *src, const TexRef *dst, uint64_t flags) {
@@ -3784,6 +3845,14 @@ static void copy_texture(const TexRef *src, const TexRef *dst, uint64_t flags) {
     int sx0 = sr[0], sy0 = sr[1], dx0 = dr[0], dy0 = dr[1];
     int sw = sr[3] ? sr[3] : (int)s->width, sh = sr[4] ? sr[4] : (int)s->height;
     int dw = dr[3] ? dr[3] : (int)d->width, dh = dr[4] ? dr[4] : (int)d->height;
+    sx0 = (int)lroundf((float)sx0 * s->width / st_->width);
+    sy0 = (int)lroundf((float)sy0 * s->height / st_->height);
+    dx0 = (int)lroundf((float)dx0 * d->width / dt->width);
+    dy0 = (int)lroundf((float)dy0 * d->height / dt->height);
+    if (sr[3]) sw = (int)lroundf((float)sw * s->width / st_->width);
+    if (sr[4]) sh = (int)lroundf((float)sh * s->height / st_->height);
+    if (dr[3]) dw = (int)lroundf((float)dw * d->width / dt->width);
+    if (dr[4]) dh = (int)lroundf((float)dh * d->height / dt->height);
     uint32_t slv = src->has_view && (src->view.setmask & 1) ? src->view.base_level : 0;
     uint32_t dlv = dst->has_view && (dst->view.setmask & 1) ? dst->view.base_level : 0;
     uint32_t sly = src->has_view && (src->view.setmask & 2) ? src->view.min_layer : 0;

@@ -512,17 +512,40 @@ int main() {
     press(ImGuiKey_GamepadL1);
     press(ImGuiKey_GamepadL1);
     press(ImGuiKey_GamepadL1);
-    graphics_row("fps");
-    down(8);  // vsync, prewarm, msaa, fxaa, fxaamode, drawdist, smooth, upscaling
-    selected("fsr");
+    // The unified selector maps the existing INI keys and only shows applicable controls.
+    graphics_row("aa.method");
     confirm();
+    press(ImGuiKey_Home);
+    confirm(); // Off, independent of the defaults.
+    press(ImGuiKey_End);
+    press(ImGuiKey_GamepadDpadUp);
+    selected("save");
+    confirm();
+    for (int method = 1; method <= 5; method++) {
+        graphics_row("aa.method");
+        press(ImGuiKey_GamepadDpadRight);
+        idle();
+        down();
+        selected(method == 1 ? "fxaamode" : method <= 3 ? "msaa" : "fsr.quality");
+        press(ImGuiKey_End);
+        press(ImGuiKey_GamepadDpadUp);
+        selected("save");
+        confirm();
+        Config chosen = config_editable();
+        assert(chosen.fsr == (method >= 4));
+        if (method < 4) {
+            assert(chosen.fxaa == (method != 2));
+            assert((chosen.msaa > 1) == (method >= 2));
+            if (method == 3) { graphics_row("msaa"); down(); selected("fxaamode"); }
+        } else {
+            assert(chosen.fsr_upscaler == method - 4);
+            graphics_row("fsr.quality"); down(); selected("fsr.sharpness");
+        }
+        assert(!config_restart_required(&chosen));
+    }
+    graphics_row("fsr.quality");
+    press(ImGuiKey_GamepadDpadRight);
     assert(settings_panel_dirty());
-    down();
-    selected("fsr.provider");
-    press(ImGuiKey_GamepadDpadRight);
-    down();
-    selected("fsr.quality");
-    press(ImGuiKey_GamepadDpadRight);
     press(ImGuiKey_End);
     press(ImGuiKey_GamepadDpadUp);
     selected("save");
@@ -530,9 +553,11 @@ int main() {
     assert(config_editable().fsr == 1 && config_editable().fsr_upscaler == FSR_UP_4);
     assert(config_editable().fsr_quality == FSR_QUALITY);
     Config fsr_saved = config_editable();
-    assert(config_restart_required(&fsr_saved));
-    graphics_row("fsr.provider");
+    assert(!config_restart_required(&fsr_saved));
+    graphics_row("aa.method");
     press(ImGuiKey_GamepadDpadRight); // One selected provider: FSR 4 -> DLSS.
+    graphics_row("fsr.quality");
+    down(); selected("fsr.surfaces"); // No FSR-only sharpness / reactive rows under DLSS.
     graphics_row("fsr.quality");
     confirm();
     selected("choice.3"); // Quality, in Ultra Performance -> DLAA order.
@@ -549,6 +574,11 @@ int main() {
     }
     graphics_row("nr");
     confirm();
+    graphics_row("aa.method");
+    confirm();
+    selected("choice.4"); // NR excludes MSAA and MSAA + FXAA: Off, FXAA, FSR 3, FSR 4, DLSS.
+    back();
+    graphics_row("nr");
     down();
     selected("nr.intensity"); // Runtime selection is INI-only, with no F1 row.
     graphics_row("nr.style");
@@ -574,8 +604,8 @@ int main() {
     idle();
     graphics_row("fps");
     down(3);
-    selected("drawdist");
-    assert(!settings_panel_dirty()); // FSR-owned AA rows are disabled, not misleading live toggles.
+    selected("aa.method");
+    assert(!settings_panel_dirty()); // The selector reads saved temporal settings without changing them.
     idle(20);
     float pinned_bottom = pinned_content_bottom();
     float pinned_top = pinned_content_top();

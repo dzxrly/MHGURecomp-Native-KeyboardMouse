@@ -28,6 +28,7 @@
 #include <unistd.h>
 
 #include "../platform.h"
+bool plat_choose_input(int *mode, bool *ask_again) { (void)mode; (void)ask_again; return true; }
 
 #ifndef MAP_FIXED_NOREPLACE
 #define MAP_FIXED_NOREPLACE 0x100000

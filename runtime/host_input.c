@@ -169,6 +169,13 @@ static void control_poll(void) {
             done = ftell(f);
             char cmd[32] = "", arg[256] = "", arg2[200] = "";
             if (sscanf(line, "%31s %255s %199s", cmd, arg, arg2) < 1) continue;
+            if (!strcmp(cmd, "setting")) { // debug: exercise the same validate/save/publish path as F1 Save
+                const ConfigSetting *setting = config_setting(arg);
+                Config draft = config_editable(); char error[512] = "Unknown setting or invalid value";
+                bool ok = setting && config_parse(setting, arg2, &draft) && config_save(&draft, error, sizeof error);
+                LOG("[control] setting %s %s: %s\n", arg, arg2, ok ? "saved" : error);
+                continue;
+            }
             if (!strcmp(cmd, "stopinput")) {
                 nscript = 0; test_until = 0;
                 memset(keys, 0, sizeof keys); mouse_buttons = 0;

@@ -17,7 +17,26 @@
 #endif
 
 static Config saved, startup;
-static bool have_saved, runtime_ready, runtime_fsr, runtime_temporal;
+static Config graphics;
+static uint64_t graphics_revision;
+static SDL_SpinLock graphics_lock;
+static uint32_t active_render[2], active_output[2];
+void config_graphics_dimensions(uint32_t render[2], uint32_t output[2], bool write) {
+    SDL_LockSpinlock(&graphics_lock);
+    if (write) { memcpy(active_render, render, sizeof active_render); memcpy(active_output, output, sizeof active_output); }
+    else { memcpy(render, active_render, sizeof active_render); memcpy(output, active_output, sizeof active_output); }
+    SDL_UnlockSpinlock(&graphics_lock);
+}
+static SDL_AtomicInt live_prewarm, active_fsr, active_temporal;
+
+bool config_graphics_snapshot(Config *out, uint64_t *revision) {
+    SDL_LockSpinlock(&graphics_lock);
+    bool changed = *revision != graphics_revision;
+    if (changed) { *out = graphics; *revision = graphics_revision; }
+    SDL_UnlockSpinlock(&graphics_lock);
+    return changed;
+}
+static bool have_saved, runtime_ready;
 static SDL_AtomicInt graphics_backend, neural_backend;
 void config_graphics_report(bool neural, int status) {
     SDL_SetAtomicInt(neural ? &neural_backend : &graphics_backend, status);
@@ -50,6 +69,22 @@ static char live_ldn_server[sizeof saved.ldn_server], live_ldn_key[sizeof saved.
 // A save updates changed hot fields only. Saving the volume must not silently
 // remove an unchanged FOV/FPS override supplied by the development environment.
 static void publish_live(const Config *c, bool all) {
+    SDL_LockSpinlock(&graphics_lock);
+    bool changed = all;
+    for (int i = 0; i < g_nsettings; i++) {
+        const ConfigSetting *s = &g_settings[i];
+        if (strcmp(s->section, "Graphics") || s->restart) continue;
+        if (!all && config_equal(s, c, &saved)) continue;
+        size_t size = s->kind == SET_FLOAT || s->kind == SET_ASPECT ? sizeof(float) : sizeof(int);
+        memcpy((char *)&graphics + s->field, (const char *)c + s->field, size);
+        if (s->kind == SET_SIZE) memcpy((char *)&graphics + s->field2, (const char *)c + s->field2, sizeof(int));
+        changed = true;
+    }
+    if (changed) ++graphics_revision;
+    SDL_UnlockSpinlock(&graphics_lock);
+    SDL_SetAtomicInt(&active_fsr, graphics.fsr);
+    SDL_SetAtomicInt(&active_temporal, graphics.fsr || graphics.dlss_nr);
+    SDL_SetAtomicInt(&live_prewarm, graphics.shader_prewarm);
     if (all || c->fps != saved.fps) set_float(&live_fps, (float)c->fps);
     if (all || c->fov != saved.fov) set_float(&live_fov, c->fov);
     if (all || c->mouse_sensitivity != saved.mouse_sensitivity) set_float(&live_mouse, c->mouse_sensitivity);
@@ -81,11 +116,25 @@ void config_store_loaded(const Config *c) {
     SDL_SetAtomicInt(&confirm_exit, c->confirm_exit);
 }
 void config_runtime_init(const Config *effective) {
-    startup = saved; runtime_ready = true; runtime_fsr = effective->fsr != 0;
-    runtime_temporal = runtime_fsr || effective->dlss_nr;
+    startup = saved; runtime_ready = true;
     config_graphics_report(false, effective->fsr ? GFX_WAITING : GFX_NATIVE);
     config_graphics_report(true, effective->dlss_nr ? GFX_WAITING : GFX_NATIVE);
     publish_live(effective, true);
+    // Effective boot config suppresses AA while temporal processing is on.
+    // Keep the saved preference so switching temporal processing off restores it.
+    if (!getenv("MHGU_MSAA")) SDL_SetAtomicInt(&live_msaa, saved.msaa);
+    if (!getenv("MHGU_FXAA")) SDL_SetAtomicInt(&live_fxaa, saved.fxaa);
+    SDL_LockSpinlock(&graphics_lock);
+    graphics = *effective;
+    // render_w/h in effective are already divided by the upscale ratio. Keep
+    // the player's output-size request so a later save can resolve it again.
+    graphics.render_w = saved.render_w; graphics.render_h = saved.render_h;
+    if (getenv("MHGU_RENDER")) {
+        graphics.render_w = g_fsr_output[0] ? (int)g_fsr_output[0] : effective->render_w;
+        graphics.render_h = g_fsr_output[1] ? (int)g_fsr_output[1] : effective->render_h;
+    }
+    ++graphics_revision;
+    SDL_UnlockSpinlock(&graphics_lock);
     const char *override = getenv("MHGU_FRAMERATE");
     if (override && *override) {
         float f = strtof(override, NULL);
@@ -98,8 +147,9 @@ float config_live_fps(void) { return get_float(&live_fps); }
 float config_live_fov(void) { return get_float(&live_fov); }
 float config_live_mouse_sensitivity(void) { return get_float(&live_mouse); }
 float config_live_draw_distance(void) { return get_float(&live_draw); }
-int config_live_fxaa(void) { return runtime_fsr ? 0 : SDL_GetAtomicInt(&live_fxaa); }
-int config_live_msaa(void) { return runtime_temporal ? 1 : SDL_GetAtomicInt(&live_msaa); }
+int config_live_fxaa(void) { return SDL_GetAtomicInt(&active_fsr) ? 0 : SDL_GetAtomicInt(&live_fxaa); }
+int config_live_msaa(void) { return SDL_GetAtomicInt(&active_temporal) ? 1 : SDL_GetAtomicInt(&live_msaa); }
+int config_live_prewarm(void) { return SDL_GetAtomicInt(&live_prewarm); }
 int config_live_vsync(void) { return SDL_GetAtomicInt(&live_vsync); }
 int config_live_menu_confirm(void) { return SDL_GetAtomicInt(&live_menu_confirm); }
 int config_live_face_buttons(void) { return SDL_GetAtomicInt(&live_face); }

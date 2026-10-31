@@ -29,9 +29,9 @@ Keep all program dependencies from the archive. Start `mhgurecomp.exe`; the firs
 
 ## Graphics and neural rendering
 
-Graphics settings are in the INI's **[Graphics]** section. F1's **Graphics** page exposes the controls except the INI-only `NRRuntime` selection. Save changes; an asterisk marks a restart requirement. Audio has its own page.
+Graphics settings are in the INI's **[Graphics]** section. F1's **Graphics** page exposes the controls except the INI-only `NRRuntime` selection. Save applies graphics changes in the current game, including display mode, resolution, upscaler and NR controls. Resource changes may briefly pause rendering. Audio has its own page.
 
-Enable **Temporal upscaling / AA**, then choose exactly one of FSR 3.1, FSR 4 or DLSS SR / DLAA. DLSS offers **Ultra Performance → Performance → Balanced → Quality → DLAA**. `UpscaleQuality = DLAA` selects native-resolution anti-aliasing. Render sizes come from the SDK; NVIDIA App overrides can affect the actual size/model, which the menu and log report. Active temporal upscaling takes over MSAA/FXAA. FSR 4 needs a compatible build/AMD driver and falls back to FSR 3.1 if unavailable. DLSS failure is reported explicitly.
+Use **Anti-aliasing / upscaling** to select Off, FXAA, MSAA, MSAA + FXAA, FSR 3.1, FSR 4 or DLSS SR / DLAA. The menu shows the parameters used by your selection: MSAA samples, FXAA mode, or temporal quality and related controls. MSAA choices are unavailable while NR is on. DLSS offers **Ultra Performance → Performance → Balanced → Quality → DLAA**. `UpscaleQuality = DLAA` selects native-resolution anti-aliasing. Render sizes come from the SDK; NVIDIA App overrides can affect the actual size/model, which the menu and log report. FSR 4 needs a compatible build/AMD driver and falls back to FSR 3.1 if unavailable. DLSS failure is reported explicitly.
 
 NR is a separate switch and also works with temporal upscaling off. The same ZIP includes the NGX adapter, official SR runtime, official NR runtime and community SM89 NR runtime. **Runtime selection is INI-only:** close the game and set `NRRuntime` under `[Graphics]` to `Official` (the default, RTX 50) or `SM89` (community RTX 40). F1 does not expose this selection, and failures never switch runtimes automatically. See [runtime configuration and sources](third_party/ngx/README.md).
 
@@ -50,13 +50,13 @@ dlss/nr/sm89/nvngx_dlssnr.dll
 | Automatic skin mask | `NRAutoMask` | **On** | On / Off |
 | Effect layers | `NRLayers` | 1 | **1–3** |
 
-Each scene frame runs NR once. Layers 2/3 amplify the difference between that result and the original scene, then composite before the HUD; they do not run the model again. Skin 0 requests no skin-structure enhancement, while other model changes may remain. Detailed help appears in F1 and the INI. NR controls require a restart. Basic NR and SR+NR have been exercised on RTX 4080; RTX 50 and other GPU families remain unverified in this project.
+Each scene frame runs NR once. Layers 2/3 amplify the difference between that result and the original scene, then composite before the HUD; they do not run the model again. Skin 0 requests no skin-structure enhancement, while other model changes may remain. Detailed help appears in F1 and the INI. NR controls apply when you press Save. Basic NR and SR+NR have been exercised on RTX 4080; RTX 50 and other GPU families remain unverified in this project.
 
 ## Keyboard and mouse
 
 ### Enable and configure
 
-Close the program, set these values in `mhgurecomp.ini`, then start it again:
+At startup, choose Controller or Keyboard and mouse. The choice is saved to `mhgurecomp.ini`. Check **Don't ask again** to reuse it on later launches. Set `AskInputOnStartup = On` in the INI to show the picker again. The equivalent keyboard/mouse configuration is:
 
 ```ini
 [Controls]

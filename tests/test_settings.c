@@ -52,6 +52,9 @@ int main(int argc, char **argv) {
     assert(!config_parse(config_setting("NRLocalTone"), "nan", &preset));
     preset = config_defaults();
     assert(preset.input_mode == INPUT_ORIGINAL);
+    assert(preset.ask_input == 1);
+    assert(config_parse(config_setting("AskInputOnStartup"), "Off", &preset) && !preset.ask_input);
+    assert(!config_parse(config_setting("AskInputOnStartup"), "Invalid", &preset));
     assert(preset.ldn_server[0] == '\0' && preset.ldn_key[0] == '\0');
     assert(config_parse(config_setting("Server"), "example.org:39501", &preset));
     assert(!strcmp(preset.ldn_server, "example.org:39501"));
@@ -196,8 +199,11 @@ int main(int argc, char **argv) {
     assert(!loaded.confirm_exit && fabsf(loaded.fov - 1.2f) < 0.001f);
     assert(!config_restart_required(&loaded));
     assert(config_live_fps()==120 && config_live_msaa()==4 && config_live_face_buttons()==FACE_LABEL);
-    assert(config_restart_key("RenderResolution") && !config_restart_key("FOV"));
+    assert(!config_restart_key("RenderResolution") && !config_restart_key("FOV"));
     assert(!config_restart_key("MSAA") && !config_restart_key("VSync") && !config_restart_key("FaceButtons"));
+    for (int i = 0; i < g_nsettings; i++)
+        if (!strcmp(g_settings[i].section, "Graphics"))
+            assert(g_settings[i].restart == !strcmp(g_settings[i].key, "NRRuntime"));
     assert(config_restart_key("framerate") == config_restart_key("FPS") && !config_restart_key("NoSuchKey"));
     // The menu's help: the default ini's comments, wrapped lines joined, the default last (none when empty)
     char help[2048];
@@ -242,7 +248,7 @@ int main(int argc, char **argv) {
     fsr_config.fsr=1;fsr_config.fsr_upscaler=FSR_UP_4;fsr_config.fsr_quality=FSR_BALANCED;
     fsr_config.fsr_sharpness=.65f;fsr_config.fsr_objmotion=0;fsr_config.fsr_reactive=.35f;fsr_config.fsr_animsurf=0;
     fsr_config.msaa=8;fsr_config.fxaa=1;
-    assert(config_save(&fsr_config,error,sizeof error));assert(config_restart_required(&fsr_config));
+    assert(config_save(&fsr_config,error,sizeof error));assert(!config_restart_required(&fsr_config));
     text = read_file(path);
     assert(strstr(text, "Sharpness = 0.65\r\n") && strstr(text, "Reactive = 0.35\r\n") && strstr(text, "Upscaler = FSR4\r\n"));
     free(text);
@@ -279,22 +285,35 @@ int main(int argc, char **argv) {
     }
     Config nr_saved=config_editable();nr_saved.dlss_nr=1;nr_saved.nr_layers=3;nr_saved.nr_style=2;
     nr_saved.nr_intensity=1.5f;nr_saved.nr_structure=.75f;nr_saved.nr_tone=.25f;nr_saved.nr_skin=0;nr_saved.nr_auto_mask=1;
-    assert(config_save(&nr_saved,error,sizeof error) && config_restart_required(&nr_saved));
+    assert(config_save(&nr_saved,error,sizeof error) && !config_restart_required(&nr_saved));
     g_config=initial;config_load();Config nr_loaded=config_editable();
     assert(nr_loaded.nr_layers==3 && nr_loaded.nr_style==2 && nr_loaded.nr_auto_mask && nr_loaded.nr_skin==0);
     assert(nr_loaded.nr_intensity==1.5f && nr_loaded.nr_structure==.75f && nr_loaded.nr_tone==.25f);
-    assert(config_restart_key("NRLayers") && config_restart_key("NRAutoMask"));
+    assert(!config_restart_key("NRLayers") && !config_restart_key("NRAutoMask"));
     bad=nr_loaded;bad.nr_layers=4;assert(!config_save(&bad,error,sizeof error));
     bad=nr_loaded;bad.nr_skin=-.1f;assert(!config_save(&bad,error,sizeof error));
     bad=nr_loaded;bad.nr_structure=NAN;assert(!config_save(&bad,error,sizeof error));
     bad=nr_loaded;bad.nr_auto_mask=2;assert(!config_save(&bad,error,sizeof error));
     fsr_saved.fsr=0;assert(config_save(&fsr_saved,error,sizeof error));
-    assert(config_live_msaa()==1 && config_live_fxaa()==0); // Remains active until restart.
+    assert(config_live_msaa()==8 && config_live_fxaa()==1); // Saving disables temporal AA immediately.
     g_config=initial;config_load();assert(config_live_msaa()==8 && config_live_fxaa()==1);
     // SmoothGradients is live, persisted, and independent of native-input defaults.
     Config smooth=config_editable();smooth.smooth_gradients=1;
     assert(config_save(&smooth,error,sizeof error) && !config_restart_required(&smooth));
     assert(config_live_smooth_gradients()==1);
+    uint64_t revision = 0; Config graphics;
+    assert(config_graphics_snapshot(&graphics, &revision));
+    assert(graphics.smooth_gradients == 1);
+    assert(!config_graphics_snapshot(&graphics, &revision));
+    Config dimensions = config_defaults();
+    dimensions.display_mode = DISPLAY_WINDOWED; dimensions.width = 1920; dimensions.height = 1080;
+    dimensions.fsr = 1; dimensions.fsr_quality = FSR_QUALITY;
+    uint32_t render[2], output[2]; float aspect, anchor;
+    config_graphics_resolve(&dimensions, render, output, &aspect, &anchor);
+    assert(render[0] == 1280 && render[1] == 720 && output[0] == 1920 && output[1] == 1080);
+    dimensions.render_w = dimensions.render_h = 0; dimensions.fsr = 0; dimensions.dlss_nr = 1;
+    config_graphics_resolve(&dimensions, render, output, &aspect, &anchor);
+    assert(render[0] == 1920 && render[1] == 1080 && output[0] == 1920 && output[1] == 1080);
     text=read_file(path);assert(strstr(text,"SmoothGradients = On"));free(text);
     g_config=initial;config_load();assert(config_editable().smooth_gradients==1);
     set_env("MHGU_RT16","0");
