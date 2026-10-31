@@ -1,8 +1,6 @@
 # MHGURecomp Enhanced — Development
 
-MHGURecomp Enhanced is an independently versioned Windows edition of [MHGURecomp](https://github.com/morerokk/MHGURecomp). The runtime integrates native input, configurable graphics, neural rendering, networking and mods for Nintendo Switch MHGU 1.4.0. The optional hub server is a separate Go program.
-
-> DLSS SR means NVIDIA DLSS Super Resolution; DLAA is native-resolution DLSS anti-aliasing; NR is DLSS 5 Neural Rendering. FSR means AMD FidelityFX Super Resolution. SM89 identifies Ada / GeForce RTX 40 GPUs. A game-code ABI is the interface between the host runtime and the prepared game-code library.
+MHGURecomp Enhanced is an independently versioned Windows edition of [MHGURecomp](https://github.com/morerokk/MHGURecomp), adding native keyboard/mouse input and icon support, DLSS Super Resolution and DLSS 5 Neural Rendering.
 
 ## Contents
 
@@ -98,7 +96,7 @@ The default build compiles a minimal pinned FFmpeg 9.0.2 with MP4/MOV demuxing, 
 | --- | --- | --- |
 | Git tag / updater version | Enhanced-edition version | `0.1.0` |
 | Release title | Enhanced version + `-` + original-project version | `0.1.0-0.11.7` |
-| Windows archive | `Windows-MHGURecomp.<version>.zip` | `Windows-MHGURecomp.0.1.0.zip` |
+| Windows archive | Fixed filename | `MHGURecomp-Enhancement-win_x86-64.zip` |
 
 Titles contain no prefix, suffix or descriptive words. The startup log reports both versions. Development builds may set `VERSION=0.1.0-dev`; the updater does not automatically replace a nonnumeric development build.
 

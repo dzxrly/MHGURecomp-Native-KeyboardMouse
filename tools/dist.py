@@ -2,8 +2,8 @@
 
 usage: python tools/dist.py <build dir> <out dir> <windows|linux> <version> [--bonus <file>] [--keyboard-mouse-mod <Auto mod dir>]
 
-Windows: <out>/Windows-MHGURecomp.<version>.zip; Linux: <out>/ArchLinux-MHGURecomp.<version>.tar.gz (the programs
-keep their executable permission). Inside, one folder of the same name holds what a player copies: the game, its code
+Windows: <out>/MHGURecomp-Enhancement-win_x86-64.zip; Linux: <out>/ArchLinux-MHGURecomp.<version>.tar.gz (the programs
+keep their executable permission). Inside, Windows-MHGURecomp/ or ArchLinux-MHGURecomp/ holds what a player copies: the game, its code
 library, the updater, the DLLs (Windows), pipelines.list, licenses/, bonus/system (--bonus: the donor save of the free downloads) and
 the empty data/, mods/ and cheats/ folders, with a note in data/ of what goes there. Nothing else of the build folder:
 not its game files, mods, settings, caches or log. The updater (updater/updater.c) installs the same archive, leaving
@@ -147,7 +147,11 @@ def main():
     )
     check_version(build, platform, version)
     top = ("Windows" if platform == "windows" else "ArchLinux") + "-MHGURecomp"
-    name = f"{top}.{version}" + (".zip" if platform == "windows" else ".tar.gz")
+    name = (
+        "MHGURecomp-Enhancement-win_x86-64.zip"
+        if platform == "windows"
+        else f"{top}.{version}.tar.gz"
+    )
     entries = files(build, platform)
     if prompt_mod:
         entries.extend(prompt_files(prompt_mod))

@@ -2,20 +2,9 @@
 
 <p align="center"><strong>English</strong> · <a href="docs/README.zh-CN.md">简体中文</a> · <a href="docs/README.zh-TW.md">繁體中文</a></p>
 
-An enhanced Windows edition of **Monster Hunter Generations Ultimate**, built on [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp). It combines native keyboard/mouse controls, configurable graphics, neural rendering, multiplayer and mod support.
+Built on [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp), this enhanced Windows edition adds **native keyboard/mouse input and icon support, DLSS Super Resolution and DLSS 5 Neural Rendering**.
 
 The enhanced edition has its own version in [VERSION](VERSION); the reviewed original-project baseline is in [UPSTREAM_VERSION](UPSTREAM_VERSION). Release titles contain those two numbers only, for example **0.1.0-0.11.7**. Git tags and updater comparisons use the enhanced-edition version, starting at **0.1.0**.
-
-> FSR is AMD FidelityFX Super Resolution. DLSS SR is NVIDIA DLSS Super Resolution; DLAA is its native-resolution anti-aliasing mode. NR means DLSS 5 Neural Rendering. SM89 identifies the Ada architecture used by RTX 40 GPUs.
-
-## Features
-
-- Native mouse camera and bowgun/Bow aiming, with equipment-selected Melee/Ranged bindings and seven-language keyboard/mouse prompts.
-- A unified F1 settings menu: Graphics, Audio, Controls, Network, Miscellaneous, Mods and App.
-- Configurable resolution, aspect ratio, field of view, HUD placement, anti-aliasing, draw distance, smooth gradients and 30–240 FPS.
-- FSR 3.1, optional FSR 4, DLSS SR and DLAA, with an explicit single-upscaler selection and actual-backend status.
-- Independent DLSS 5 NR, automatic skin masking and configurable strengths; up to three effect layers from one neural evaluation.
-- Local-play multiplayer, monster HP scaling, Village quests at Hub counters, RomFS/executable mods, Forge plugins and cheats.
 
 ## Requirements and installation
 
@@ -23,7 +12,7 @@ The enhanced edition has its own version in [VERSION](VERSION); the reviewed ori
 - Your own complete **Nintendo Switch MHGU 1.4.0** game files, with the update merged. The 3DS game is not supported.
 - The supported client release is Windows. A Linux client build and test environment is not available.
 
-Download the Windows archive from [Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases), extract it, then place both complete game folders here:
+Download `MHGURecomp-Enhancement-win_x86-64.zip` from [Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases), extract it, then place both complete game folders here:
 
 ```text
 Windows-MHGURecomp/

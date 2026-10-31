@@ -2,20 +2,9 @@
 
 <p align="center"><a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <strong>繁體中文</strong></p>
 
-基於 [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp) 的 **Monster Hunter Generations Ultimate Windows 增強版**，整合原生鍵鼠、圖形增強、神經渲染、連線和模組支援。
+本專案在 [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp) 的基礎上新增了**原生鍵鼠輸入與圖示支援、DLSS 超解析度和 DLSS 5 神經渲染**。
 
 本倉庫使用獨立的 [VERSION](../VERSION)，從 **0.1.0** 開始迭代；原倉庫基準記錄於 [UPSTREAM_VERSION](../UPSTREAM_VERSION)。Release 標題僅包含兩個版本號，例如 **0.1.0-0.11.7**。Git 標籤和更新器使用本倉庫版本號。
-
-> FSR 指 AMD FidelityFX Super Resolution；DLSS SR 指 NVIDIA DLSS 超解析度；DLAA 指其原生解析度反鋸齒模式；NR 指 DLSS 5 神經渲染；SM89 指 RTX 40 系列使用的 Ada 架構。
-
-## 功能
-
-- 原生滑鼠鏡頭與弩／弓瞄準，依裝備自動切換近戰／遠程按鍵，附七種語言的鍵鼠提示。
-- 統一 F1 選單，集中管理圖形、音效、控制、連線、遊戲選項和模組。
-- 解析度、寬高比、視野、HUD 位置、反鋸齒、繪製距離、平滑漸層和 30～240 FPS 設定。
-- FSR 3.1、可選 FSR 4、DLSS SR／DLAA，超解析度演算法互斥，並顯示實際生效狀態。
-- 獨立開關的 DLSS 5 NR、自動皮膚遮罩、細節參數和一次推理最多三層效果合成。
-- 本地無線通訊連線、魔物血量倍率、集會所村莊任務、RomFS／執行碼模組、Forge 外掛和金手指。
 
 ## 執行需求與安裝
 
@@ -23,7 +12,7 @@
 - 自行提供完整的 **Nintendo Switch MHGU 1.4.0** 檔案，已將更新合併至本體。不支援 3DS 遊戲。
 - 客戶端發行平台為 Windows；本專案沒有 Linux 客戶端建置與測試環境。
 
-從 [Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases) 下載 Windows 壓縮檔，解壓縮後放入完整遊戲目錄：
+從 [Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases) 下載 `MHGURecomp-Enhancement-win_x86-64.zip`，解壓縮後放入完整遊戲目錄：
 
 ```text
 Windows-MHGURecomp/

@@ -1,7 +1,5 @@
 # NGX integration for MHGURecomp Enhanced
 
-> DLSS SR means NVIDIA DLSS Super Resolution. DLAA is native-resolution DLSS anti-aliasing. NR means DLSS 5 Neural Rendering. SM89 is the Ada architecture used by GeForce RTX 40 GPUs.
-
 ## Components and sources
 
 The public headers and `LICENSE.txt` are from [NVIDIA/DLSS](https://github.com/NVIDIA/DLSS/tree/9981c6350dc58c0ce21f024fd65e31e851c31689), commit `9981c6350dc58c0ce21f024fd65e31e851c31689` (310.9.16). The SDK library and runtimes retain NVIDIA's separate terms; the project MIT license does not replace them. No private NR header is required: the host uses the public feature-18 enum slot and the runtime interface.

@@ -345,6 +345,10 @@ static bool install(const Extract *x, char *why, size_t why_size) {
 }
 
 static const Asset *pick_asset(const Release *r) {
+#ifdef _WIN32
+    for (int i = 0; i < r->nassets; i++)
+        if (!strcmp(r->assets[i].name, "MHGURecomp-Enhancement-win_x86-64.zip")) return &r->assets[i];
+#endif
     const Asset *best = NULL;
     for (int i = 0; i < r->nassets; i++) {
         const Asset *a = &r->assets[i];

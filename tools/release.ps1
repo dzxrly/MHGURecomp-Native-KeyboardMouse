@@ -5,7 +5,7 @@ $version = (Get-Content -LiteralPath (Join-Path $repoRoot 'VERSION') -Raw).Trim(
 $upstream = (Get-Content -LiteralPath (Join-Path $repoRoot 'UPSTREAM_VERSION') -Raw).Trim()
 if ($version -notmatch '^\d+\.\d+\.\d+$' -or $upstream -notmatch '^\d+(\.\d+){1,3}$') { throw 'Invalid version metadata.' }
 $title = "$version-$upstream"
-if (!$Archive) { $Archive = Join-Path $repoRoot "dist/Windows-MHGURecomp.$version.zip" }
+if (!$Archive) { $Archive = Join-Path $repoRoot 'dist/MHGURecomp-Enhancement-win_x86-64.zip' }
 $Archive = [IO.Path]::GetFullPath($Archive)
 if (!$Publish) {
     [pscustomobject]@{ Version = $version; UpstreamVersion = $upstream; Title = $title; Archive = $Archive }

@@ -32,8 +32,9 @@ class ReleasePackagingTest(unittest.TestCase):
                 "pipelines.list",
             ):
                 (build / name).write_bytes(b"test")
+            version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
             for name in ("mhgurecomp-updater.exe", "mhgurecomp-updater"):
-                (build / name).write_bytes(b"MHGURecomp-updater/0.1.0\0")
+                (build / name).write_bytes(f"MHGURecomp-updater/{version}\0".encode())
             (build / "licenses").mkdir()
             (build / "licenses/test.txt").write_text("license")
             (build / "data").mkdir()
@@ -53,7 +54,7 @@ class ReleasePackagingTest(unittest.TestCase):
                         str(build),
                         str(output),
                         platform,
-                        "0.1.0",
+                        version,
                         "--keyboard-mouse-mod",
                         str(mod),
                     ],
@@ -64,6 +65,9 @@ class ReleasePackagingTest(unittest.TestCase):
                 if archive.suffix == ".sha256":
                     continue
                 if archive.suffix == ".zip":
+                    self.assertEqual(
+                        archive.name, "MHGURecomp-Enhancement-win_x86-64.zip"
+                    )
                     with zipfile.ZipFile(archive) as stream:
                         names = stream.namelist()
                         metadata = json.loads(
@@ -87,9 +91,14 @@ class ReleasePackagingTest(unittest.TestCase):
                 )
                 self.assertFalse(any("private-" in n for n in names))
                 self.assertTrue(Path(str(archive) + ".sha256").is_file())
-            self.assertEqual(metadata["version"], "0.1.0")
+                self.assertTrue(
+                    Path(str(archive) + ".sha256")
+                    .read_text(encoding="ascii")
+                    .endswith(f"  {archive.name}\n")
+                )
+            self.assertEqual(metadata["version"], version)
             self.assertEqual(
-                metadata["release_title"], "0.1.0-" + metadata["upstream_version"]
+                metadata["release_title"], version + "-" + metadata["upstream_version"]
             )
             (romfs / "unrelated-save").write_bytes(b"private")
             with self.assertRaises(ValueError):
