@@ -1,50 +1,67 @@
-<h1 align="center">MHGURecomp 原生键鼠输入</h1>
+<h1 align="center">MHGURecomp 增强版</h1>
 
-<p align="center">
-  <a href="../README.md">English</a> · <strong>简体中文</strong> · <a href="README.zh-TW.md">繁體中文</a>
-</p>
+<p align="center"><a href="../README.md">English</a> · <strong>简体中文</strong> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-这是 **Monster Hunter Generations Ultimate** 的 Windows PC 移植，为 Nintendo Switch **1.4.0** 版本提供原生键鼠操作。
+基于 [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp) 的 **Monster Hunter Generations Ultimate Windows 增强版**，整合原生键鼠、图形增强、神经渲染、联机和模组支持。
 
-本项目基于 [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp)，以键盘和鼠标支持为主要方向独立维护。
+本仓库使用独立的 [VERSION](../VERSION)，从 **0.1.0** 开始迭代；原仓库基准记录在 [UPSTREAM_VERSION](../UPSTREAM_VERSION)。Release 标题只包含两个版本号，例如 **0.1.0-0.11.7**。Git 标签和更新器使用本仓库版本号。
 
-**运行游戏需要自行准备游戏文件。** Release 包已附带键鼠提示 mod。
+> FSR 指 AMD FidelityFX Super Resolution；DLSS SR 指 NVIDIA DLSS 超分辨率；DLAA 指其原生分辨率抗锯齿模式；NR 指 DLSS 5 神经渲染；SM89 指 RTX 40 系列使用的 Ada 架构。
 
 ## 功能
 
-- 鼠标控制镜头与弩／弓瞄准，根据装备自动切换近战／远程键位。
-- 键鼠提示支持英语、简体中文、繁体中文、法语、德语、意大利语和西班牙语。
-- 分辨率、宽高比、抗锯齿、FSR、VSync、30～240 FPS 设置，以及手柄支持。
-- 本地联机、可选怪物血量倍率、村任务联机、模组和金手指。
+- 原生鼠标镜头与弩／弓瞄准，按装备自动切换近战／远程键位，附七种语言的键鼠提示。
+- 统一 F1 菜单，集中管理图形、音频、控制、联机、游戏选项和模组。
+- 分辨率、宽高比、视野、HUD 位置、抗锯齿、绘制距离、平滑渐变和 30～240 FPS 设置。
+- FSR 3.1、可选 FSR 4、DLSS SR／DLAA，超分算法互斥，并显示实际生效状态。
+- 独立开关的 DLSS 5 NR，自动皮肤蒙版、细节参数和一次推理最多三层效果合成。
+- 本地无线通信联机、怪物血量倍率、集会所村庄任务、RomFS／可执行代码模组、Forge 插件和金手指。
 
-## 运行要求
+## 运行要求与安装
 
-- Windows 10／11 64位。**本项目当前没有 Linux 构建与测试环境，因此暂不兼容 Linux，也不提供 Linux 发布包。**
-- 支持 AVX2 的处理器、支持 Vulkan 1.2 的显卡，至少1GB显存、4GB内存。
-- 自己导出的完整 **Switch MHGU 1.4.0** 游戏文件，已将更新合并到本体。不支持 3DS 版。
+- Windows 10／11 64 位，支持 AVX2／FMA 的 CPU、Vulkan 1.2 的 GPU，基础渲染至少需要 4 GB 内存和 1 GB 显存。DLSS、NR 另有显卡、驱动和显存要求。
+- 自行提供完整的 **Nintendo Switch MHGU 1.4.0** 游戏文件，已将更新合并到本体。不支持 3DS 游戏。
+- 客户端发行平台为 Windows；本项目没有 Linux 客户端构建与测试环境。
 
-启动时会检查游戏兼容性，文件不匹配时提示并停止启动。保持原始 `exefs`／`romfs` 不变，模组放在 `mods/`。
+从 [Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases) 下载 Windows 压缩包，解压后放入完整的游戏目录：
 
-## 安装
+```text
+Windows-MHGURecomp/
+  mhgurecomp.exe
+  mhgugame.dll
+  mhgurecomp-updater.exe
+  data/
+    exefs/
+    romfs/
+  mods/Keyboard_Mouse_Input_Auto/
+```
 
-从[本仓库的 Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases)下载 Windows 发布包。原仓库的程序不包含这些键鼠改动。
+保留发行包的全部程序依赖，启动 `mhgurecomp.exe`。首次运行会生成 `mhgurecomp.ini`，并检查游戏版本。基础游戏文件保持不变，修改通过模组加载。
 
-1. 将程序解压到自选目录。
-2. 把游戏的 `exefs`、`romfs` 放入 `data`：
+## 图形与神经渲染
 
-   ```text
-   MHGURecomp/
-     mhgurecomp.exe
-     mhgugame.dll
-     data/
-       exefs/
-       romfs/
-   ```
+所有图形选项集中在 **F1 → Graphics** 和 INI 的 **[Graphics]** 下，音频位于 Audio。选择 Save 保存；带星号的设置需要重启。
 
-3. 启动 `mhgurecomp.exe`，首次启动会生成 `mhgurecomp.ini`。
-4. 按下文启用键鼠模式及附带的提示 mod。
+开启 **Temporal upscaling / AA**，在 FSR 3.1、FSR 4、DLSS SR／DLAA 中选择一种。DLSS 档位依次为 **超级性能 → 性能 → 平衡 → 质量 → DLAA**；`UpscaleQuality = DLAA` 对应原生分辨率抗锯齿。内部尺寸由 SDK 查询；NVIDIA App 覆盖设置可能改变实际尺寸与模型，以 F1 和日志为准。时间超分生效时接管 MSAA／FXAA。FSR 4 需要兼容的构建和 AMD 驱动，不可用时回退 FSR 3.1；DLSS 不可用会明确显示状态。
 
-复制两个完整目录，并保留发布包中程序旁的其他文件。
+NR 独立开关，也可不开超分单独使用。默认库为 **Official（RTX 50）**；RTX 40 须手动选择 **Community SM89（RTX 40）**，失败不会自动换库。发行包提供 NGX 适配层与官方 SR 运行库；**NR 模型 DLL 需自行提供**，详见[运行库配置与来源](../third_party/ngx/README.md)。目录为：
+
+```text
+dlss/nr/official/nvngx_dlssnr.dll
+dlss/nr/sm89/nvngx_dlssnr.dll
+```
+
+| NR 选项 | INI 配置项 | 默认值 | 范围 |
+| --- | --- | --- | --- |
+| 模型总体强度 | `NRIntensity` | 0.5 | 0～2 |
+| 模型风格 | `NRStyle` | Standard | Standard／Natural／Cinematic |
+| 局部结构 | `NRLocalStructure` | 1 | 0～2 |
+| 局部色调 | `NRLocalTone` | 0 | 0～2 |
+| 皮肤结构 | `NRSkinStructure` | **0** | 0～2 |
+| 自动皮肤蒙版 | `NRAutoMask` | **On** | On／Off |
+| 效果层数 | `NRLayers` | 1 | **1～3** |
+
+每个场景帧只执行一次 NR。二、三层放大结果相对原图的差值，在 HUD 绘制前合成，不额外运行模型。Skin 0 请求关闭皮肤结构增强，其他模型变化仍可能存在。F1 和 INI 均有详细说明，NR 参数保存后需要重启。RTX 4080 已进行基础 NR 和 SR＋NR 测试；本项目尚未在 RTX 50 或其他系列显卡上验证。
 
 ## 键鼠配置
 
@@ -116,46 +133,35 @@ MouseSensitivity = 1.0
 
 原有射击硬直、入瞄准延迟和招式转向限制继续生效。村庄、固定弩炮和猎猫特殊瞄准仍有游戏原本的转速限制。部分游戏手册页面仍显示手柄插图。
 
-## 设置与文件位置
+## 设置、文件与联机
 
-F1 打开 PC 设置；Alt+Enter 或 F11 切换全屏，F12 截图，F7 切换 MSAA。PC 设置界面目前支持英语／西班牙语，与游戏的七种语言独立。
+F1 打开 PC 设置；Alt+Enter／F11 切换全屏，F12 截图，F7 在可用时切换 MSAA。PC 菜单支持英语／西班牙语，与游戏的七种语言独立。提示会跟随最近使用的键鼠或手柄切换；方向键、Tab／Shift+Tab 导航，Enter／左键确认，Esc／F1 返回。
 
-通过 F1 调整画面、音频、控制与联机，选择 **Save** 保存；带星号的选项需要重启。ini 中附有更多选项说明。启用 FSR 时由它接管抗锯齿。
+| 内容 | 位置 |
+| --- | --- |
+| 配置／日志 | 程序旁的 `mhgurecomp.ini`／`log.txt` |
+| Windows 存档 | `%APPDATA%\MHGURecomp\save\save_0\` |
+| 模组／金手指 | `mods/`／`cheats/` |
+| 截图／着色器缓存 | `shots/`／`cache/` |
 
-F1 菜单提示会跟随最近使用的键鼠或手柄切换。方向键或 Tab／Shift+Tab 导航，Enter 或鼠标左键确认，Esc／F1 返回；点击顶部标签切换分类。
+导入 Switch 存档前备份目标目录，再将自己的 `system`、`system_backup` 放入 `save_0`。
 
-**Smooth gradients** 可减少天空和光晕中的色带，默认关闭；保存后生效，无需重启，但会增加 GPU 开销。
+游戏内选择**本地无线通信**。局域网／虚拟局域网可直接发现房间；互联网联机使用兼容客户端、相同房间服务器和可选配对密钥，在 **F1 → Network** 设置。直接主持房间时，默认需要 TCP／UDP 39500 端口可达。
 
-| 内容             | 位置                                 |
-| ---------------- | ------------------------------------ |
-| 配置／日志       | 程序旁的 `mhgurecomp.ini`／`log.txt` |
-| Windows 存档     | `%APPDATA%\MHGURecomp\save\save_0\`  |
-| 模组／金手指     | 程序旁的 `mods/`／`cheats/`          |
-| 截图／着色器缓存 | 程序旁的 `shots/`／`cache/`          |
+每个模组放入独立的 `mods/` 子目录，在 **F1 → Mods** 启用、排序后重启，后加载的冲突模组优先。MHGU 1.4.0 金手指 `.txt` 放入 `cheats/`，文件名前加 `_` 可禁用。附带 Auto 提示模组跟随装备和游戏语言。怪物血量与集会所／村庄任务选项位于 Miscellaneous。若另行提供 `bonus/system` 且 `BonusContent = On`，程序可导入尚未拥有的活动任务、道具包和随从内容。
 
-导入自己的 Switch 存档时，将 `system`、`system_backup` 复制到 `save_0`，覆盖前备份已有存档。
+## 更新与问题排查
 
-## 联机、模组与金手指
+从本仓库下载新版，或使用附带更新器。更新会替换程序和附带 Auto 提示资源，保留游戏数据、配置、存档和其他模组；另行安装的 NR 库保留在对应目录。
 
-使用游戏的**本地无线通信**选项。局域网／虚拟局域网可直接发现房间；互联网联机时，所有玩家使用兼容的程序版本，在 **F1 → Network** 设置相同的房间服务器，用相同的配对密钥组成好友分组。需要可用的房间服务器，本项目不保证原项目公共服务持续可用。
+- **游戏版本不符**：使用完整且已合并更新的 Switch 1.4.0 文件，基础资源保持不变。
+- **仍显示手柄提示**：选择 `InputMode = Keyboard_Mouse_Input`，启用附带 Auto 模组并重启。
+- **DLSS／NR 不可用**：查看 F1 实际状态和日志，核对运行库、显卡、驱动；RTX 40 须明确选择 SM89。
+- **帧时间波动**：先使用 60 FPS、开启 VSync，并保持开发用图形统计关闭。
+- **反馈问题**：在 [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues) 提供增强版版本、显卡与驱动、图形配置、复现步骤及复制保存的 `log.txt`。
 
-每个模组放入独立的 `mods/` 子目录，在 **F1 → Mods** 启用、排序后重启；冲突时后加载的模组优先。程序已有的分辨率、帧率功能无需另装修复模组。
+[开发文档](DEVELOPMENT.md)介绍架构、构建、测试与发布。
 
-将适用于1.4.0的金手指 `.txt` 放入 `cheats/`，文件名前加 `_` 可禁用；修改后重启。
+## 许可与致谢
 
-若发行包提供 `bonus/system` 且 `BonusContent = On`，程序可在未存在时导入免费的活动任务／道具包／随从内容；设为 Off 可关闭。
-
-## 更新与常见问题
-
-从**本仓库**下载新版，更新程序文件及附带的 Auto 提示 mod，保留游戏数据、设置、其他模组和存档。附带的更新器也只检查本仓库。
-
-- **提示游戏版本不符**：重新导出已合并更新的完整 Switch 1.4.0 游戏文件。保持原文件不变，修改通过 mod 安装。
-- **仍显示手柄提示**：检查 `InputMode`、在 F1 启用附带的 Auto mod，然后重启。弓专属提示和部分手册插图仍待完善。
-- **高帧率卡顿**：先尝试 60 FPS 并开启 VSync。
-- **其他问题**：在 [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues) 提供程序版本、硬件、复现步骤和 `log.txt`；再次启动前先复制日志。
-
-[开发文档](DEVELOPMENT.md#development)集中说明源码构建、发布、实现与测试，与本用户指南分开维护。
-
-## 许可
-
-项目代码采用 MIT 许可，保留原项目署名和第三方声明，见 [LICENSE](../LICENSE) 与 [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES)。许可不覆盖游戏或生成的游戏代码。本项目与 Capcom、Nintendo 无关联。
+项目代码采用 MIT 许可，保留 [LICENSE](../LICENSE) 和[第三方声明](../THIRD_PARTY_NOTICES)。NVIDIA 组件适用独立条款。游戏及生成的游戏代码不在项目许可范围内。本项目与 Capcom、Nintendo、NVIDIA 无关联。

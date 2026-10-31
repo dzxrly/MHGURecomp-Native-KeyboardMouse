@@ -17,7 +17,23 @@
 #endif
 
 static Config saved, startup;
-static bool have_saved, runtime_ready, runtime_fsr;
+static bool have_saved, runtime_ready, runtime_fsr, runtime_temporal;
+static SDL_AtomicInt graphics_backend, neural_backend;
+void config_graphics_report(bool neural, int status) {
+    SDL_SetAtomicInt(neural ? &neural_backend : &graphics_backend, status);
+}
+const char *config_graphics_status(bool neural) {
+    switch (SDL_GetAtomicInt(neural ? &neural_backend : &graphics_backend)) {
+    case GFX_WAITING: return "Waiting for a 3D scene";
+    case GFX_FSR3: return "FSR 3.1";
+    case GFX_FSR4: return "FSR 4";
+    case GFX_DLSS: return "DLSS SR / DLAA";
+    case GFX_NR: return "Active";
+    case GFX_UNAVAILABLE: return "Unavailable";
+    case GFX_DRIVER_OLD: return "Unavailable: NGX driver too old";
+    default: return neural ? "Off" : "Native";
+    }
+}
 static SDL_AtomicInt volume = {100}, confirm_exit = {1}, language = {0}, mute_in_background, window_focused = {1};
 static SDL_AtomicInt live_fps, live_fov, live_mouse, live_draw = {0x3f800000}, live_fxaa = {1}, live_msaa = {1},
                      live_vsync = {1}, live_face, live_menu_confirm, live_background = {1}, live_combo, live_chat_key,
@@ -66,6 +82,9 @@ void config_store_loaded(const Config *c) {
 }
 void config_runtime_init(const Config *effective) {
     startup = saved; runtime_ready = true; runtime_fsr = effective->fsr != 0;
+    runtime_temporal = runtime_fsr || effective->dlss_nr;
+    config_graphics_report(false, effective->fsr ? GFX_WAITING : GFX_NATIVE);
+    config_graphics_report(true, effective->dlss_nr ? GFX_WAITING : GFX_NATIVE);
     publish_live(effective, true);
     const char *override = getenv("MHGU_FRAMERATE");
     if (override && *override) {
@@ -80,7 +99,7 @@ float config_live_fov(void) { return get_float(&live_fov); }
 float config_live_mouse_sensitivity(void) { return get_float(&live_mouse); }
 float config_live_draw_distance(void) { return get_float(&live_draw); }
 int config_live_fxaa(void) { return runtime_fsr ? 0 : SDL_GetAtomicInt(&live_fxaa); }
-int config_live_msaa(void) { return runtime_fsr ? 1 : SDL_GetAtomicInt(&live_msaa); }
+int config_live_msaa(void) { return runtime_temporal ? 1 : SDL_GetAtomicInt(&live_msaa); }
 int config_live_vsync(void) { return SDL_GetAtomicInt(&live_vsync); }
 int config_live_menu_confirm(void) { return SDL_GetAtomicInt(&live_menu_confirm); }
 int config_live_face_buttons(void) { return SDL_GetAtomicInt(&live_face); }
@@ -136,8 +155,35 @@ bool config_validate(const Config *c, char *error, size_t size) {
 }
 
 // What config_save writes: a setting of the table (setting) or a Quest<number> entry (setting NULL)
-typedef struct { const ConfigSetting *setting; const char *section; char key[64], value[256]; bool seen; } Entry;
+typedef struct { const ConfigSetting *setting; const char *section; char key[64], value[256]; bool seen, described; } Entry;
 #define ENTRY_MAX (HP_QUESTS_MAX + 64)
+static bool nr_entry(const Entry *e) {
+    return e->setting && (!strncmp(e->key, "NR", 2) || !strcmp(e->key, "NeuralRendering"));
+}
+static void nr_help(FILE *out, Entry *e, const char *newline) {
+    if (!nr_entry(e) || e->described) return;
+    char help[2048];
+    if (config_help(e->key, help, sizeof help))
+        for (const char *p = help; *p;) {
+            size_t length = strcspn(p, "\n");
+            fprintf(out, "; %.*s%s", (int)length, p, newline);
+            p += length; if (*p) p++;
+        }
+    e->described = true;
+}
+static void note_nr_help(Entry *entries, int n, const char *line) {
+    while (isspace((unsigned char)*line)) line++;
+    if (*line != ';' && *line != '#') return;
+    line++; while (isspace((unsigned char)*line)) line++;
+    for (int i = 0; i < n; i++) {
+        Entry *e = &entries[i];
+        if (!nr_entry(e) || e->described) continue;
+        char help[2048];
+        if (!config_help(e->key, help, sizeof help)) continue;
+        size_t length = strcspn(help, "\n");
+        if (!strncmp(line, help, length) && (!line[length] || isspace((unsigned char)line[length]))) e->described = true;
+    }
+}
 static void normalize(const char *s, char *out, size_t size) {
     size_t n = 0;
     for (; *s && n + 1 < size; s++)
@@ -147,6 +193,7 @@ static void normalize(const char *s, char *out, size_t size) {
 static void flush_section(FILE *out, Entry *entries, int n, const char *section, const char *newline) {
     for (int i = 0; i < n; i++)
         if (!entries[i].seen && !strcasecmp(entries[i].section, section)) {
+            nr_help(out, &entries[i], newline);
             fprintf(out, "%s = %s%s", entries[i].key, entries[i].value, newline);
             entries[i].seen = true;
         }
@@ -174,13 +221,28 @@ static bool line_says(const Entry *e, const char *eq, const Config *c) {
     Config read = *c;
     return config_parse(e->setting, v, &read) && config_equal(e->setting, &read, c);
 }
+static bool graphics_section(const char *section) {
+    return !strcasecmp(section, "Graphics") || !strcasecmp(section, "Display") ||
+        !strcasecmp(section, "Anti-aliasing") || !strcasecmp(section, "Upscaler") || !strcasecmp(section, "Performance");
+}
+static void write_entry(FILE *out, Entry *e, const char *line, const char *eq, const Config *c, const char *newline) {
+    nr_help(out, e, newline);
+    const char *comment = strpbrk(eq + 1, ";#");
+    if (!strcmp(e->key, "TemporalUpscaling") || !strcmp(e->key, "UpscaleQuality")) {
+        fprintf(out, "%s = %s", e->key, e->value);
+        if (comment) fprintf(out, " %s", comment); else fputs(newline, out);
+    } else if (line_says(e, eq, c)) fputs(line, out);
+    else if (comment) fprintf(out, "%.*s %s %s", (int)(eq - line + 1), line, e->value, comment);
+    else fprintf(out, "%.*s %s%s", (int)(eq - line + 1), line, e->value, newline);
+    e->seen = true;
+}
 bool config_save(const Config *c, char *error, size_t error_size) {
     if (!config_validate(c, error, error_size)) return false;
     static Entry entries[ENTRY_MAX];  // (big: off the stack)
     int n = 0;
     for (int i = 0; i < g_nsettings; i++) {
         Entry *e = &entries[n++];
-        e->setting = &g_settings[i], e->section = g_settings[i].section, e->seen = false;
+        e->setting = &g_settings[i], e->section = g_settings[i].section, e->seen = e->described = false;
         snprintf(e->key, sizeof e->key, "%.*s", (int)strcspn(g_settings[i].key, "|"), g_settings[i].key);
         config_format(&g_settings[i], c, e->value, sizeof e->value);
     }
@@ -203,6 +265,34 @@ bool config_save(const Config *c, char *error, size_t error_size) {
     char line[4096], section[128] = "";
     const char *newline = "\n";
     bool ok = true, ended_line = true;
+    // Move all recognised graphics settings into one section. Keep their spelling,
+    // inline comments and legacy aliases; unknown keys stay in their original section.
+    // A second bounded INI pass avoids rebuilding unrelated sections or dropping comments.
+    if (in) {
+        while (fgets(line, sizeof line, in)) if (strstr(line, "\r\n")) { newline = "\r\n"; break; }
+        rewind(in);
+    }
+    fprintf(out, "[Graphics]%s", newline);
+    while (in && fgets(line, sizeof line, in)) {
+        char *s = line; while (isspace((unsigned char)*s)) s++;
+        if (*s == '[' && strchr(s, ']')) {
+            snprintf(section, sizeof section, "%.*s", (int)(strchr(s, ']') - s - 1), s + 1);
+            continue;
+        }
+        char *eq = *s && *s != ';' && *s != '#' ? strchr(s, '=') : NULL;
+        if (eq) {
+            char key[128]; snprintf(key, sizeof key, "%.*s", (int)(eq - s), s);
+            Entry *e = entry_of(entries, n, key);
+            if (e && !strcmp(e->section, "Graphics")) write_entry(out, e, line, eq, c, newline);
+        } else if (graphics_section(section)) {
+            note_nr_help(entries, n, line);
+            fputs(line, out);
+        }
+    }
+    if (in) { if (ferror(in)) ok = false; rewind(in); }
+    flush_section(out, entries, n, "Graphics", newline);
+    section[0] = 0;
+    bool hidden_header = false;
     while (in && fgets(line, sizeof line, in)) {
         size_t len = strlen(line);
         if (!strchr(line, '\n') && !feof(in)) { ok = false; break; } // never truncate an unknown line
@@ -211,6 +301,8 @@ bool config_save(const Config *c, char *error, size_t error_size) {
         if (*s == '[' && strchr(s, ']')) {
             flush_section(out, entries, n, section, newline);
             snprintf(section, sizeof section, "%.*s", (int)(strchr(s, ']') - s - 1), s + 1);
+            hidden_header = graphics_section(section);
+            if (hidden_header) continue;
         }
         char *eq = (*s && *s != ';' && *s != '#' && *s != '[') ? strchr(s, '=') : NULL;
         bool handled = false;
@@ -221,11 +313,11 @@ bool config_save(const Config *c, char *error, size_t error_size) {
             while (k > key && isspace((unsigned char)k[-1])) *--k = 0;
             Entry *e = entry_of(entries, n, key);
             if (e) {
-                const char *comment = strpbrk(eq + 1, ";#");
-                if (line_says(e, eq, c)) fputs(line, out);
-                else if (comment) fprintf(out, "%.*s %s %s", (int)(eq - line + 1), line, e->value, comment);
-                else fprintf(out, "%.*s %s%s", (int)(eq - line + 1), line, e->value, newline);
-                e->seen = true; handled = true; ended_line = true;
+                if (strcmp(e->section, "Graphics")) {
+                    if (hidden_header) { fprintf(out, "[%s]%s", section, newline); hidden_header = false; }
+                    write_entry(out, e, line, eq, c, newline);
+                }
+                handled = true; ended_line = true;
             } else {
                 // Removing an override must remove its old value, including duplicate entries.
                 char normalized[128];
@@ -233,7 +325,11 @@ bool config_save(const Config *c, char *error, size_t error_size) {
                 if (!strncmp(normalized, "quest", 5) && isdigit((unsigned char)normalized[5])) handled = true;
             }
         }
-        if (!handled) { fputs(line, out); ended_line = len && line[len - 1] == '\n'; }
+        if (!handled) {
+            if (!eq && graphics_section(section)) continue; // comments already carried with graphics
+            if (hidden_header) { fprintf(out, "[%s]%s", section, newline); hidden_header = false; }
+            fputs(line, out); ended_line = len && line[len - 1] == '\n';
+        }
     }
     if (in) { if (ferror(in)) ok = false; fclose(in); }
     if (!ended_line) fputs(newline, out);

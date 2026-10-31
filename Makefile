@@ -1,4 +1,4 @@
-# MHGU Recomp build
+# MHGURecomp Enhanced build
 # Windows: MSYS2 UCRT64 (clang, lld, make; see README.md). Linux: clang (planned).
 #
 #   make gen GAME=<folder with exefs/ and romfs/>   recompile the game code from your own dump into generated/
@@ -99,10 +99,10 @@ GAMELIB_ID := $(shell (sed 's/\r$$//' $(GAMELIB_SRCS) | sed 's/$$/\r/'; echo '$(
 # valid across builds until the translator changes. (Line endings ignored: the same sources hash the same everywhere.)
 SHADER_SRCS := runtime/nvn/maxwell/translate.c runtime/nvn/maxwell/shader.h
 SHADER_ID := $(shell cat $(SHADER_SRCS) | tr -d '\r' | sha256sum | cut -c1-16)
-# VERSION: this build's release (git describe: 0.10.3 on a release's tag, 0.10.3-4-gabc1234 after it), in the log and
-# the updater's (updater/updater.c: only a build of exactly a release updates itself). make dist VERSION=0.10.4 for a
-# release built before its tag is made.
-VERSION ?= $(shell git describe --tags 2>/dev/null || echo unknown)
+# Independent enhanced-edition version and reviewed upstream baseline. The updater
+# compares VERSION tags; the GitHub release title is VERSION-UPSTREAM_VERSION.
+VERSION ?= $(strip $(shell cat VERSION))
+UPSTREAM_VERSION := $(strip $(shell cat UPSTREAM_VERSION))
 
 RT_OBJ   = $(patsubst runtime/%.c,$(O)/rt/%.o,$(RT_SRC)) $(RT_CXX) $(O)/rt/overlay.o $(O)/rt/settings_panel.o $(IMGUI_OBJ) \
            $(O)/updater/sha256.o
@@ -139,8 +139,9 @@ FFX_PASS := $(FFX)/src/backends/vk/shaders/fsr3upscaler
 $(O)/fsr/src/ffx_fsr3_glsl.c.o: FSRFLAGS += -DFFX_GPU_DIR='"$(FFX_GPU)"' -DFFX_PASS_DIR='"$(FFX_PASS)"'
 $(O)/fsr/src/ffx_fsr3_glsl.c.o: $(wildcard $(FFX_GPU)/*.h $(FFX_GPU)/*/*.h $(FFX_PASS)/*.glsl)
 RTFLAGS  += -I$(FSR)/include -Ithird_party/ffx-api
+RTFLAGS  += -Ithird_party/ngx/include
 # FSR4_DRIVER_PATCH=1 (opt-in): FSR 4 can use the AMD driver's own amdvkffx64.dll directly, which needs one in-memory patch of
-# that DLL's GetModuleHandleW import (runtime/nvn/vulkan/fsr4.c, docs/DEVELOPMENT.md#fsr4). The default, FSR4_DRIVER_PATCH=0, leaves
+# that DLL's GetModuleHandleW import (runtime/nvn/vulkan/fsr4.c, docs/DEVELOPMENT.md#fsr). The default, FSR4_DRIVER_PATCH=0, leaves
 # all of that code out: nothing of AMD's is touched, and FSR 4 is only used through a loader DLL the player supplies (else FSR 3.1).
 FSR4_DRIVER_PATCH ?= 0
 .DEFAULT_GOAL := all
@@ -214,9 +215,9 @@ $(O)/shader.id: FORCE
 $(O)/rt/nvn/vulkan/exec.o: $(O)/shader.id
 $(O)/rt/nvn/vulkan/exec.o: RTFLAGS += -DSHADER_ID='"$(SHADER_ID)"'
 $(O)/version.id: FORCE
-	@mkdir -p $(O); [ "$$(cat $@ 2>/dev/null)" = '$(VERSION)' ] || echo '$(VERSION)' > $@
+	@mkdir -p $(O); [ "$$(cat $@ 2>/dev/null)" = '$(VERSION)-$(UPSTREAM_VERSION)' ] || echo '$(VERSION)-$(UPSTREAM_VERSION)' > $@
 $(O)/rt/main.o: $(O)/version.id
-$(O)/rt/main.o: RTFLAGS += -DMHGU_VERSION='"$(VERSION)"'
+$(O)/rt/main.o: RTFLAGS += -DMHGU_VERSION='"$(VERSION)"' -DMHGU_UPSTREAM_VERSION='"$(UPSTREAM_VERSION)"'
 
 $(O)/rt/%.o: runtime/%.c $(RT_HDRS)
 	@mkdir -p $(dir $@)
@@ -240,7 +241,6 @@ $(O)/imgui/%.o: $(IMGUI)/%.cpp
 $(O)/rt/nvn/vulkan/vma.o: runtime/nvn/vulkan/vma.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) -O2 -w -Ithird_party/vk_mem_alloc -c $< -o $@
-
 $(O)/fsr/%.c.o: $(FSR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) -std=c11 $(FSRFLAGS) -c $< -o $@
@@ -368,7 +368,7 @@ runtime-objs: $(RT_OBJ)
 clean:  # (keeps $(B)/data, and the settings, caches and saves wherever the game ran)
 	rm -rf $(O) $(B)/*.dll $(B)/*.so $(EXE) $(UPDATER) $(B)/vkprobe.exe
 
-# make dist VERSION=0.10.4: the release archive of the build folder, for GitHub (tools/dist.py): in $(DIST)/,
+# make dist VERSION=0.1.0: the release archive of the build folder, for GitHub (tools/dist.py): in $(DIST)/,
 # Windows-MHGURecomp.<version>.zip or ArchLinux-MHGURecomp.<version>.tar.gz (permissions kept), holding the programs,
 # the game code, the DLLs, licenses/, BONUS (the donor save for bonus/system, when given) and the empty folders the
 # player fills; never the game files, mods, settings or caches of $(B). It prints each archive's size and SHA-256.
@@ -376,7 +376,7 @@ DIST  ?= dist
 BONUS ?= $(wildcard $(B)/bonus/system)
 dist: all
 	@echo '$(VERSION)' | grep -Eq '^[0-9]+(\.[0-9]+)*$$' || \
-	  { echo "dist: '$(VERSION)' is not a release version: make dist VERSION=<the release's tag, e.g. 0.10.4>"; exit 1; }
+	  { echo "dist: '$(VERSION)' is not a release version: make dist VERSION=<the release's tag, e.g. 0.1.0>"; exit 1; }
 	$(PY) tools/dist.py $(B) $(DIST) $(PLATFORM) $(VERSION) $(if $(BONUS),--bonus "$(BONUS)") $(if $(KEYBOARD_MOUSE_MOD),--keyboard-mouse-mod "$(KEYBOARD_MOUSE_MOD)")
 
 .PHONY: all gen test-lift runtime-objs clean bundle data licenses pipelist dist FORCE

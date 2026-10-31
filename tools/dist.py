@@ -12,12 +12,15 @@ data/, other mods, cheats/ and bonus/ alone; it may update the bundled Auto prom
 
 import hashlib
 import io
+import json
 import os
 import sys
 import tarfile
 import time
 import zipfile
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
 
 DATA_NOTE = (
     "Put your own dump of Monster Hunter Generations Ultimate 1.4.0 here: the exefs and romfs folders\n"
@@ -58,6 +61,19 @@ def files(build, platform):
             out.append(
                 ("licenses/" + os.path.relpath(p, lic).replace(os.sep, "/"), p, False)
             )
+    for rel in (
+        "README.md",
+        "docs/README.zh-CN.md",
+        "docs/README.zh-TW.md",
+        "docs/DEVELOPMENT.md",
+        "third_party/ngx/README.md",
+        "third_party/ngx/LICENSE.txt",
+        "LICENSE",
+        "THIRD_PARTY_NOTICES",
+        "VERSION",
+        "UPSTREAM_VERSION",
+    ):
+        out.append((rel, str(ROOT / rel), False))
     return out
 
 
@@ -115,6 +131,20 @@ def main():
     if len(args) != 4 or args[2] not in ("windows", "linux"):
         sys.exit(__doc__)
     build, out_dir, platform, version = args
+    upstream = (ROOT / "UPSTREAM_VERSION").read_text(encoding="utf-8").strip()
+    metadata = (
+        json.dumps(
+            {
+                "product": "MHGURecomp Enhanced",
+                "version": version,
+                "upstream_version": upstream,
+                "release_title": f"{version}-{upstream}",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n"
+    )
     check_version(build, platform, version)
     top = ("Windows" if platform == "windows" else "ArchLinux") + "-MHGURecomp"
     name = f"{top}.{version}" + (".zip" if platform == "windows" else ".tar.gz")
@@ -154,6 +184,7 @@ def main():
                 DATA_NOTE,
                 zipfile.ZIP_DEFLATED,
             )
+            z.writestr(f"{top}/release-info.json", metadata, zipfile.ZIP_DEFLATED)
             for rel, p, _ in entries:
                 z.write(p, f"{top}/{rel}")
     else:
@@ -172,6 +203,11 @@ def main():
                 t.addfile(info(d, 0, 0o755, now, tarfile.DIRTYPE))
             t.addfile(
                 info(note, len(DATA_NOTE), 0o644, now), io.BytesIO(DATA_NOTE.encode())
+            )
+            meta_bytes = metadata.encode("utf-8")
+            t.addfile(
+                info("release-info.json", len(meta_bytes), 0o644, now),
+                io.BytesIO(meta_bytes),
             )
             for rel, p, program in entries:
                 with open(p, "rb") as f:
@@ -192,9 +228,8 @@ def main():
             h.update(chunk)
     print(f"dist: {path}")
     print(f"      {os.path.getsize(path)} bytes, sha256:{h.hexdigest()}")
-    print(
-        f"      upload it to the GitHub release {version} (tag {version}, not a pre-release)"
-    )
+    Path(path + ".sha256").write_text(f"{h.hexdigest()}  {name}\n", encoding="ascii")
+    print(f"      release title {version}-{upstream}; tag {version}")
 
 
 if __name__ == "__main__":

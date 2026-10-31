@@ -217,6 +217,15 @@ bool equal(const Config &a, const Config &b) {
     SAME(fsr_objmotion);
     SAME(fsr_reactive);
     SAME(fsr_animsurf);
+    SAME(dlss_nr);
+    SAME(nr_intensity);
+    SAME(nr_runtime);
+    SAME(nr_style);
+    SAME(nr_structure);
+    SAME(nr_tone);
+    SAME(nr_skin);
+    SAME(nr_auto_mask);
+    SAME(nr_layers);
     SAME(vsync);
     SAME(shader_prewarm);
     SAME(draw_distance);
@@ -560,8 +569,6 @@ void reset_section() {
         c.aspect_ratio = f.aspect_ratio;
         c.fov = f.fov;
         c.ui_anchor = f.ui_anchor;
-        break;
-    case 1:
         c.fsr = f.fsr;
         c.fsr_upscaler = f.fsr_upscaler;
         c.fsr_quality = f.fsr_quality;
@@ -569,6 +576,15 @@ void reset_section() {
         c.fsr_objmotion = f.fsr_objmotion;
         c.fsr_reactive = f.fsr_reactive;
         c.fsr_animsurf = f.fsr_animsurf;
+        c.dlss_nr = f.dlss_nr;
+        c.nr_intensity = f.nr_intensity;
+        c.nr_runtime = f.nr_runtime;
+        c.nr_style = f.nr_style;
+        c.nr_structure = f.nr_structure;
+        c.nr_tone = f.nr_tone;
+        c.nr_skin = f.nr_skin;
+        c.nr_auto_mask = f.nr_auto_mask;
+        c.nr_layers = f.nr_layers;
         c.fps = f.fps;
         c.vsync = f.vsync;
         c.shader_prewarm = f.shader_prewarm;
@@ -577,6 +593,8 @@ void reset_section() {
         c.msaa = f.msaa;
         c.fxaa = f.fxaa;
         c.fxaa_mode = f.fxaa_mode;
+        break;
+    case 1:
         c.volume = f.volume;
         c.mute_in_background = f.mute_in_background;
         break;
@@ -819,8 +837,6 @@ std::vector<Row> main_rows() {
         add_choice(
             r, "anchor", "HUD anchor", c.ui_anchor - 1, {"16:9", "21:9", "32:9", tr("Edges")},
             [](int v) { c.ui_anchor = v + 1; }, ini("UIAnchor"));
-        break;
-    case 1:
         number(r, "fps", "Frame rate limit", &c.fps, (int)lo("FPS"), (int)hi("FPS"), 1, ini("FPS"));
         {  // left / right: one frame per second more or less; Confirm: the common ones
             static const int presets[] = {30, 60, 90, 120, 150, 240};
@@ -847,11 +863,11 @@ std::vector<Row> main_rows() {
                    : c.msaa == 2 ? 1
                                  : 0,
                    {tr("Off"), "2x", "4x", "8x"}, [](int v) { c.msaa = 1 << v; }, ini("MSAA"));
-        if (g_config.fsr) {
+        if (config_temporal()) {
             r.back().cold = true;
-            if (c.fsr) {
+            if (c.fsr || c.dlss_nr) {
                 r.back().enabled = false;
-                r.back().value = tr("Off (FSR)");
+                r.back().value = tr("Off (upscaler)");
             }
         }
         add_bool(r, "fxaa", "FXAA", &c.fxaa, ini("FXAA"));
@@ -859,7 +875,7 @@ std::vector<Row> main_rows() {
             r.back().cold = true;
             if (c.fsr) {
                 r.back().enabled = false;
-                r.back().value = tr("Off (FSR)");
+                r.back().value = tr("Off (upscaler)");
             }
         }
         add_choice(r, "fxaamode", "FXAA mode", c.fxaa_mode, {tr("Original"), "3.11"}, [](int v) { c.fxaa_mode = v; },
@@ -868,7 +884,7 @@ std::vector<Row> main_rows() {
             r.back().cold = true;
             if (c.fsr) {
                 r.back().enabled = false;
-                r.back().value = tr("Off (FSR)");
+                r.back().value = tr("Off (upscaler)");
             }
         }
         number(r, "drawdist", tr("Draw distance"), &c.draw_distance, lo("DrawDistance"), hi("DrawDistance"), .25f,
@@ -876,22 +892,57 @@ std::vector<Row> main_rows() {
         if (c.draw_distance == 0)
             r.back().value = tr("No limit");
         add_bool(r, "smooth", "Smooth gradients", &c.smooth_gradients, ini("SmoothGradients"));
-        number(r, "volume", "Volume (%)", &c.volume, (int)lo("Volume"), (int)hi("Volume"), 1, ini("Volume"));
-        add_bool(r, "mutebg", "Mute in background", &c.mute_in_background, ini("MuteInBackground"));
-        add_bool(r, "fsr", "FSR", &c.fsr, ini("FSR"));
+        add_bool(r, "fsr", "Temporal upscaling / AA", &c.fsr, ini("TemporalUpscaling"));
         if (c.fsr) {
             add_choice(
-                r, "fsr.provider", "Upscaler", c.fsr_upscaler, {"FSR 3.1", "FSR 4"},
+                r, "fsr.provider", "Upscaler", c.fsr_upscaler, {"FSR 3.1", "FSR 4", "DLSS SR / DLAA"},
                 [](int v) { s.draft.fsr_upscaler = v; }, ini("Upscaler"));
-            add_choice(
-                r, "fsr.quality", "FSR quality", c.fsr_quality,
-                {tr("Native AA"), tr("Quality"), tr("Balanced"), tr("Performance"), tr("Ultra performance")},
-                [](int v) { s.draft.fsr_quality = v; }, ini("FSRQuality"));
+            if (c.fsr_upscaler == FSR_UP_DLSS) {
+                add_choice(
+                    r, "fsr.quality", "Upscaling quality", FSR_ULTRA_PERFORMANCE - c.fsr_quality,
+                    {tr("Ultra performance"), tr("Performance"), tr("Balanced"), tr("Quality"), "DLAA"},
+                    [](int v) { s.draft.fsr_quality = FSR_ULTRA_PERFORMANCE - v; }, ini("UpscaleQuality"));
+            } else {
+                add_choice(
+                    r, "fsr.quality", "Upscaling quality", c.fsr_quality,
+                    {tr("Native AA"), tr("Quality"), tr("Balanced"), tr("Performance"), tr("Ultra performance")},
+                    [](int v) { s.draft.fsr_quality = v; }, ini("UpscaleQuality"));
+            }
             number(r, "fsr.sharpness", tr("Sharpness"), &c.fsr_sharpness, lo("Sharpness"), hi("Sharpness"), .05f, ini("Sharpness"));
             add_bool(r, "fsr.motion", "Object motion", &c.fsr_objmotion, ini("ObjectMotion"));
             number(r, "fsr.reactive", tr("Reactive mask"), &c.fsr_reactive, lo("Reactive"), hi("Reactive"), .05f, ini("Reactive"));
             add_bool(r, "fsr.surfaces", "Animated surfaces", &c.fsr_animsurf, ini("AnimSurf"));
         }
+        add_bool(r, "nr", "DLSS 5 Neural Rendering", &c.dlss_nr, ini("NeuralRendering"));
+        if (c.dlss_nr) {
+            add_choice(r, "nr.runtime", "NR runtime", c.nr_runtime, {"Official (RTX 50)", "Community SM89 (RTX 40)"},
+                [](int v) { s.draft.nr_runtime = v; }, ini("NRRuntime"));
+            number(r, "nr.intensity", tr("NR intensity"), &c.nr_intensity, lo("NRIntensity"), hi("NRIntensity"), .05f, ini("NRIntensity"));
+            add_choice(r, "nr.style", "NR style", c.nr_style, {tr("Standard"), tr("Natural"), tr("Cinematic")},
+                [](int v) { s.draft.nr_style = v; }, ini("NRStyle"));
+            number(r, "nr.structure", tr("NR local structure"), &c.nr_structure, lo("NRLocalStructure"), hi("NRLocalStructure"), .05f, ini("NRLocalStructure"));
+            number(r, "nr.tone", tr("NR local tone"), &c.nr_tone, lo("NRLocalTone"), hi("NRLocalTone"), .05f, ini("NRLocalTone"));
+            number(r, "nr.skin", tr("NR skin structure"), &c.nr_skin, lo("NRSkinStructure"), hi("NRSkinStructure"), .05f, ini("NRSkinStructure"));
+            add_bool(r, "nr.mask", "NR auto skin mask", &c.nr_auto_mask, ini("NRAutoMask"));
+            number(r, "nr.layers", "NR effect layers", &c.nr_layers, (int)lo("NRLayers"), (int)hi("NRLayers"), 1, ini("NRLayers"));
+        }
+        {
+            Row active;
+            active.id="gfx.active"; active.title=tr("Active upscaler");
+            active.value=tr(config_graphics_status(false)); active.enabled=false;
+            r.push_back(active);
+            active.id="nr.active"; active.title=tr("Active neural rendering");
+            active.value=tr(config_graphics_status(true)); r.push_back(active);
+            char dimensions[100];
+            snprintf(dimensions, sizeof dimensions, "%u x %u -> %u x %u", g_render_size[0], g_render_size[1],
+                g_fsr_output[0] ? g_fsr_output[0] : g_render_size[0], g_fsr_output[1] ? g_fsr_output[1] : g_render_size[1]);
+            active.id="gfx.dimensions"; active.title=tr("Active render / output size"); active.value=dimensions;
+            r.push_back(active);
+        }
+        break;
+    case 1:
+        number(r, "volume", "Volume (%)", &c.volume, (int)lo("Volume"), (int)hi("Volume"), 1, ini("Volume"));
+        add_bool(r, "mutebg", "Mute in background", &c.mute_in_background, ini("MuteInBackground"));
         break;
     case 2:
         add_choice(r, "face", "Face buttons", c.face_buttons, {tr("Position"), tr("Label")},
@@ -1508,7 +1559,7 @@ void settings_panel(bool *open) {
             first_page((s.page + 1) % PAGES);
         if (pressed(ImGuiKey_GamepadL1))
             first_page((s.page + PAGES - 1) % PAGES);
-        const char *pages[] = {"Display", "Graphics & Audio", "Controls", "Network", "Miscellaneous", "Mods", "App"};
+        const char *pages[] = {"Graphics", "Audio", "Controls", "Network", "Miscellaneous", "Mods", "App"};
         float avail = ImGui::GetContentRegionAvail().x;
         float fw = ImGui::GetFontSize();
         ImVec2 scrolling_start = ImGui::GetCursorScreenPos();
@@ -1674,8 +1725,8 @@ void settings_panel(bool *open) {
     } else if (s.saved_notice)
         ImGui::TextUnformatted(tr((config_restart_required(&s.draft) || mods_restart()) ? "Saved - restart pending" : "Saved"));
     if (s.view == View::Main) {
-        if (s.page == 1 && (s.draft.fsr || g_config.fsr))
-            ImGui::TextWrapped("%s", tr("FSR overrides MSAA and FXAA while active."));
+        if (s.page == 0 && (s.draft.fsr || g_config.fsr))
+            ImGui::TextWrapped("%s", tr("Temporal upscaling overrides MSAA and FXAA while active."));
         if (s.page == MODS_PAGE)
             ImGui::TextWrapped("%s", tr("Mods load from top to bottom: a later mod wins. Select a conflict to choose which mod is used. Press Save, then restart."));
         ImGui::TextUnformatted(tr("* Restart required"));

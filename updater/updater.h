@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 #ifndef MHGU_VERSION
-#define MHGU_VERSION "unknown"  // (the Makefile gives the build's tag: git describe)
+#define MHGU_VERSION "unknown"  // The independent enhanced-edition version from VERSION.
 #endif
 
 void ulog(const char *fmt, ...) __attribute__((format(printf, 1, 2)));  // update/updater.log and stderr

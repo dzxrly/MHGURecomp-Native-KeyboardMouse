@@ -1,6 +1,6 @@
 # fsr-vulkan (vendored subset)
 
-AMD FidelityFX Super Resolution 3.1.4 **temporal upscaler**, native Vulkan, for MHGU Recomp's Vulkan renderer
+AMD FidelityFX Super Resolution 3.1.4 **temporal upscaler**, native Vulkan, for MHGURecomp Enhanced's Vulkan renderer
 (`runtime/nvn/vulkan/fsr.c`).
 
 - Upstream: https://github.com/FireBurn/FSR-Vulkan, commit `c64f093404125e960813f95f1996c14780f0dd69`

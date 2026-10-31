@@ -17,6 +17,7 @@
 #include "../../overlay.h"
 #include "fsr.h"
 #include "fsr4.h"
+#include "ngx.h"
 #include "vk.h"
 
 VkG g_vk;
@@ -74,7 +75,7 @@ static void create_instance(void) {
     Uint32 n_sdl = 0;
     const char *const *sdl_ext = SDL_Vulkan_GetInstanceExtensions(&n_sdl);
     if (!sdl_ext) FATAL("SDL_Vulkan_GetInstanceExtensions: %s (is the window a Vulkan window?)\n", SDL_GetError());
-    const char *ext[16];
+    const char *ext[32];
     uint32_t n_ext = 0;
     for (Uint32 i = 0; i < n_sdl && n_ext < 13; i++) ext[n_ext++] = sdl_ext[i];
     uint32_t ni = 0;  // VK_EXT_full_screen_exclusive (create_device) needs this one
@@ -174,6 +175,8 @@ static void create_device(void) {
     no_exclusive = surface_caps2 && has_ext(ep, ne, "VK_EXT_full_screen_exclusive") && !getenv("MHGU_VK_EXCLUSIVE");
     if (no_exclusive) ext[n_ext++] = "VK_EXT_full_screen_exclusive";
     bool fsr4 = g_config.fsr && g_config.fsr_upscaler == FSR_UP_4 && vk_fsr4_device_exts(ep, ne, ext, &n_ext);  // FSR 4: its extensions
+    bool ngx = (g_config.dlss_nr || (g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)) &&
+        vk_ngx_device_exts(ep, ne, ext, &n_ext, sizeof ext / sizeof *ext);
     free(ep);
 
     // optional features: whatever the GPU has of what the backend can use
@@ -225,12 +228,13 @@ static void create_device(void) {
     b->robustBufferAccess = h->robustBufferAccess;  // guest shaders index cbufs freely: keep OOB reads harmless
     b->shaderClipDistance = h->shaderClipDistance;
     b->multiViewport = h->multiViewport;
-    if (g_config.fsr) {  // FSR: its shaders write images declared without a format, and have 16-bit float variants
+    if (config_temporal()) {  // Shared input preparation and optional FSR fallback.
         b->shaderStorageImageWriteWithoutFormat = g_vk.fsr_storage_wo_format = h->shaderStorageImageWriteWithoutFormat;
         b->shaderStorageImageReadWithoutFormat = h->shaderStorageImageReadWithoutFormat;
         f12.shaderFloat16 = b->shaderInt16 = g_vk.fsr_fp16 = f12_have.shaderFloat16 && h->shaderInt16;  // (both, or neither)
     }
     if (fsr4) vk_fsr4_device_features(&f11, &f12, b);  // FSR 4: cooperative matrix, float8... (only when asked for)
+    if (ngx) f12.bufferDeviceAddress = f12_have.bufferDeviceAddress;
     if (!h->shaderInt64) LOG("[vk] warning: no shaderInt64 (64-bit address math in shaders)\n");
     float prio = 1.0f;
     VkDeviceQueueCreateInfo qi = {.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = g_vk.qfam,

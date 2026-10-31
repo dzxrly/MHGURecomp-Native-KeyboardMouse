@@ -85,6 +85,11 @@ static void down(int n = 1) {
     while (n--)
         press(ImGuiKey_GamepadDpadDown);
 }
+static void graphics_row(const char *name) {
+    press(ImGuiKey_Home);
+    for (int i=0; i<60 && ImGui::GetCurrentContext()->NavId!=id(name); i++) down();
+    selected(name);
+}
 static void tab() { press(ImGuiKey_GamepadR1); }
 static void back() { press(ImGuiKey_GamepadFaceRight); }
 static void confirm() { press(ImGuiKey_GamepadFaceDown); }
@@ -185,9 +190,11 @@ int main() {
     selected("display.mode");
     io.AddKeyEvent(ImGuiKey_GamepadR1, true);
     idle(35);
-    selected("fps");
+    selected("volume"); // The separate Audio page contains no graphics settings.
     io.AddKeyEvent(ImGuiKey_GamepadR1, false);
     idle();
+    press(ImGuiKey_GamepadL1);
+    graphics_row("fps");
     // The frame rate: Confirm lists the common ones, left / right go a frame at a time
     confirm();
     selected("choice.1");  // (60, the one it has)
@@ -200,8 +207,7 @@ int main() {
     selected("save");
     confirm();
     assert(config_editable().fps == 91);
-    press(ImGuiKey_Home);
-    selected("fps");
+    graphics_row("fps");
     confirm();
     selected("choice.2");  // (91 is none of them: the one below)
     press(ImGuiKey_GamepadDpadUp);
@@ -210,12 +216,13 @@ int main() {
     press(ImGuiKey_GamepadDpadUp);
     confirm();
     assert(config_editable().fps == 60);
-    press(ImGuiKey_Home);
+    graphics_row("fps");
     confirm();
     selected("choice.1");
     back();  // (Back closes the dropdown, nothing changed)
     selected("fps");
     assert(!settings_panel_dirty() && opened);
+    tab(); // Audio
     tab();
     selected("face");
     down();
@@ -336,7 +343,6 @@ int main() {
     tab();
     selected("display.mode");
     tab();
-    down(8);  // (fps, vsync, prewarm, msaa, fxaa, fxaamode, drawdist, smooth)
     selected("volume");
     confirm();
     selected("volume");
@@ -371,7 +377,6 @@ int main() {
     assert(!settings_panel_dirty());
     assert(config_editable().volume == 99);
     press(ImGuiKey_Home);
-    down(8);
     selected("volume");
     press(ImGuiKey_GamepadDpadRight);
     back();
@@ -383,7 +388,7 @@ int main() {
     frame();
     opened = true;
     idle();
-    selected("fps");
+    selected("volume");
     tab();
     tab();
     selected("port");
@@ -506,8 +511,9 @@ int main() {
     press(ImGuiKey_GamepadL1);
     press(ImGuiKey_GamepadL1);
     press(ImGuiKey_GamepadL1);
-    selected("fps");
-    down(10);  // (vsync, prewarm, msaa, fxaa, fxaamode, drawdist, smooth, volume, mutebg, fsr)
+    press(ImGuiKey_GamepadL1);
+    graphics_row("fps");
+    down(8);  // vsync, prewarm, msaa, fxaa, fxaamode, drawdist, smooth, upscaling
     selected("fsr");
     confirm();
     assert(settings_panel_dirty());
@@ -525,14 +531,52 @@ int main() {
     assert(config_editable().fsr_quality == FSR_QUALITY);
     Config fsr_saved = config_editable();
     assert(config_restart_required(&fsr_saved));
+    graphics_row("fsr.provider");
+    press(ImGuiKey_GamepadDpadRight); // One selected provider: FSR 4 -> DLSS.
+    graphics_row("fsr.quality");
+    confirm();
+    selected("choice.3"); // Quality, in Ultra Performance -> DLAA order.
+    press(ImGuiKey_Home);
+    for(int mode=0;mode<5;mode++){
+        char choice[32];snprintf(choice,sizeof choice,"choice.%d",mode);selected(choice);
+        confirm();
+        press(ImGuiKey_End);
+        press(ImGuiKey_GamepadDpadUp);
+        confirm();
+        assert(config_editable().fsr_quality==FSR_ULTRA_PERFORMANCE-mode);
+        graphics_row("fsr.quality");
+        if(mode<4){confirm();down();}
+    }
+    graphics_row("nr");
+    confirm();
+    down();
+    selected("nr.runtime");
+    press(ImGuiKey_GamepadDpadRight); // Community runtime requires an explicit choice.
+    press(ImGuiKey_GamepadDpadLeft);  // Official remains the saved default.
+    graphics_row("nr.style");
+    press(ImGuiKey_GamepadDpadRight);
+    down();selected("nr.structure");press(ImGuiKey_GamepadDpadRight);
+    down();selected("nr.tone");press(ImGuiKey_GamepadDpadRight);
+    down();selected("nr.skin");press(ImGuiKey_GamepadDpadRight);
+    down();selected("nr.mask");confirm();
+    down();selected("nr.layers");
+    press(ImGuiKey_GamepadDpadRight);press(ImGuiKey_GamepadDpadRight);press(ImGuiKey_GamepadDpadRight);
+    press(ImGuiKey_End);
+    press(ImGuiKey_GamepadDpadUp);
+    confirm();
+    assert(config_editable().fsr_upscaler==FSR_UP_DLSS && config_editable().dlss_nr);
+    assert(config_editable().nr_runtime==NR_RUNTIME_OFFICIAL);
+    assert(config_editable().nr_style==1 && config_editable().nr_layers==3 && !config_editable().nr_auto_mask);
+    assert(config_editable().nr_structure>1.049f && config_editable().nr_structure<1.051f);
+    assert(config_editable().nr_tone>.049f && config_editable().nr_skin>.049f);
     opened = false;
     frame();
     g_config.fsr = 1;
     opened = true;
     idle();
-    selected("fps");
-    down(5);
-    selected("volume");
+    graphics_row("fps");
+    down(3);
+    selected("drawdist");
     assert(!settings_panel_dirty()); // FSR-owned AA rows are disabled, not misleading live toggles.
     idle(20);
     float pinned_bottom = pinned_content_bottom();
@@ -547,7 +591,7 @@ int main() {
     assert(root->NavRectRel[ImGuiNavLayer_Main].Max.y + root->Pos.y <= pinned_bottom + 1);
     press(ImGuiKey_Home);
     idle(40);
-    selected("fps");
+    selected("display.mode");
     assert(pinned_content_bottom() == pinned_bottom);
     assert(pinned_content_top() == pinned_top);
     assert(root->NavRectRel[ImGuiNavLayer_Main].Min.y + root->Pos.y >= pinned_top - 1);
@@ -562,8 +606,7 @@ int main() {
     io.AddMouseButtonEvent(0, false);
     idle(8);
     selected("display.mode"); // Pinned tabs remain clickable when the option list is scrolled.
-    press(ImGuiKey_GamepadR1);
-    selected("fps");
+    graphics_row("fps");
     float controller_body_top = pinned_content_top();
     hint_input.gamepad = false;
     idle(20); // Wider keycaps must fit the existing narrow, scaled Spanish layout too.

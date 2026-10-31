@@ -1,50 +1,67 @@
-<h1 align="center">MHGURecomp Native Keyboard &amp; Mouse</h1>
+<h1 align="center">MHGURecomp Enhanced</h1>
 
-<p align="center">
-  <strong>English</strong> · <a href="docs/README.zh-CN.md">简体中文</a> · <a href="docs/README.zh-TW.md">繁體中文</a>
-</p>
+<p align="center"><strong>English</strong> · <a href="docs/README.zh-CN.md">简体中文</a> · <a href="docs/README.zh-TW.md">繁體中文</a></p>
 
-A Windows PC port of **Monster Hunter Generations Ultimate**, with native keyboard and mouse controls for the Nintendo Switch **1.4.0** version.
+An enhanced Windows edition of **Monster Hunter Generations Ultimate**, built on [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp). It combines native keyboard/mouse controls, configurable graphics, neural rendering, multiplayer and mod support.
 
-Based on [morerokk/MHGURecomp](https://github.com/morerokk/MHGURecomp), this project is maintained independently with a focus on keyboard and mouse support.
+The enhanced edition has its own version in [VERSION](VERSION); the reviewed original-project baseline is in [UPSTREAM_VERSION](UPSTREAM_VERSION). Release titles contain those two numbers only, for example **0.1.0-0.11.7**. Git tags and updater comparisons use the enhanced-edition version, starting at **0.1.0**.
 
-**You need your own game files to play.** Release archives include the keyboard/mouse prompt mod.
+> FSR is AMD FidelityFX Super Resolution. DLSS SR is NVIDIA DLSS Super Resolution; DLAA is its native-resolution anti-aliasing mode. NR means DLSS 5 Neural Rendering. SM89 identifies the Ada architecture used by RTX 40 GPUs.
 
 ## Features
 
-- Mouse camera control and bowgun/Bow aiming, with automatic Melee/Ranged bindings based on your equipment.
-- Keyboard/mouse prompts in English, Simplified Chinese, Traditional Chinese, French, German, Italian and Spanish.
-- Resolution, aspect ratio, anti-aliasing, FSR, VSync and 30–240 FPS settings, plus controller support.
-- Local-play multiplayer, optional monster HP scaling and Village quests in multiplayer, mods and cheats.
+- Native mouse camera and bowgun/Bow aiming, with equipment-selected Melee/Ranged bindings and seven-language keyboard/mouse prompts.
+- A unified F1 settings menu: Graphics, Audio, Controls, Network, Miscellaneous, Mods and App.
+- Configurable resolution, aspect ratio, field of view, HUD placement, anti-aliasing, draw distance, smooth gradients and 30–240 FPS.
+- FSR 3.1, optional FSR 4, DLSS SR and DLAA, with an explicit single-upscaler selection and actual-backend status.
+- Independent DLSS 5 NR, automatic skin masking and configurable strengths; up to three effect layers from one neural evaluation.
+- Local-play multiplayer, monster HP scaling, Village quests at Hub counters, RomFS/executable mods, Forge plugins and cheats.
 
-## Requirements
+## Requirements and installation
 
-- Windows 10/11 64-bit. **Linux is currently unsupported because this project has no Linux build and test environment; no Linux release is provided.**
-- AVX2-capable CPU, Vulkan 1.2-capable GPU, at least 1 GB VRAM and 4 GB RAM.
-- Your own complete **Switch MHGU 1.4.0** game files, with the update merged into the base game. The 3DS version is not supported.
+- Windows 10/11, 64-bit; AVX2/FMA-capable CPU; Vulkan 1.2-capable GPU; at least 4 GB RAM and 1 GB VRAM for the base renderer. DLSS and NR have additional GPU, driver and memory requirements.
+- Your own complete **Nintendo Switch MHGU 1.4.0** game files, with the update merged. The 3DS game is not supported.
+- The supported client release is Windows. A Linux client build and test environment is not available.
 
-Startup checks game compatibility and stops with a warning if the files do not match. Keep the original `exefs`/`romfs` unchanged; put mods in `mods/`.
+Download the Windows archive from [Releases](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases), extract it, then place both complete game folders here:
 
-## Installation
+```text
+Windows-MHGURecomp/
+  mhgurecomp.exe
+  mhgugame.dll
+  mhgurecomp-updater.exe
+  data/
+    exefs/
+    romfs/
+  mods/Keyboard_Mouse_Input_Auto/
+```
 
-Download the Windows archive from [this repository’s Releases page](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/releases). Original-project binaries do not include these keyboard/mouse changes.
+Keep all program dependencies from the archive. Start `mhgurecomp.exe`; the first start creates `mhgurecomp.ini`. Startup checks the supported game version. Keep the base game files unchanged and install changes through mods.
 
-1. Extract the program into a folder of your choice.
-2. Put your game’s `exefs` and `romfs` folders under `data`:
+## Graphics and neural rendering
 
-   ```text
-   MHGURecomp/
-     mhgurecomp.exe
-     mhgugame.dll
-     data/
-       exefs/
-       romfs/
-   ```
+All graphics settings are under **F1 → Graphics** and the INI's **[Graphics]** section. Save changes; an asterisk marks a restart requirement. Audio has its own page.
 
-3. Start `mhgurecomp.exe`. Its first start creates `mhgurecomp.ini`.
-4. Enable keyboard/mouse mode and the bundled prompt mod as described below.
+Enable **Temporal upscaling / AA**, then choose exactly one of FSR 3.1, FSR 4 or DLSS SR / DLAA. DLSS offers **Ultra Performance → Performance → Balanced → Quality → DLAA**. `UpscaleQuality = DLAA` selects native-resolution anti-aliasing. Render sizes come from the SDK; NVIDIA App overrides can affect the actual size/model, which the menu and log report. Active temporal upscaling takes over MSAA/FXAA. FSR 4 needs a compatible build/AMD driver and falls back to FSR 3.1 if unavailable. DLSS failure is reported explicitly.
 
-Copy both complete folders, keeping all other files from the release archive beside the program.
+NR is a separate switch and also works with temporal upscaling off. Its default runtime is **Official (RTX 50)**. RTX 40 users must explicitly select **Community SM89 (RTX 40)**; failures never switch runtimes automatically. The release includes the NGX adapter and official SR runtime. **NR model DLLs are supplied separately**; see [runtime setup and sources](third_party/ngx/README.md).
+
+```text
+dlss/nr/official/nvngx_dlssnr.dll
+dlss/nr/sm89/nvngx_dlssnr.dll
+```
+
+| NR setting | INI key | Default | Values |
+| --- | --- | --- | --- |
+| Model strength | `NRIntensity` | 0.5 | 0–2 |
+| Style | `NRStyle` | Standard | Standard / Natural / Cinematic |
+| Local structure | `NRLocalStructure` | 1 | 0–2 |
+| Local tone | `NRLocalTone` | 0 | 0–2 |
+| Skin structure | `NRSkinStructure` | **0** | 0–2 |
+| Automatic skin mask | `NRAutoMask` | **On** | On / Off |
+| Effect layers | `NRLayers` | 1 | **1–3** |
+
+Each scene frame runs NR once. Layers 2/3 amplify the difference between that result and the original scene, then composite before the HUD; they do not run the model again. Skin 0 requests no skin-structure enhancement, while other model changes may remain. Detailed help appears in F1 and the INI. NR controls require a restart. Basic NR and SR+NR have been exercised on RTX 4080; RTX 50 and other GPU families remain unverified in this project.
 
 ## Keyboard and mouse
 
@@ -116,46 +133,35 @@ Adjust **Mouse sensitivity** in F1, or `MouseSensitivity` in the ini (0.1–10).
 
 Original firing recovery, aiming delays and attack-turning restrictions still apply. Village cameras, fixed Ballista and Prowler special aiming retain the game’s turn-speed limits. Some handbook pages still show controller illustrations.
 
-## Settings and files
+## Settings, files and multiplayer
 
-F1 opens PC settings; Alt+Enter or F11 toggles fullscreen, F12 takes a screenshot and F7 cycles MSAA. The PC settings interface currently supports English/Spanish, independently of the game’s seven languages.
+F1 opens PC settings; Alt+Enter or F11 toggles fullscreen, F12 takes a screenshot and F7 cycles MSAA where available. The PC menu supports English/Spanish independently of the game's seven languages. Hints follow the last keyboard/mouse or controller input. Use arrows or Tab/Shift+Tab, Enter/left click to confirm, and Esc/F1 to go back.
 
-Use F1 to adjust graphics, audio, controls and multiplayer. Choose **Save** to keep changes; settings marked with an asterisk require a restart. The ini contains additional explanations. Enabling FSR takes over anti-aliasing.
+| Content | Location |
+| --- | --- |
+| Settings / log | `mhgurecomp.ini` / `log.txt` beside the program |
+| Windows save | `%APPDATA%\MHGURecomp\save\save_0\` |
+| Mods / cheats | `mods/` / `cheats/` |
+| Screenshots / shader cache | `shots/` / `cache/` |
 
-F1 hints follow your last keyboard/mouse or gamepad input. Use arrows or Tab/Shift+Tab to navigate, Enter or left click to confirm, and Esc/F1 to go back. Click a tab to change categories.
+To import a Switch save, back up the destination, then copy your `system` and `system_backup` into `save_0`.
 
-**Smooth gradients** reduces colour banding in skies and glows. It is off by default, takes effect after saving without a restart, and increases GPU work.
+Choose **Local Wireless** in the game. LAN/virtual-LAN players can discover rooms directly. Internet play uses the same compatible client, hub server and optional matchmaking key, configured under **F1 → Network**. Direct hosting requires reachable TCP/UDP port 39500 by default.
 
-| Content                    | Location                                           |
-| -------------------------- | -------------------------------------------------- |
-| Settings / log             | `mhgurecomp.ini` / `log.txt` beside the executable |
-| Windows saves              | `%APPDATA%\MHGURecomp\save\save_0\`                |
-| Mods / cheats              | `mods/` / `cheats/` beside the executable          |
-| Screenshots / shader cache | `shots/` / `cache/` beside the executable          |
-
-Import your own Switch save by copying `system` and `system_backup` into `save_0`. Back up existing saves first.
-
-## Multiplayer, mods and cheats
-
-Choose the game’s **Local Wireless** options. LAN/VLAN players can discover each other directly. For internet play, use compatible program versions and the same hub server in **F1 → Network**; use the same matchmaking key for a private group. A working hub server is required; this project does not guarantee the original public service’s availability.
-
-Put each mod in its own `mods/` subfolder. Enable and order mods in **F1 → Mods**, then restart. Later conflicting mods take priority. Resolution/FPS features already provided by the program do not need separate fix mods.
-
-Put version-1.4.0 cheat `.txt` files in `cheats/`; prefix a filename with `_` to disable it. Restart after changes.
-
-If a release supplies `bonus/system` and `BonusContent = On`, free event quests/item packs/Palicoes can be imported when absent. Set it Off to disable this behavior.
+Put each mod in its own `mods/` directory. Enable/order it in **F1 → Mods**, then restart; later conflicting mods take priority. Put MHGU 1.4.0 cheat text files in `cheats/`; prefix a filename with `_` to disable it. The included Auto prompt mod follows equipment and game language. Optional monster-HP and Hub/Village settings are under Miscellaneous. Bonus downloads can be imported when a separately supplied `bonus/system` donor is present and `BonusContent = On`.
 
 ## Updates and troubleshooting
 
-Download updates from **this repository**. Replace program files and the bundled Auto prompt mod with the new release, keeping your game data, settings, other mods and saves. The included updater also checks this repository.
+Download releases from this repository or use its included updater. Updates replace program files and the bundled Auto prompt resources while preserving game data, settings, saves and other mods. Separately installed NR runtimes remain in their selected directories.
 
-- **Game-version warning:** re-export the complete Switch 1.4.0 game with its update merged. Keep the original files unchanged and install modifications as mods.
-- **Controller prompts remain:** check `InputMode`, enable the bundled Auto mod in F1 and restart. Bow-specific prompts and some handbook illustrations are still incomplete.
-- **Problems at high FPS:** try 60 FPS with VSync enabled.
-- **Other problems:** report your program version, hardware, reproduction steps and `log.txt` in [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues). Copy the log before starting the game again.
+- **Game-version warning:** use a complete Switch 1.4.0 dump with its update merged; leave its base files unchanged.
+- **Controller prompts remain:** select `InputMode = Keyboard_Mouse_Input`, enable the bundled Auto mod and restart.
+- **DLSS/NR unavailable:** inspect the actual status in F1 and the log; check the selected runtime, GPU and driver. Use SM89 explicitly on RTX 40.
+- **Frame-time spikes:** start at 60 FPS with VSync and leave development graphics statistics disabled.
+- **Report a problem:** include the enhanced-edition version, GPU/driver, graphics settings, reproduction steps and a copy of `log.txt` in [Issues](https://github.com/dzxrly/MHGURecomp-Native-KeyboardMouse/issues).
 
-[Developer documentation](docs/DEVELOPMENT.md#development) covers source builds, releases, implementation and testing. It is separate from this user guide.
+[Developer documentation](docs/DEVELOPMENT.md) covers architecture, building, testing and release publication.
 
-## License
+## License and attribution
 
-Project code is MIT licensed. Original-project attribution and third-party notices are retained; see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES). These licenses do not cover the game or generated game code. This project is not affiliated with Capcom or Nintendo.
+Project code is MIT licensed; retain the [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES). NVIDIA components have separate terms. The game and generated game code are not covered by the project's license. This project is not affiliated with Capcom, Nintendo or NVIDIA.

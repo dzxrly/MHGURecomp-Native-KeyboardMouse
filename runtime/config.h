@@ -64,15 +64,15 @@ typedef struct {
     int menu_scale;           // host UI text/layout scale, 100..200 percent
     int menu_confirm;         // independent confirmation policy for the host settings menu
     int confirm_exit;         // ask before closing the application
-    int fsr;                  // [Upscaler] FSR 3.1: 1 on (runtime/nvn/vulkan/fsr.c), 0 off
+    int fsr;                  // [Graphics] TemporalUpscaling (legacy alias FSR): one FSR / DLSS backend
     int fsr_quality;          // FSR_*: the render scale
     float fsr_sharpness;      // FSR's RCAS sharpening, 0..1
     int fsr_objmotion;        // FSR: motion vectors of moving objects (characters, monsters): 1 on, 0 camera only
     float fsr_reactive;       // FSR: reactive mask strength on the game's moving-object mask, 0 (off) .. 1
     int fsr_animsurf;         // FSR: surfaces animated through their texture (banners, water): 1 detected, 0 off
-    int fsr_upscaler;         // [Upscaler] Upscaler: FSR_UP_3 (FSR 3.1) or FSR_UP_4 (FSR 4, runtime/nvn/vulkan/fsr4.c)
+    int fsr_upscaler;         // [Graphics] Upscaler: FSR_UP_* (FSR 3.1, FSR 4, DLSS SR)
     int updates;              // [Application] Updates: UPDATES_*, read by the updater (updater/updater.c), not the game
-    int shader_prewarm;       // [Performance] ShaderPrewarm: translate the game's shaders at start-up (nvn/vulkan/exec.c)
+    int shader_prewarm;       // [Graphics] ShaderPrewarm: translate the game's shaders at start-up (nvn/vulkan/exec.c)
     float draw_distance;      // [Graphics] DrawDistance: town NPCs' fade distance factor, 0 no limit (config.c npc_fade_dist2)
     int mute_in_background;   // [Audio] MuteInBackground: no sound while the window is not focused (config_audio_gain)
     int combo_window;         // [Controls] ComboInputWindow: COMBO_*, how long a press waits for a second button
@@ -82,18 +82,29 @@ typedef struct {
     char ldn_key[64];         // [Multiplayer] Key: matchmaking key, hubs seen only by players with the same; "" public
     char chat_key[32];        // [Controls] ChatKey: the key that opens a line of chat (runtime/hle/chat.c), by SDL's
                               // name for it ("/", "Y"...); "" none
-    int fxaa_mode;            // [Anti-aliasing] FXAAMode: FXAA_*, which FXAA draws while FXAA is on
+    int fxaa_mode;            // [Graphics] FXAAMode: FXAA_*, which FXAA draws while FXAA is on
     int smooth_gradients;     // [Graphics] SmoothGradients: the game's RGBA8 render targets as RGBA16 (nvn/vulkan/textures.c)
+    int dlss_nr;              // [Graphics] NeuralRendering: independent, HUD-free DLSS 5 NR
+    float nr_intensity;       // [Graphics] NRIntensity: 0..2
+    int nr_runtime;           // NR_RUNTIME_*: Official (RTX 50), or explicitly chosen community SM89
+    int nr_style;             // 0 Standard, 1 Natural, 2 Cinematic
+    float nr_structure;       // local structure strength, 0..2
+    float nr_tone;            // local tone strength, 0..2
+    float nr_skin;            // skin structure strength, 0..2; zero by default
+    int nr_auto_mask;         // the runtime's automatic skin mask, on by default
+    int nr_layers;            // 1..3 copies of one inference's residual, never extra model evaluations
 } Config;
 // The hub server used when ini Server is empty (runtime/net/ldn.c, server/): the project's public one (an Oracle
 // Cloud VM; a DuckDNS name, so it can move without a release). "" = no default.
 #define LDN_DEFAULT_SERVER "morerokk-mhgurecomp-ldnserver.duckdns.org"
 enum { UPDATES_ASK, UPDATES_AUTO, UPDATES_OFF };
 enum { UI_CENTER = 1, UI_21_9, UI_32_9, UI_EDGES };  // the middle 16:9, 21:9, 32:9, the picture's sides
-enum { FSR_UP_3, FSR_UP_4 };  // [Upscaler] Upscaler
+enum { FSR_UP_3, FSR_UP_4, FSR_UP_DLSS };  // [Graphics] Upscaler
+enum { NR_RUNTIME_OFFICIAL, NR_RUNTIME_SM89 };
 enum { FSR_NATIVE, FSR_QUALITY, FSR_BALANCED, FSR_PERFORMANCE, FSR_ULTRA_PERFORMANCE };  // output / render: 1, 1.5, 1.7, 2, 3
 
 extern Config g_config;
+static inline bool config_temporal(void) { return g_config.fsr || g_config.dlss_nr; }
 extern uint32_t g_render_size[2];  // read by the game code (tools/gen.py PATCHES: its docked render size)
 extern float g_render_aspect;      // the picture's shape, 16:10 or wider: the 3D cameras' aspect (tools/gen.py PATCHES)
 extern float g_fov_scale;          // boot diagnostic value; camera_fovy reads config_live_fov()
@@ -140,6 +151,9 @@ bool config_save(const Config *config, char *error, size_t error_size);
 bool config_validate(const Config *config, char *error, size_t error_size);
 // Immutable boot settings stay in g_config. These getters are atomic live values.
 void config_runtime_init(const Config *effective); // After environment/Auto resolution at startup.
+enum { GFX_NATIVE, GFX_WAITING, GFX_FSR3, GFX_FSR4, GFX_DLSS, GFX_NR, GFX_UNAVAILABLE, GFX_DRIVER_OLD };
+void config_graphics_report(bool neural, int status);
+const char *config_graphics_status(bool neural);
 float config_live_fps(void);
 float config_live_fov(void);
 float config_live_mouse_sensitivity(void);

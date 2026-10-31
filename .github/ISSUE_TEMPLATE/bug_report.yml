@@ -1,5 +1,5 @@
 name: Bug report
-description: Report an issue in MHGURecomp Native Keyboard & Mouse.
+description: Report an issue in MHGURecomp Enhanced.
 body:
   - type: markdown
     attributes:
@@ -34,8 +34,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: MHGU Recomp version
-      placeholder: "0.10.7"
+      label: Enhanced-edition version
+      description: Use this repository's version, shown in VERSION or the startup log.
+      placeholder: "0.1.0"
     validations:
       required: true
   - type: dropdown
@@ -44,16 +45,14 @@ body:
       label: Platform
       options:
         - Windows
-        - Linux
-        - Steam Deck
     validations:
       required: true
   - type: input
     id: hardware
     attributes:
       label: Hardware
-      description: CPU and GPU, and on Linux the distribution.
-      placeholder: "Ryzen 5 5600, RX 6700 XT, Fedora 44"
+      description: CPU, GPU, graphics driver and Windows version.
+      placeholder: "Ryzen 5 5600, RTX 4080, driver 610.88, Windows 11"
     validations:
       required: false
   - type: textarea
@@ -61,7 +60,7 @@ body:
     attributes:
       label: Log
       description: |
-        Attach `log.txt` by dragging it into this box. It's next to `mhgurecomp.exe` (on Linux, next to `mhgurecomp`).
+        Attach `log.txt` by dragging it into this box. It's next to `mhgurecomp.exe`.
         The game replaces it every time it starts, so copy it right after the problem, before starting the game again.
     validations:
       required: false

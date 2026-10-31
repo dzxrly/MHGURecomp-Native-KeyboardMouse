@@ -25,6 +25,32 @@ static char *read_file(const char *path) {
 int main(int argc, char **argv) {
     assert(argc == 2);
     Config preset = config_defaults();
+    assert(!preset.dlss_nr && preset.nr_runtime == NR_RUNTIME_OFFICIAL);
+    assert(fabsf(preset.nr_intensity - .5f) < .001f);
+    assert(preset.nr_auto_mask && preset.nr_skin == 0 && preset.nr_layers == 1);
+    assert(preset.nr_style == 0 && preset.nr_structure == 1 && preset.nr_tone == 0);
+    assert(config_parse(config_setting("NeuralRendering"), "On", &preset));
+    assert(preset.dlss_nr && !preset.fsr && preset.nr_runtime == NR_RUNTIME_OFFICIAL);
+    assert(config_parse(config_setting("NRRuntime"), "SM89", &preset));
+    assert(preset.nr_runtime == NR_RUNTIME_SM89);
+    assert(config_parse(config_setting("NRRuntime"), "Official", &preset));
+    assert(!config_parse(config_setting("NRRuntime"), "Auto", &preset));
+    assert(config_parse(config_setting("Upscaler"), "DLSS", &preset));
+    assert(preset.fsr_upscaler == FSR_UP_DLSS);
+    assert(config_parse(config_setting("UpscaleQuality"), "DLAA", &preset));
+    assert(preset.fsr_quality == FSR_NATIVE);
+    char quality_name[32];
+    config_format(config_setting("UpscaleQuality"), &preset, quality_name, sizeof quality_name);
+    assert(!strcmp(quality_name, "DLAA"));
+    assert(config_parse(config_setting("NRIntensity"), "1.1", &preset));
+    assert(!config_parse(config_setting("NRIntensity"), "2.1", &preset));
+    assert(config_parse(config_setting("NRStyle"), "Cinematic", &preset) && preset.nr_style == 2);
+    assert(!config_parse(config_setting("NRStyle"), "3", &preset));
+    assert(!config_parse(config_setting("NRLayers"), "0", &preset));
+    assert(!config_parse(config_setting("NRLayers"), "4", &preset));
+    assert(!config_parse(config_setting("NRSkinStructure"), "-0.1", &preset));
+    assert(!config_parse(config_setting("NRLocalTone"), "nan", &preset));
+    preset = config_defaults();
     assert(preset.input_mode == INPUT_ORIGINAL);
     assert(preset.ldn_server[0] == '\0' && preset.ldn_key[0] == '\0');
     assert(config_parse(config_setting("Server"), "example.org:39501", &preset));
@@ -55,7 +81,9 @@ int main(int argc, char **argv) {
     FILE *f = fopen(path, "wb"); assert(f);
     fputs("; Keep this comment\r\n[Display]\r\nMode = Borderless Window\r\nResolution = Desktop\r\nRenderResolution = Auto\r\n"
           "AspectRatio = 21:9\r\nFOV = 1.1 ; camera comment\r\n"
-          "[Performance]\r\nFPS = 60\r\nFrameRate = 60\r\n[Monster HP]\r\nQuest101 = 0.6\r\nQuest102 = 1, 2, 3, 4\r\n"
+          "[Performance]\r\nFPS = 60\r\nFrameRate = 60\r\n"
+          "[Upscaler]\r\nNeuralRendering = Off\r\nNRIntensity = 0.50 ; keep NR note\r\nNRRuntime = Official\r\n"
+          "[Monster HP]\r\nQuest101 = 0.6\r\nQuest102 = 1, 2, 3, 4\r\n"
           "[Future section]\r\nFutureOption = preserve-me", f);
     fclose(f);
     set_env("MHGU_CONFIG", path);
@@ -111,6 +139,14 @@ int main(int argc, char **argv) {
     assert(!strcmp(settings_text(0, "Language"), "Language"));
     assert(!strcmp(settings_text(1, "Duplicate quest ID."), "ID de misión repetido."));
     char *text = read_file(path);
+    assert(!strncmp(text, "[Graphics]\r\n", 12));
+    assert(!strstr(text, "[Display]") && !strstr(text, "[Anti-aliasing]"));
+    assert(!strstr(text, "[Performance]") && !strstr(text, "[Upscaler]"));
+    assert(!strstr(text + 1, "[Graphics]"));
+    assert(strstr(text, "TemporalUpscaling = Off") && strstr(text, "NRRuntime = Official"));
+    assert(strstr(text, "NRAutoMask = On") && strstr(text, "NRSkinStructure = 0"));
+    assert(strstr(text, "NRLayers = 1") && strstr(text, "; One model evaluation per scene frame"));
+    assert(strstr(text, "; Overall strength requested from the NR model") && strstr(text, "NRIntensity = 0.50 ; keep NR note"));
     assert(strstr(text, "; Keep this comment\r\n"));
     assert(strstr(text, "; camera comment"));
     assert(strstr(text, "FutureOption = preserve-me"));
@@ -173,7 +209,12 @@ int main(int argc, char **argv) {
     assert(!config_help("NoSuchKey", help, sizeof help));
     // A second save must not append duplicate sections or change resolved Auto settings.
     assert(config_save(&loaded, error, sizeof error));
-    after = read_file(path); assert(!strcmp(text, after)); free(text); free(after);
+    after = read_file(path);
+    if (strcmp(text, after)) {
+        size_t at=0; while(text[at] && text[at]==after[at]) at++;
+        fprintf(stderr,"INI idempotence at %zu: before %.100s | after %.100s\n",at,text+at,after+at);
+    }
+    assert(!strcmp(text, after)); free(text); free(after);
     loaded.language = 0; loaded.button_icons = 1;
     assert(config_save(&loaded, error, sizeof error) && config_language() == 0);
     g_config = initial; config_load();
@@ -214,7 +255,7 @@ int main(int argc, char **argv) {
     assert(config_editable().msaa==8 && config_editable().fxaa==1);
     assert(config_live_msaa()==1 && config_live_fxaa()==0); // Saving cannot undo FSR's AA override.
     bad=fsr_saved;bad.fsr_quality=5;assert(!config_save(&bad,error,sizeof error));
-    bad=fsr_saved;bad.fsr_upscaler=2;assert(!config_save(&bad,error,sizeof error));
+    bad=fsr_saved;bad.fsr_upscaler=3;assert(!config_save(&bad,error,sizeof error));
     bad=fsr_saved;bad.fsr_sharpness=NAN;assert(!config_save(&bad,error,sizeof error));
     bad=fsr_saved;bad.fsr_reactive=1.1f;assert(!config_save(&bad,error,sizeof error));
     bad=fsr_saved;bad.fsr_objmotion=2;assert(!config_save(&bad,error,sizeof error));
@@ -225,6 +266,28 @@ int main(int argc, char **argv) {
         g_config=initial;config_load();assert(config_editable().fsr_quality==quality);
         assert(config_editable().hp.quests==HP_QUESTS_MAX && config_editable().hp.quest[255].quest==50255);
     }
+    fsr_saved.fsr_upscaler=FSR_UP_DLSS;
+    static const char *const dlss_modes[]={"DLAA","Quality","Balanced","Performance","UltraPerformance"};
+    for(int quality=FSR_NATIVE;quality<=FSR_ULTRA_PERFORMANCE;quality++){
+        assert(config_parse(config_setting("UpscaleQuality"),dlss_modes[quality],&fsr_saved));
+        assert(config_save(&fsr_saved,error,sizeof error));
+        text=read_file(path);
+        char expected[80];snprintf(expected,sizeof expected,"UpscaleQuality = %s\r\n",dlss_modes[quality]);
+        assert(strstr(text,expected));free(text);
+        g_config=initial;config_load();
+        assert(config_editable().fsr_upscaler==FSR_UP_DLSS && config_editable().fsr_quality==quality);
+    }
+    Config nr_saved=config_editable();nr_saved.dlss_nr=1;nr_saved.nr_layers=3;nr_saved.nr_style=2;
+    nr_saved.nr_intensity=1.5f;nr_saved.nr_structure=.75f;nr_saved.nr_tone=.25f;nr_saved.nr_skin=0;nr_saved.nr_auto_mask=1;
+    assert(config_save(&nr_saved,error,sizeof error) && config_restart_required(&nr_saved));
+    g_config=initial;config_load();Config nr_loaded=config_editable();
+    assert(nr_loaded.nr_layers==3 && nr_loaded.nr_style==2 && nr_loaded.nr_auto_mask && nr_loaded.nr_skin==0);
+    assert(nr_loaded.nr_intensity==1.5f && nr_loaded.nr_structure==.75f && nr_loaded.nr_tone==.25f);
+    assert(config_restart_key("NRLayers") && config_restart_key("NRAutoMask"));
+    bad=nr_loaded;bad.nr_layers=4;assert(!config_save(&bad,error,sizeof error));
+    bad=nr_loaded;bad.nr_skin=-.1f;assert(!config_save(&bad,error,sizeof error));
+    bad=nr_loaded;bad.nr_structure=NAN;assert(!config_save(&bad,error,sizeof error));
+    bad=nr_loaded;bad.nr_auto_mask=2;assert(!config_save(&bad,error,sizeof error));
     fsr_saved.fsr=0;assert(config_save(&fsr_saved,error,sizeof error));
     assert(config_live_msaa()==1 && config_live_fxaa()==0); // Remains active until restart.
     g_config=initial;config_load();assert(config_live_msaa()==8 && config_live_fxaa()==1);

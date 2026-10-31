@@ -27,9 +27,10 @@ __pycache__/
 /third_party/ffmpeg/
 /dist/
 
-# the hub server built in place (server/README.md)
+# The hub server built in place; see docs/DEVELOPMENT.md.
 server/mhgurecomp-hubserver
 server/mhgurecomp-hubserver.exe
 
 # Local task/build scratch.
 /.agents/
+/third_party/ngx/lib/

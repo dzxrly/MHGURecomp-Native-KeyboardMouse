@@ -10,6 +10,7 @@
 #include "rom_version.h"
 #include "hle/keyboard_mouse_prompts.h"
 #include "gamelib.h"
+#include "config.h"
 #include "hle.h"
 #include "kernel.h"
 #include "mods.h"
@@ -17,6 +18,9 @@
 
 #ifndef MHGU_VERSION
 #define MHGU_VERSION "unknown"  // (the Makefile gives the build's release: VERSION)
+#endif
+#ifndef MHGU_UPSTREAM_VERSION
+#define MHGU_UPSTREAM_VERSION "unknown"
 #endif
 
 const char *g_game_dir = "game";  // folder holding exefs/ and romfs/ (the player's own dump)
@@ -151,10 +155,16 @@ int main(int argc, char **argv) {
     }
     LOG("[rom] Switch MHGU 1.4.0: main/sdk Build IDs and base resource fingerprints match; %d files\n", nfiles);
     if (check_only) return 0;
-    LOG("MHGU Recomp %s\n", MHGU_VERSION);
+    LOG("MHGURecomp Enhanced %s (MHGURecomp %s)\n", MHGU_VERSION, MHGU_UPSTREAM_VERSION);
     { void fnprof_init(void); fnprof_init(); }
     crash_handler_install();
     ui_init();
+    // DLSS must choose its input size before the guest caches render dimensions.
+    // Initialise the same backend here; nvnDeviceInitialize's later call is idempotent.
+    if (g_config.dlss_nr || (g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS)) {
+        extern void backend_init(void);
+        backend_init();
+    }
     boot(g_game_dir);
     return ui_run();
 }

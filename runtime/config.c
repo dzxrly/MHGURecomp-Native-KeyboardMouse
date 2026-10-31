@@ -17,7 +17,7 @@
 #include "config.h"
 #include "rt.h"
 
-#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", "", "/", FXAA_ORIGINAL, 0
+#define CONFIG_DEFAULT_VALUES DISPLAY_BORDERLESS, 1920, 1080, 0, 0, 60, 1, 1, 1, FACE_POSITION, 39500, "", 0, 1, 1, {{1, 1, 1, 1}, 2}, 1.0f, 0.0f, 1.0f, UI_CENTER, 1, 100, 0, 0, 100, MENU_CONFIRM_ORIGINAL, 1, 0, FSR_NATIVE, 0.8f, 1, 0.9f, 1, FSR_UP_3, UPDATES_ASK, 1, 1.0f, 0, COMBO_LENIENT, INPUT_ORIGINAL, MOUSE_CONVERSION_DEFAULTS, "", "", "/", FXAA_ORIGINAL, 0, 0, 0.5f, NR_RUNTIME_OFFICIAL, 0, 1.0f, 0.0f, 0.0f, 1, 1
 Config g_config = {CONFIG_DEFAULT_VALUES};
 Config config_defaults(void) { Config c = {CONFIG_DEFAULT_VALUES}; return c; }
 uint32_t g_render_size[2] = {1920, 1080};
@@ -31,7 +31,7 @@ float g_fsr_lod_bias;
 static const char DEFAULT_INI[] =
     "; MHGU Recomp settings. Delete this file to reset to default settings, the file is regenerated.\n"
     "\n"
-    "[Display]\n"
+    "[Graphics]\n"
     "; Fullscreen, Windowed, Borderless\n"
     "Mode = Borderless\n"
     "\n"
@@ -57,7 +57,7 @@ static const char DEFAULT_INI[] =
     "; Default: Center\n"
     "UIAnchor = Center\n"
     "\n"
-    "[Anti-aliasing]\n"
+    "\n"
     "; Multi-Sample Anti Aliasing, cycle modes with F7 key\n"
     "; Off, 2x, 4x, 8x\n"
     "; Default: Off\n"
@@ -72,20 +72,67 @@ static const char DEFAULT_INI[] =
     "; Default: Original\n"
     "FXAAMode = Original\n"
     "\n"
-    "[Upscaler]\n"
-    "; FSR temporal upscaling\n"
+    "\n"
+    "; Temporal upscaling / AA master switch (legacy key: FSR)\n"
     "; Default: Off\n"
-    "FSR = Off\n"
+    "TemporalUpscaling = Off\n"
     "\n"
     "; Which upscaler to use (FSR3 is FSR 3.1)\n"
-    "; FSR3, FSR4\n"
+    "; FSR3, FSR4, DLSS (NativeAA selects DLAA)\n"
     "; Default: FSR3\n"
     "Upscaler = FSR3\n"
     "\n"
-    "; FSR quality\n"
-    "; NativeAA, Quality, Balanced, Performance, UltraPerformance\n"
+    "; Temporal upscaling quality (DLSS NativeAA selects DLAA)\n"
+    "; NativeAA (DLSS: DLAA), Quality, Balanced, Performance, UltraPerformance\n"
     "; Default: NativeAA\n"
-    "FSRQuality = NativeAA\n"
+    "UpscaleQuality = NativeAA\n"
+    "\n"
+    "; Independent DLSS 5 Neural Rendering, before the HUD; needs nvngx_dlssnr.dll\n"
+    "; Does not require the temporal upscaling switch above\n"
+    "; Default: Off\n"
+    "NeuralRendering = Off\n"
+    "\n"
+    "; Official: NVIDIA RTX 50 runtime; SM89: user-selected community RTX 40 runtime\n"
+    "; Never switches runtime automatically; restart required\n"
+    "; Default: Official\n"
+    "NRRuntime = Official\n"
+    "\n"
+    "; Overall strength requested from the NR model; separate from effect layers\n"
+    "; Between 0 and 2; restart required\n"
+    "; Default: 0.5\n"
+    "NRIntensity = 0.5\n"
+    "\n"
+    "; Model style: Standard (0), Natural (1), Cinematic (2)\n"
+    "; Changes the runtime's style input; restart required\n"
+    "; Default: Standard\n"
+    "NRStyle = Standard\n"
+    "\n"
+    "; Local structure and fine-detail strength requested from the model\n"
+    "; Between 0 and 2; restart required\n"
+    "; Default: 1\n"
+    "NRLocalStructure = 1\n"
+    "\n"
+    "; Local tone and lighting-change strength requested from the model\n"
+    "; Between 0 and 2; restart required\n"
+    "; Default: 0\n"
+    "NRLocalTone = 0\n"
+    "\n"
+    "; Structure strength in skin regions identified by Auto Mask\n"
+    "; 0 requests no skin-structure enhancement; other NR changes can remain\n"
+    "; Between 0 and 2; restart required\n"
+    "; Default: 0\n"
+    "NRSkinStructure = 0\n"
+    "\n"
+    "; Use the NR runtime's automatic skin mask for Skin structure\n"
+    "; On or Off; restart required\n"
+    "; Default: On\n"
+    "NRAutoMask = On\n"
+    "\n"
+    "; Effect layers: base + layers * (one NR result - base), clamped to SDR\n"
+    "; One model evaluation per scene frame at every setting; not repeated inference\n"
+    "; Between 1 and 3; restart required\n"
+    "; Default: 1\n"
+    "NRLayers = 1\n"
     "\n"
     "; FSR's sharpening filter strength\n"
     "; Between 0 to 1\n"
@@ -105,7 +152,7 @@ static const char DEFAULT_INI[] =
     "; Default: On\n"
     "AnimSurf = On\n"
     "\n"
-    "[Graphics]\n"
+    "\n"
     "; How far away people in the villages and the Hubs are still drawn: 1 is the game's distance, 2 twice as far,\n"
     "; 0.5 half as far, 0 no limit\n"
     "; Between 0 and 10\n"
@@ -117,7 +164,7 @@ static const char DEFAULT_INI[] =
     "; Default: Off\n"
     "SmoothGradients = Off\n"
     "\n"
-    "[Performance]\n"
+    "\n"
     "; Framerate cap\n"
     "; Between 30 and 240\n"
     "; Default: 60\n"
@@ -370,6 +417,7 @@ static bool parse_aspect(const char *v, float *out) {
 #define ERR_MISC "Invalid frame cap, anti-aliasing, controller, HUD or volume setting."
 #define ERR_TOGGLE "Invalid On/Off value."
 #define ERR_FSR "Invalid FSR quality, provider, sharpness or reactive mask."
+#define ERR_NR "Invalid NR runtime, style, strength, mask or effect layers."
 #define ERR_NET "Invalid port or Join address list (no newlines, ';' or '#')."
 #define ERR_SERVER "Invalid hub server or matchmaking key (no newlines, ';' or '#')."
 #define ERR_HP "HP factors must be 0.05-20."
@@ -385,30 +433,39 @@ static bool parse_aspect(const char *v, float *out) {
 #define ON_OFF(section, key, field, restart) {section, key, SET_BOOL, F(field), 0, 0, 0, NULL, NULL, restart, ERR_TOGGLE}
 static const int anchor_values[] = {UI_CENTER, UI_21_9, UI_32_9, UI_EDGES}, msaa_values[] = {1, 2, 4, 8};
 const ConfigSetting g_settings[] = {
-    {"Display", "Mode", SET_CHOICE, F(display_mode), 0, 0, 0,
+    {"Graphics", "Mode", SET_CHOICE, F(display_mode), 0, 0, 0,
      "Windowed|window,Fullscreen|exclusive|exclusivefullscreen,Borderless|borderless*", NULL, true, ERR_SIZE},
-    {"Display", "Resolution", SET_SIZE, F(width), F(height), 0, 0, "Desktop|auto", NULL, true, ERR_SIZE},
-    {"Display", "RenderResolution", SET_SIZE, F(render_w), F(render_h), 0, 0, "Auto", NULL, true, ERR_SIZE},
-    {"Display", "AspectRatio", SET_ASPECT, F(aspect_ratio), 0, 0.5f, 10.0f, NULL, NULL, true, ERR_ASPECT},
-    {"Display", "FOV", SET_FLOAT, F(fov), 0, 0.5f, 2.0f, NULL, NULL, false, ERR_VIEW},
-    {"Display", "UIAnchor", SET_CHOICE, F(ui_anchor), 0, 0, 0, "Center|1|16:9,21:9|2,32:9|3,Edges", anchor_values, true,
+    {"Graphics", "Resolution", SET_SIZE, F(width), F(height), 0, 0, "Desktop|auto", NULL, true, ERR_SIZE},
+    {"Graphics", "RenderResolution", SET_SIZE, F(render_w), F(render_h), 0, 0, "Auto", NULL, true, ERR_SIZE},
+    {"Graphics", "AspectRatio", SET_ASPECT, F(aspect_ratio), 0, 0.5f, 10.0f, NULL, NULL, true, ERR_ASPECT},
+    {"Graphics", "FOV", SET_FLOAT, F(fov), 0, 0.5f, 2.0f, NULL, NULL, false, ERR_VIEW},
+    {"Graphics", "UIAnchor", SET_CHOICE, F(ui_anchor), 0, 0, 0, "Center|1|16:9,21:9|2,32:9|3,Edges", anchor_values, true,
      ERR_MISC},
-    {"Anti-aliasing", "MSAA", SET_CHOICE, F(msaa), 0, 0, 0, "Off|none|0|1|1x,2x|2,4x|4,8x|8", msaa_values, false, ERR_MISC},
-    ON_OFF("Anti-aliasing", "FXAA", fxaa, false),
-    {"Anti-aliasing", "FXAAMode", SET_CHOICE, F(fxaa_mode), 0, 0, 0, "Original,3_11", NULL, false, ERR_MISC},
-    ON_OFF("Upscaler", "FSR", fsr, true),
-    {"Upscaler", "Upscaler", SET_CHOICE, F(fsr_upscaler), 0, 0, 0, "FSR3|fsr3.1|3,FSR4|4", NULL, true, ERR_FSR},
-    {"Upscaler", "FSRQuality", SET_CHOICE, F(fsr_quality), 0, 0, 0,
-     "NativeAA|native|aa,Quality,Balanced,Performance,UltraPerformance|ultraperf", NULL, true, ERR_FSR},
-    {"Upscaler", "Sharpness", SET_FLOAT, F(fsr_sharpness), 0, 0.0f, 1.0f, NULL, NULL, true, ERR_FSR},
-    ON_OFF("Upscaler", "ObjectMotion", fsr_objmotion, true),
-    {"Upscaler", "Reactive", SET_FLOAT, F(fsr_reactive), 0, 0.0f, 1.0f, NULL, NULL, true, ERR_FSR},
-    ON_OFF("Upscaler", "AnimSurf", fsr_animsurf, true),
+    {"Graphics", "MSAA", SET_CHOICE, F(msaa), 0, 0, 0, "Off|none|0|1|1x,2x|2,4x|4,8x|8", msaa_values, false, ERR_MISC},
+    ON_OFF("Graphics", "FXAA", fxaa, false),
+    {"Graphics", "FXAAMode", SET_CHOICE, F(fxaa_mode), 0, 0, 0, "Original,3_11", NULL, false, ERR_MISC},
+    ON_OFF("Graphics", "TemporalUpscaling|FSR", fsr, true),
+    {"Graphics", "Upscaler", SET_CHOICE, F(fsr_upscaler), 0, 0, 0, "FSR3|fsr3.1|3,FSR4|4,DLSS|DLSSSR", NULL, true, ERR_FSR},
+    {"Graphics", "UpscaleQuality|FSRQuality", SET_CHOICE, F(fsr_quality), 0, 0, 0,
+     "NativeAA|DLAA|native|aa,Quality,Balanced,Performance,UltraPerformance|ultraperf", NULL, true, ERR_FSR},
+    {"Graphics", "Sharpness", SET_FLOAT, F(fsr_sharpness), 0, 0.0f, 1.0f, NULL, NULL, true, ERR_FSR},
+    ON_OFF("Graphics", "ObjectMotion", fsr_objmotion, true),
+    {"Graphics", "Reactive", SET_FLOAT, F(fsr_reactive), 0, 0.0f, 1.0f, NULL, NULL, true, ERR_FSR},
+    ON_OFF("Graphics", "AnimSurf", fsr_animsurf, true),
+    ON_OFF("Graphics", "NeuralRendering", dlss_nr, true),
+    {"Graphics", "NRIntensity", SET_FLOAT, F(nr_intensity), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
+    {"Graphics", "NRRuntime", SET_CHOICE, F(nr_runtime), 0, 0, 0, "Official,SM89", NULL, true, ERR_NR},
+    {"Graphics", "NRStyle", SET_CHOICE, F(nr_style), 0, 0, 0, "Standard|0,Natural|1,Cinematic|2", NULL, true, ERR_NR},
+    {"Graphics", "NRLocalStructure", SET_FLOAT, F(nr_structure), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
+    {"Graphics", "NRLocalTone", SET_FLOAT, F(nr_tone), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
+    {"Graphics", "NRSkinStructure", SET_FLOAT, F(nr_skin), 0, 0.0f, 2.0f, NULL, NULL, true, ERR_NR},
+    ON_OFF("Graphics", "NRAutoMask", nr_auto_mask, true),
+    {"Graphics", "NRLayers", SET_INT, F(nr_layers), 0, 1, 3, NULL, NULL, true, ERR_NR},
     {"Graphics", "DrawDistance", SET_FLOAT, F(draw_distance), 0, 0.0f, 10.0f, NULL, NULL, false, ERR_DRAW},
     ON_OFF("Graphics", "SmoothGradients", smooth_gradients, false),
-    {"Performance", "FPS|FrameRate", SET_INT, F(fps), 0, 30, 240, NULL, NULL, false, ERR_MISC},
-    ON_OFF("Performance", "VSync", vsync, false),
-    ON_OFF("Performance", "ShaderPrewarm", shader_prewarm, true),
+    {"Graphics", "FPS|FrameRate", SET_INT, F(fps), 0, 30, 240, NULL, NULL, false, ERR_MISC},
+    ON_OFF("Graphics", "VSync", vsync, false),
+    ON_OFF("Graphics", "ShaderPrewarm", shader_prewarm, true),
     {"Controls", "FaceButtons", SET_CHOICE, F(face_buttons), 0, 0, 0, "Position|positional|nintendo,Label|labels|xbox",
      NULL, false, ERR_MISC},
     {"Controls", "MenuConfirm", SET_CHOICE, F(menu_confirm), 0, 0, 0, "Original,South,East", NULL, false, ERR_CONFIRM},
@@ -560,6 +617,10 @@ void config_format(const ConfigSetting *s, const Config *c, char *buf, size_t si
     case SET_FLOAT:
     case SET_FACTOR: snprintf(buf, size, "%g", (double)fv); break;
     case SET_CHOICE:
+        if (s->field == offsetof(Config, fsr_quality) && c->fsr_upscaler == FSR_UP_DLSS && iv == FSR_NATIVE) {
+            snprintf(buf, size, "DLAA");
+            return;
+        }
         for (int i = 0, n = nchoices(s); i < n; i++)
             if (choice_value(s, i) == iv) { choice_name(s->choices, i, buf, size); return; }
         choice_name(s->choices, 0, buf, size);
@@ -745,6 +806,10 @@ static void append_missing_sections(const char *path, const char *seen) {
         for (char *q = name; *q; q++) *q = (char)tolower((unsigned char)*q);
         snprintf(key, sizeof key, "|%s|", name);
         if (strstr(seen, key)) continue;
+        // Legacy graphics sections are migrated with their values, never appended
+        // as a fresh default Graphics block that could override the player's file.
+        if (!strcmp(name, "graphics") && (strstr(seen, "|display|") || strstr(seen, "|anti-aliasing|") ||
+            strstr(seen, "|upscaler|") || strstr(seen, "|performance|"))) continue;
         if (!o && !(o = fopen(path, "a"))) return;
         fprintf(o, "\n%.*s", (int)(end ? end - start : (long)strlen(start)), start);
         LOG("[config] added the [%s] section to %s\n", name, path);
@@ -753,20 +818,25 @@ static void append_missing_sections(const char *path, const char *seen) {
 }
 
 void config_load(void) {
+    bool migrate_graphics = false;
+    static const char *const nr_controls[] = {"NRStyle", "NRLocalStructure", "NRLocalTone", "NRSkinStructure", "NRAutoMask", "NRLayers"};
+    unsigned nr_seen = 0;
     char path[1100];
     config_path(path, sizeof path);
     FILE *f = fopen(path, "r");
+    bool existing = f != NULL;
     if (!f) {
         FILE *o = fopen(path, "w");
         if (o) { fputs(DEFAULT_INI, o); fclose(o); LOG("[config] wrote the default settings to %s\n", path); }
         else LOG("[config] %s is missing and could not be written; using the defaults\n", path);
     } else {
-        char buf[512], seen[512] = "|";
+        char buf[512], seen[512] = "|", section[64] = "";
         int line = 0;
         while (fgets(buf, sizeof buf, f)) {
             line++;
             char *s = trim(buf);
             if (*s == '[' && strchr(s, ']') && strlen(seen) + strlen(s) + 2 < sizeof seen) {
+                snprintf(section, sizeof section, "%.*s", (int)(strchr(s, ']') - s - 1), s + 1);
                 for (char *q = s + 1; *q != ']'; q++) {
                     size_t n = strlen(seen);
                     seen[n] = (char)tolower((unsigned char)*q), seen[n + 1] = 0;
@@ -779,6 +849,10 @@ void config_load(void) {
             *eq = 0;
             char *val = trim(eq + 1), *cmt = strpbrk(val, ";#");
             if (cmt) *cmt = 0;
+            const ConfigSetting *setting = config_setting(trim(s));
+            if (setting && !strcmp(setting->section, "Graphics") && strcasecmp(section, "Graphics")) migrate_graphics = true;
+            for (unsigned k = 0; k < sizeof nr_controls / sizeof *nr_controls; k++)
+                if (setting == config_setting(nr_controls[k])) nr_seen |= 1u << k;
             set_key(trim(s), trim(val), line);
         }
         fclose(f);
@@ -788,6 +862,11 @@ void config_load(void) {
     // Keep Auto/Desktop and file values, rather than persisting temporary environment overrides.
     render_auto = !g_config.render_w;
     config_store_loaded(&g_config);
+    if (migrate_graphics || (existing && nr_seen != (1u << (sizeof nr_controls / sizeof *nr_controls)) - 1)) {
+        char error[256];
+        if (!config_save(&g_config, error, sizeof error)) LOG("[config] Graphics update not saved: %s\n", error);
+        else LOG("[config] updated [Graphics], including NR controls\n");
+    }
     const SDL_DisplayMode *dm = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
     desktop_w = dm ? dm->w : 1920, desktop_h = dm ? dm->h : 1080;
     if (!g_config.width) g_config.width = desktop_w, g_config.height = desktop_h;
@@ -831,7 +910,7 @@ void config_load(void) {
         aspect = 1.6f;
     }
     if (fabsf(aspect - 16.0f / 9.0f) < 0.01f) aspect = 16.0f / 9.0f;  // (1366x768 and the like)
-    if (render_auto && g_config.fsr && g_config.display_mode == DISPLAY_BORDERLESS && (tw < desktop_w || th < desktop_h)) {
+    if (render_auto && config_temporal() && g_config.display_mode == DISPLAY_BORDERLESS && (tw < desktop_w || th < desktop_h)) {
         // FSR, Borderless: it upscales straight to the size the picture is shown at (the screen, in the picture's shape)
         // instead of to Resolution, which the window would then stretch again (blurring what FSR rebuilt)
         fit_aspect(desktop_w, desktop_h, aspect, &w, &h);
@@ -845,21 +924,23 @@ void config_load(void) {
             LOG("[config] RenderResolution %dx%d is not the picture's shape (%.3f): using %dx%d\n", g_config.render_w,
                 g_config.render_h, aspect, w, h);
     }
-    if (g_config.fsr) {  // FSR: that size is its output; the game renders smaller (runtime/nvn/vulkan/fsr.c)
+    if (config_temporal()) {  // Shared scene/depth/motion preparation; NR alone keeps the native render size.
         static const float ratio[] = {1.0f, 1.5f, 1.7f, 2.0f, 3.0f};
         static const char *const names[] = {"NativeAA", "Quality", "Balanced", "Performance", "UltraPerformance"};
         g_fsr_output[0] = (uint32_t)w, g_fsr_output[1] = (uint32_t)h;
-        float r = ratio[g_config.fsr_quality];
+        float r = g_config.fsr ? ratio[g_config.fsr_quality] : 1.0f;
         fit_aspect((int)(w / r + 0.5f), (int)(h / r + 0.5f), aspect, &w, &h);
-        if (g_config.msaa > 1) LOG("[config] FSR is on: MSAA off (FSR does the anti-aliasing)\n");
-        if (g_config.fxaa) LOG("[config] FSR is on: FXAA off (FSR does the anti-aliasing)\n");
-        g_config.msaa = 1, g_config.fxaa = 0;
+        if (g_config.msaa > 1) LOG("[config] temporal processing requires single-sample scene depth: MSAA off\n");
+        if (g_config.fsr && g_config.fxaa) LOG("[config] temporal reconstruction is on: FXAA off\n");
+        g_config.msaa = 1;
+        if (g_config.fsr) g_config.fxaa = 0;
         // textures are sampled for the output size (AMD's recommendation: log2(render / output)); MHGU_FSR_LODBIAS
         // overrides (A/B)
         g_fsr_lod_bias = log2f((float)w / (float)g_fsr_output[0]);
         if ((e = getenv("MHGU_FSR_LODBIAS"))) g_fsr_lod_bias = strtof(e, NULL);
-        LOG("[config] FSR %s %s (x%.1f): the 3D picture at %dx%d, upscaled to %ux%u, sharpness %.2f, texture LOD bias "
-            "%.2f\n", g_config.fsr_upscaler == FSR_UP_4 ? "4 (3.1 if it cannot start)" : "3.1", names[g_config.fsr_quality], r, w, h, g_fsr_output[0], g_fsr_output[1], g_config.fsr_sharpness,
+        LOG("[config] %s %s (x%.1f): initial 3D size %dx%d, output %ux%u, sharpness %.2f, texture LOD bias "
+            "%.2f\n", !g_config.fsr ? "NR preparation" : g_config.fsr_upscaler == FSR_UP_DLSS ? "DLSS (SDK size queried before game boot)" :
+                g_config.fsr_upscaler == FSR_UP_4 ? "FSR 4 (3.1 if it cannot start)" : "FSR 3.1", g_config.fsr && g_config.fsr_upscaler == FSR_UP_DLSS && g_config.fsr_quality == FSR_NATIVE ? "DLAA" : names[g_config.fsr ? g_config.fsr_quality : FSR_NATIVE], r, w, h, g_fsr_output[0], g_fsr_output[1], g_config.fsr_sharpness,
             g_fsr_lod_bias);
     }
     g_config.render_w = w, g_config.render_h = h;
