@@ -32,6 +32,7 @@ static void ImGui_ImplVulkan_UpdateTexture(ImTextureData *) {}
 #include "overlay.h"
 #include "hle/chat.h"
 #include "settings_panel.h"
+#include "settings_input.h"
 
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
 
@@ -43,6 +44,8 @@ SDL_Window *ui_window(void);
 
 static std::atomic<bool> g_enabled, g_ready, g_open;
 static std::atomic<bool> g_settings_open, g_forge_open;
+static std::atomic<bool> g_gamepad_input;
+static SettingsInput g_settings_input;
 static int g_menu_key;
 static float g_font_size;
 static ImGuiStyle g_base_style;  // (unscaled; scaled copies follow the window's height)
@@ -159,6 +162,8 @@ void overlay_toggle_settings(void) {
 
 bool overlay_event(const SDL_Event *e) {
     if (!g_enabled) return false;
+    settings_input_event(&g_settings_input, e);
+    if (g_settings_input.gamepad != g_gamepad_input.load()) g_gamepad_input = g_settings_input.gamepad;
     if (e->type == SDL_EVENT_KEY_DOWN && !e->key.repeat && settings_panel_key((int)e->key.scancode)) return true;
     if (e->type == SDL_EVENT_KEY_DOWN && !e->key.repeat && e->key.scancode == SDL_SCANCODE_F1) {
         overlay_toggle_settings();
@@ -217,6 +222,7 @@ void overlay_pad(const OverlayPad *p) {
 }
 
 bool overlay_enabled(void) { return g_enabled; }
+bool overlay_uses_gamepad(void) { return g_gamepad_input; }
 bool overlay_menu_open(void) { return g_open; }
 
 static void apply_input(ImGuiIO &io) {

@@ -17,6 +17,7 @@ void overlay_init(const char *font_path, float font_size, int menu_key);
 bool overlay_enabled(void);
 bool overlay_menu_open(void);
 bool overlay_settings_dirty(void);
+bool overlay_uses_gamepad(void); // Last meaningful input; controls only the host settings hints.
 void overlay_request_close(void); // Close / Alt+F4 routes to controller confirmation inside settings.
 void overlay_face_positions(const int positions[4]);
 int overlay_face_position(int semantic); // A, B, X, Y -> physical south/east/west/north.

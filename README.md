@@ -122,6 +122,8 @@ F1 opens PC settings; Alt+Enter or F11 toggles fullscreen, F12 takes a screensho
 
 Use F1 to adjust graphics, audio, controls and multiplayer. Choose **Save** to keep changes; settings marked with an asterisk require a restart. The ini contains additional explanations. Enabling FSR takes over anti-aliasing.
 
+F1 hints follow your last keyboard/mouse or gamepad input. Use arrows or Tab/Shift+Tab to navigate, Enter or left click to confirm, and Esc/F1 to go back. Click a tab to change categories.
+
 **Smooth gradients** reduces colour banding in skies and glows. It is off by default, takes effect after saving without a restart, and increases GPU work.
 
 | Content                    | Location                                           |

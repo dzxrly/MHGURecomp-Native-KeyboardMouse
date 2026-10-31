@@ -139,16 +139,16 @@ release building is disabled; no runner deployment, remote build inputs or cloud
 The stable Auto mod is included in the repository and is packaged directly, without reading or modifying a ROM:
 
 ```bash
-make dist VERSION=0.11.3 KEYBOARD_MOUSE_MOD=extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto BONUS=
+make dist VERSION=0.11.7.1 KEYBOARD_MOUSE_MOD=extras/keyboard-mouse/prebuilt/Keyboard_Mouse_Input_Auto BONUS=
 ```
 
-This writes `dist/Windows-MHGURecomp.0.11.3.zip` with this project's runtime and updater, the matching game code
+This writes `dist/Windows-MHGURecomp.0.11.7.1.zip` with this project's runtime and updater, the matching game code
 library, required DLLs, licenses and the bundled Auto mod. It excludes raw exefs/romfs, user settings, saves, caches
-and other mods. The version follows the reviewed upstream version in `UPSTREAM_VERSION`. All base game files remain
+and other mods. The version follows the reviewed upstream version in `UPSTREAM_VERSION`; a fourth numeric component identifies this project's own release revision. All base game files remain
 read-only; compatibility changes belong in project code or mod overlays.
 
 After local verification, upload the archive to this repository's normal GitHub release with the same numeric tag
-(`0.11.3`, without `v`). The updater only checks this repository. It may update the bundled Auto mod's `romfs/`
+(`0.11.7.1`, without `v`). The updater only checks this repository. It may update the bundled Auto mod's `romfs/`
 resources while preserving disabled state, load order, other mods, settings and saves. A development version is not
 automatically replaced by a release; `--update-force` and `--update-no-launch` are diagnostic options.
 
@@ -359,7 +359,9 @@ Back appears only as a guide beneath the options. Discard is available only
 in the unsaved-changes confirmation when leaving the menu. App also contains Restart and Exit. The panel is attached on
 every opening; detach allows dragging, and Move menu works with the controller.
 
-Shoulder glyphs bracket the tab labels at the top. The tab header stays pinned
+Controller shoulder glyphs bracket the tab labels when using a gamepad. Keyboard/mouse input shows arrow-key, Enter/left-click and Esc/F1 hints instead; the tab labels remain clickable and Tab/Shift+Tab moves between options. Hints follow the last meaningful host input independently of the gameplay preset. Pointer noise, stick drift and an already held stick direction do not reclaim the hints. The controller icon preference still selects Xbox, Switch or PlayStation glyphs.
+
+The tab header stays pinned
 inside the panel, remains clickable while scrolled and never overlaps option
 selection. Only the options/actions between the header and hints scroll. The bottom guide labels
 the D-pad as Navigation, the confirm button as Confirm, and the back button

@@ -153,14 +153,19 @@ int mod_index(const std::string &name) {
 }
 struct GuideLayout {
     ImVec2 offset[3];
+    float icon_width[3];
+    bool keyboard = false;
     float height = 0;
 };
 GuideLayout guide_layout(float width) {
     GuideLayout layout;
+    layout.keyboard = !overlay_uses_gamepad();
     float f = ImGui::GetFontSize(), x = 0, y = 0;
     const char *labels[] = {"Navigation", "Confirm", "Back"};
+    const int icons[] = {SettingsIcons::Dpad, SettingsIcons::Confirm, SettingsIcons::Back};
     for (int i = 0; i < 3; i++) {
-        float item_width = f * 1.4f + ImGui::CalcTextSize(tr(labels[i])).x;
+        layout.icon_width[i] = layout.keyboard ? SettingsIcons::keyboard_width(f, icons[i]) : f;
+        float item_width = layout.icon_width[i] + f * .4f + ImGui::CalcTextSize(tr(labels[i])).x;
         if (x && x + item_width > width) {
             x = 0;
             y += f + ImGui::GetStyle().ItemSpacing.y;
@@ -182,10 +187,13 @@ void draw_guides(ImGuiWindow *window, const GuideLayout &layout, float top) {
     float f = ImGui::GetFontSize();
     for (int i = 0; i < 3; i++) {
         ImVec2 pos(start.x + layout.offset[i].x, start.y + layout.offset[i].y);
-        SettingsIcons::draw(draw, pos, f, s.draft.button_icons, icons[i],
-                            menu_confirm_position(config_live_menu_confirm(), overlay_face_position(0),
-                                                  overlay_face_position(1), i == 2));
-        draw->AddText(ImVec2(pos.x + f * 1.4f, pos.y), ImGui::GetColorU32(ImGuiCol_Text), tr(labels[i]));
+        if (layout.keyboard)
+            SettingsIcons::keyboard(draw, pos, f, icons[i]);
+        else
+            SettingsIcons::draw(draw, pos, f, s.draft.button_icons, icons[i],
+                                menu_confirm_position(config_live_menu_confirm(), overlay_face_position(0),
+                                                      overlay_face_position(1), i == 2));
+        draw->AddText(ImVec2(pos.x + layout.icon_width[i] + f * .4f, pos.y), ImGui::GetColorU32(ImGuiCol_Text), tr(labels[i]));
     }
 }
 bool confirmation() {
@@ -1506,7 +1514,7 @@ void settings_panel(bool *open) {
         ImVec2 scrolling_start = ImGui::GetCursorScreenPos();
         ImVec2 tabs_start(scrolling_start.x, window->Pos.y + ImGui::GetStyle().WindowPadding.y);
         ImGui::SetCursorScreenPos(tabs_start);
-        float gutter = fw * 2.1f;
+        float gutter = fw * 2.1f; // Keep tab wrapping stable when the input device changes.
         float tabs_width = avail - gutter * 2;
         int columns = tabs_width / fw < 50 ? 4 : PAGES;
         float tabw = (tabs_width - ImGui::GetStyle().ItemSpacing.x * (columns - 1)) / columns;
@@ -1518,11 +1526,13 @@ void settings_panel(bool *open) {
             ImVec2(window->InnerRect.Min.x, window->InnerRect.Min.y),
             ImVec2(window->InnerRect.Max.x, tabs_start.y + header_height + ImGui::GetStyle().ItemSpacing.y),
             ImGui::GetColorU32(ImGuiCol_WindowBg) | IM_COL32_A_MASK);
-        SettingsIcons::draw(header, ImVec2(tabs_start.x, tabs_start.y + (header_height - fw) * .5f), fw,
-                            s.draft.button_icons, SettingsIcons::Left, 0);
-        SettingsIcons::draw(
-            header, ImVec2(tabs_start.x + avail - fw * 1.5f, tabs_start.y + (header_height - fw) * .5f), fw,
-            s.draft.button_icons, SettingsIcons::Right, 0);
+        if (!guides.keyboard) {
+            SettingsIcons::draw(header, ImVec2(tabs_start.x, tabs_start.y + (header_height - fw) * .5f), fw,
+                                s.draft.button_icons, SettingsIcons::Left, 0);
+            SettingsIcons::draw(
+                header, ImVec2(tabs_start.x + avail - fw * 1.5f, tabs_start.y + (header_height - fw) * .5f), fw,
+                s.draft.button_icons, SettingsIcons::Right, 0);
+        }
         for (int i = 0; i < PAGES; i++) {
             if (i % columns)
                 ImGui::SameLine();

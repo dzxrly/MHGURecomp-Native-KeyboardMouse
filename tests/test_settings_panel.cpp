@@ -3,6 +3,7 @@
 #include "config.h"
 #include "app_actions.h"
 #include "overlay.h"
+#include "settings_input.h"
 #include "modorder.h"
 #include "imgui_internal.h"
 #include <cassert>
@@ -16,6 +17,8 @@
 #include <fstream>
 #include <string>
 static int requested;
+static SettingsInput hint_input = {true, {0, 0}};
+extern "C" bool overlay_uses_gamepad(void) { return hint_input.gamepad; }
 extern "C" const char *g_game_dir = "obj/settings-test/game";  // (modorder.c compares archives with the game's)
 extern "C" void ui_request_action(bool restart) { requested = restart ? 2 : 1; }
 extern "C" bool ui_action_failed(void) { return false; }
@@ -85,7 +88,36 @@ static void down(int n = 1) {
 static void tab() { press(ImGuiKey_GamepadR1); }
 static void back() { press(ImGuiKey_GamepadFaceRight); }
 static void confirm() { press(ImGuiKey_GamepadFaceDown); }
+static void check_hint_input() {
+    SDL_Event event = {};
+    event.type = SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+    settings_input_event(&hint_input, &event); assert(hint_input.gamepad);
+    event.type = SDL_EVENT_MOUSE_MOTION; event.motion.xrel = 1;
+    settings_input_event(&hint_input, &event); assert(hint_input.gamepad); // Ignore pointer noise.
+    event.motion.xrel = 4;
+    settings_input_event(&hint_input, &event); assert(!hint_input.gamepad);
+    event = {}; event.type = SDL_EVENT_GAMEPAD_AXIS_MOTION;
+    event.gaxis.axis = SDL_GAMEPAD_AXIS_LEFTX; event.gaxis.value = 100;
+    settings_input_event(&hint_input, &event); assert(!hint_input.gamepad); // Ignore stick drift.
+    event.gaxis.value = 16000;
+    settings_input_event(&hint_input, &event); assert(hint_input.gamepad);
+    event = {}; event.type = SDL_EVENT_KEY_DOWN; event.key.scancode = SDL_SCANCODE_F1;
+    settings_input_event(&hint_input, &event); assert(!hint_input.gamepad);
+    event = {}; event.type = SDL_EVENT_GAMEPAD_AXIS_MOTION;
+    event.gaxis.axis = SDL_GAMEPAD_AXIS_LEFTX; event.gaxis.value = 17000;
+    settings_input_event(&hint_input, &event); assert(!hint_input.gamepad); // Held stick cannot reclaim hints.
+    event.gaxis.value = -16000;
+    settings_input_event(&hint_input, &event); assert(hint_input.gamepad);
+    event = {}; event.type = SDL_EVENT_MOUSE_BUTTON_DOWN; event.button.button = SDL_BUTTON_LEFT;
+    settings_input_event(&hint_input, &event); assert(!hint_input.gamepad);
+    event = {}; event.type = SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+    settings_input_event(&hint_input, &event); assert(hint_input.gamepad);
+    event = {}; event.type = SDL_EVENT_MOUSE_WHEEL; event.wheel.y = 1;
+    settings_input_event(&hint_input, &event); assert(!hint_input.gamepad);
+    hint_input = {true, {0, 0}};
+}
 int main() {
+    check_hint_input();
 #ifdef _WIN32
     _putenv_s("MHGU_CONFIG", "obj/settings-test/panel-settings.ini");
 #else
@@ -532,6 +564,24 @@ int main() {
     selected("display.mode"); // Pinned tabs remain clickable when the option list is scrolled.
     press(ImGuiKey_GamepadR1);
     selected("fps");
+    float controller_body_top = pinned_content_top();
+    hint_input.gamepad = false;
+    idle(20); // Wider keycaps must fit the existing narrow, scaled Spanish layout too.
+    selected("fps");
+    root = ImGui::FindWindowByName("Settings##main");
+    assert(root->Pos.x >= 0 && root->Pos.x + root->Size.x <= io.DisplaySize.x + 1);
+    assert(pinned_content_bottom() > pinned_content_top());
+    assert(pinned_content_top() == controller_body_top); // Input hints cannot reflow the category tabs.
+    press(ImGuiKey_Enter);
+    assert(ImGui::FindWindowByName("Settings##dropdown")->Active);
+    press(ImGuiKey_Escape);
+    selected("fps");
+    press(ImGuiKey_Tab);
+    selected("vsync"); // Tab still moves between options, not categories.
+    press(ImGuiKey_UpArrow);
+    selected("fps");
+    press(ImGuiKey_Escape);
+    assert(!opened);
     opened = false;
     frame();
     assert(!settings_panel_dirty());
