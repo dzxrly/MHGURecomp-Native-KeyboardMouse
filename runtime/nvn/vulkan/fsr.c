@@ -1394,8 +1394,9 @@ static const char NR_PREP_GLSL[] =
     "void main(){ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,imageSize(opaque_scene))))return;"
     "imageStore(opaque_scene,p,vec4(clamp(texelFetch(scene,p,0).rgb,0.0,1.0),1.0));}\n";
 
-// Residual transfer, as used by community NR composition: keep the scene and
-// amplify only the model's edit. This never feeds a composed image into NR history.
+// Keep one NR evaluation. The extra strength is deliberately mild: the old
+// 2x/3x residual also amplified edge reshaping and produced dark contours.
+// Levels 1/2/3 now use 1x/1.25x/1.5x; composed images never enter NR history.
 static const char NR_COMPOSE_GLSL[] =
     "#version 450\n"
     "layout(local_size_x=8,local_size_y=8) in;\n"
@@ -1405,7 +1406,8 @@ static const char NR_COMPOSE_GLSL[] =
     "layout(push_constant) uniform Push { uint layers; } pc;\n"
     "void main(){ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,imageSize(output_scene))))return;"
     "vec3 base=texelFetch(base_scene,p,0).rgb;vec3 edit=texelFetch(neural_scene,p,0).rgb-base;"
-    "imageStore(output_scene,p,vec4(clamp(base+float(pc.layers)*edit,0.0,1.0),1.0));}\n";
+    "float gain=1.0+0.25*float(pc.layers-1u);"
+    "imageStore(output_scene,p,vec4(clamp(base+gain*edit,0.0,1.0),1.0));}\n";
 
 static void run_nr(VkCommandBuffer cb, TexBackend *scene, bool reset, float dt) {
     if (!vk_ngx_nr_ready() || nr_alloc_failed) return;

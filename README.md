@@ -50,7 +50,7 @@ dlss/nr/sm89/nvngx_dlssnr.dll
 | Automatic skin mask | `NRAutoMask` | **On** | On / Off |
 | Effect layers | `NRLayers` | 1 | **1–3** |
 
-Each scene frame runs NR once. Layers 2/3 amplify the difference between that result and the original scene, then composite before the HUD; they do not run the model again. Skin 0 requests no skin-structure enhancement, while other model changes may remain. Detailed help appears in F1 and the INI. NR controls apply when you press Save. Basic NR and SR+NR have been exercised on RTX 4080; RTX 50 and other GPU families remain unverified in this project.
+Each scene frame runs NR once. Levels 1/2/3 use **1.00x / 1.25x / 1.50x** of the difference between the NR result and the original scene, composited before the HUD. Level 1 keeps the direct NR result; levels 2/3 add mild enhancement without running the model again. The reduced gains lessen the dark contours caused by the former 2x/3x amplification. Skin 0 requests no skin-structure enhancement, while other model changes may remain. Detailed help appears in F1 and the INI. NR controls apply when you press Save. Basic NR and SR+NR have been exercised on RTX 4080; RTX 50 and other GPU families remain unverified in this project.
 
 ## Keyboard and mouse
 

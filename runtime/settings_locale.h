@@ -41,7 +41,7 @@ static inline const char *settings_text(int language, const char *english) {
         {"0 requests no skin-structure enhancement; other NR changes can remain", "0 desactiva el realce de estructura de piel; pueden permanecer otros cambios de NR"},
         {"Use the NR runtime's automatic skin mask for Skin structure", "Usa la máscara automática de piel del modelo para la estructura de piel"},
         {"On or Off; restart required", "Sí o No; requiere reiniciar"},
-        {"Effect layers: base + layers * (one NR result - base), clamped to SDR", "Capas: base + capas * (un resultado NR - base), limitado a SDR"},
+        {"Effect strength: 1 = original NR, 2 = 1.25x residual, 3 = 1.5x residual", "Intensidad: 1 = NR original, 2 = residuo 1.25x, 3 = residuo 1.5x"},
         {"One model evaluation per scene frame at every setting; not repeated inference", "Una evaluación del modelo por fotograma de escena en todos los ajustes, sin repetir inferencias"},
         {"Between 1 and 3; restart required", "Entre 1 y 3; requiere reiniciar"},
         {"Active upscaler", "Escalador activo"},

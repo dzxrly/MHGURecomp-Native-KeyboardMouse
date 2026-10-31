@@ -129,7 +129,7 @@ static const char DEFAULT_INI[] =
     "; Default: On\n"
     "NRAutoMask = On\n"
     "\n"
-    "; Effect layers: base + layers * (one NR result - base), clamped to SDR\n"
+    "; Effect strength: 1 = original NR, 2 = 1.25x residual, 3 = 1.5x residual\n"
     "; One model evaluation per scene frame at every setting; not repeated inference\n"
     "; Between 1 and 3; Save applies immediately\n"
     "; Default: 1\n"

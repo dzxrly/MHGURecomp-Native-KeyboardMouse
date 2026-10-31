@@ -183,17 +183,17 @@ NR receives an opaque SDR scene, depth and motion, and runs before the HUD. Deta
 
 Effect layers use the residual-transfer approach documented by [DLSSNR-Cost-Scaler](https://github.com/xenmods/DLSSNR-Cost-Scaler/blob/main/shaders.hlsl).
 
-> In the following formula, $B$ is the opaque SDR input, $N$ is one NR result, $O$ is the final scene and $L$ is an integer effect-layer count from 1 to 3. The minimum and maximum apply per channel, limiting the output to 0–1.
+> In the following formula, $B$ is the opaque SDR input, $N$ is one NR result, $O$ is the final scene and $L$ is an integer effect-strength level from 1 to 3. The residual gain $G=1+0.25(L-1)$ is 1, 1.25 or 1.5. The minimum and maximum apply per channel, limiting the output to 0–1.
 
 $$
-O = \min(1, \max(0, B + L(N-B))).
+O = \min(1, \max(0, B + G(N-B))).
 $$
 
-Layer 1 uses the direct result blit. Layers 2/3 add one small compute composition over the existing images. All settings still issue one model evaluation per scene frame, with no additional model/history allocation. The amplified scene is not fed back into NR history. This approximates effect strength; it is not sequential neural inference.
+Level 1 uses the direct result blit. Levels 2/3 add one small compute composition over the existing images, with 1.25x/1.5x residual gain. All settings still issue one model evaluation per scene frame, with no additional model/history allocation. The amplified scene is not fed back into NR history. This approximates effect strength; it is not sequential neural inference.
 
 The same API-domain residual extrapolation is used by [Overglaze's composition shader](https://github.com/HANsoA-KevinO/overglaze/blob/dd2e1d9925f76c62f9e153230458b62e2225e673/source/native/runtime/include/lab_prepost_ratio_shader.hpp), before its separate HDR ratio transfer. It amplifies every model edit, including softened detail, edge reshaping and local contrast changes. It has no edge or temporal-confidence guard, so increasing layers can produce halos or ghost-like contours even when the single NR result looks acceptable.
 
-In 1080p RTX 4080 / SM89 tests, same-frame GPU readbacks confirmed unchanged NR input and exact 8-bit agreement between the three-layer GPU result and the formula above, with NR alone, FSR 3.1 and DLSS SR. Zero model strength/structure produced an unchanged scene. Stronger contours also remained with NR history reset on every frame and with FP16 NR input/output buffers. These samples identify residual extrapolation as the direct amplifier; input overwrite, composition misalignment, accumulated composed history and 8-bit precision alone do not explain the reproduced contours. They do not establish the absence of all temporal artifacts in other scenes or the Official runtime. Layer 1 remains the conservative setting; higher layers need a composition strategy that limits edge/detail changes rather than treating every residual as an improvement.
+In 1080p RTX 4080 / SM89 tests, same-frame GPU readbacks confirmed unchanged NR input and exact 8-bit agreement with the original 3x residual formula, with NR alone, FSR 3.1 and DLSS SR. Zero model strength/structure produced an unchanged scene. Stronger contours also remained with NR history reset on every frame and with FP16 NR input/output buffers. These samples identify residual extrapolation as the direct amplifier; input overwrite, composition misalignment, accumulated composed history and 8-bit precision alone do not explain the reproduced contours. They do not establish the absence of all temporal artifacts in other scenes or the Official runtime. The adopted 1x/1.25x/1.5x mapping reproduced its intended formula within 8-bit rounding in six GPU capture sets, reducing overdriven contours while retaining some extra contrast. It attenuates all edits uniformly and does not provide edge-specific protection; level 1 remains the conservative setting.
 
 `MHGU_FSR_LOG` enables development statistics/readback work and is unset for normal runs. Temporary timing wrappers are excluded from release executables. Use isolated diagnostics rather than leaving them enabled during gameplay.
 
